@@ -1,12 +1,20 @@
 <?php
-$host = "localhost";
-$user = "root";
-$password = "";
-$dbname = "warehouse_inventory_system";
+// Supabase Database Connection
+$host = 'aws-1-ap-northeast-1.pooler.supabase.com';
+$port = '6543'; 
+$db   = 'postgres';
+$user = 'postgres.YOUR_PROJECT_REF_HERE'; // Replace with your Project Ref
+$pass = 'Wh01302016!2025'; // Replace with your actual password
 
-$conn = new mysqli($host, $user, $password, $dbname);
+$dsn = "pgsql:host=$host;port=$port;dbname=$db;sslmode=require";
 
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
+try {
+    $pdo = new PDO($dsn, $user, $pass, [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES => true,
+    ]);
+} catch (PDOException $e) {
+    die("Connection failed: " . $e->getMessage());
 }
 ?>
