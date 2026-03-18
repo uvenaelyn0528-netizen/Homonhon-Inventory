@@ -1,6 +1,6 @@
 <?php
 session_start();
-include 'db.php';
+include 'db.php'; // This provides the $pdo connection
 
 // Redirect if already logged in
 if (isset($_SESSION['user_id'])) {
@@ -9,30 +9,37 @@ if (isset($_SESSION['user_id'])) {
 }
 
 if (isset($_POST['login'])) {
-    $username = $conn->real_escape_string($_POST['username']);
+    $username = $_POST['username'];
     $password = $_POST['password'];
 
-    // We select everything (*) so we get the 'role' column
-    $result = $conn->query("SELECT * FROM users WHERE username = '$username'");
-    
-    if ($result->num_rows > 0) {
-        $user = $result->fetch_assoc();
-        if (password_verify($password, $user['password'])) {
-            // SETTING THE SESSION: This is the 'Passport' for your index.php
-            $_SESSION['user_id'] = $user['id'];
-            $_SESSION['username'] = $user['username'];
-            $_SESSION['role'] = $user['role']; // <--- THIS MUST EXIST TO FIX THE EMPTY USER TYPE
-            
-            header("Location: index.php");
-            exit();
+    try {
+        // In PDO, we use prepare() to prevent SQL injection (no need for real_escape_string)
+        $stmt = $pdo->prepare("SELECT * FROM users WHERE username = :username");
+        $stmt->execute(['username' => $username]);
+        $user = $stmt->fetch(); // Fetches as an associative array automatically
+
+        if ($user) {
+            if (password_verify($password, $user['password'])) {
+                // SETTING THE SESSION
+                $_SESSION['user_id'] = $user['id'];
+                $_SESSION['username'] = $user['username'];
+                $_SESSION['role'] = $user['role']; 
+                
+                header("Location: index.php");
+                exit();
+            } else {
+                $error = "Maling password!";
+            }
         } else {
-            $error = "Maling password!";
+            $error = "User hindi mahanap!";
         }
-    } else {
-        $error = "User hindi mahanap!";
+    } catch (PDOException $e) {
+        $error = "Database error: " . $e->getMessage();
     }
 }
 ?>
+
+<?php if(isset($error)) echo "<p style='color:red;'>$error</p>"; ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
