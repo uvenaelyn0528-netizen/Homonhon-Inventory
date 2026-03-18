@@ -145,19 +145,19 @@ $role = $_SESSION['role'] ?? 'Viewer';
     </div>
 
     <div id="costingSummary" style="display:none; background: #1a252f; padding: 10px 15px; font-size: 11px; border-radius: 4px; margin: 0 10px;">
-        <?php
-        $cost_query = "SELECT Department, SUM(qty * price) as total_cost FROM inventory GROUP BY Department";
-        $costs = $conn->query($cost_query);
-        if ($costs && $costs->num_rows > 0) {
-            while($row = $costs->fetch_assoc()) {
-                echo '<div style="display: flex; justify-content: space-between; color: white;">';
-                echo '<span>' . $row['Department'] . ':</span>';
-                echo '<span style="color: #27ae60;">₱' . number_format($row['total_cost'], 2) . '</span>';
-                echo '</div>';
-            }
-        }
-        ?>
-    </div>
+    <?php
+    // Updated for PostgreSQL and PDO
+    $cost_query = "SELECT \"Department\", SUM(qty * price) as total_cost FROM inventory GROUP BY \"Department\"";
+    $stmt = $conn->query($cost_query);
+    
+    while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        echo '<div style="display: flex; justify-content: space-between; color: white;">';
+        echo '<span>' . htmlspecialchars($row['Department']) . ':</span>';
+        echo '<span style="color: #27ae60;">₱' . number_format($row['total_cost'], 2) . '</span>';
+        echo '</div>';
+    }
+    ?>
+</div>
 </div>
 
 <div id="mainContent" class="main-content" style="margin-left: 250px;">
