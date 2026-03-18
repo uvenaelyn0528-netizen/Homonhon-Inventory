@@ -1,0 +1,346 @@
+/* 1. GLOBAL VARIABLES */
+:root {
+    --bg-body: #d1d8e0;       
+    --bg-container: #f1f2f6;  
+    --primary: #2c3e50;       
+    --secondary: #34495e;
+    --success: #27ae60;       
+    --warning: #f39c12;       
+    --danger: #e74c3c;        
+    --white: #ffffff;
+    --shadow: 0 8px 30px rgba(0,0,0,0.1);
+}
+
+/* 2. BASE STYLES */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg-body);
+    margin: 0;
+    padding: 20px;
+    color: #333;
+}
+
+.container {
+    width: 98%;
+    max-width: 1600px;
+    margin: auto;
+    background: #241c1b;
+    padding: 20px 30px;
+    border-radius: 15px;
+    box-shadow: var(--shadow);
+    border: 1px solid #8381eb;
+}
+
+.header-section {
+    text-align: center;
+    margin-bottom: 0;
+    border: none;
+    padding-bottom: 0;
+}
+
+.logo {
+    width: 100px;
+    height: auto;
+    transition: transform 0.3s ease;
+}
+
+/* 3. POLISHED SIDEBAR STYLES */
+.sidebar {
+    height: 100%;
+    width: 250px;
+    position: fixed;
+    z-index: 1000;
+    top: 0;
+    left: 0;
+    background-color: #1c1e20;
+    overflow-x: hidden;
+    transition: 0.3s;
+    padding-top: 0; 
+    box-shadow: 4px 0 10px rgba(0,0,0,0.2);
+}
+
+.sidebar-user {
+    padding: 25px 20px !important;
+    background: rgba(0, 0, 0, 0.2); 
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.user-details {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.user-avatar {
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, #078651, #078651);
+    color: #ffffff;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 20px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.user-info-text .username {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    background: #04502c;
+    color: white !important;
+    padding: 10px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-size: 11px;
+    font-weight: 500;
+    margin-top: 5px;
+    transition: 0.3s;
+}
+
+.user-info-text .user-role {
+    background: #012525;
+    padding: 2px 5px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-top: 4px;
+    font-size: 10px;
+    color: white;
+}
+
+.logout-btn-stacked {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: #c0392b;
+    color: white !important;
+    padding: 12px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 11px;
+    font-weight: 800;
+    margin-top: 20px;
+    transition: 0.3s;
+}
+
+.logout-btn-stacked:hover {
+    background: #e74c3c;
+    transform: translateY(-2px);
+}
+
+.sidebar-section {
+    padding: 15px 20px;
+}
+
+.sidebar-section label {
+    display: block;
+    color: #7f8c8d;
+    font-size: 10px;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+    font-weight: bold;
+}
+
+.sidebar-section a {
+    padding: 12px 15px;
+    text-decoration: none;
+    font-size: 14px;
+    color: #bdc3c7;
+    display: block;
+    transition: 0.2s;
+    border-radius: 5px;
+}
+
+.sidebar-section a:hover {
+    background-color: #34495e;
+    color: white;
+    padding-left: 25px;
+}
+
+/* 4. MAIN CONTENT & TOP BAR */
+.main-content {
+    transition: margin-left 0.3s;
+    margin-left: 250px;
+    padding: 0;
+}
+
+.top-bar {
+    background: white;
+    padding: 15px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    position: sticky;
+    top: 0;
+    z-index: 900;
+}
+
+.search-box {
+    display: flex;
+    align-items: center;
+    background: #f1f2f6;
+    padding: 8px 15px;
+    border-radius: 25px;
+    border: 1px solid #ddd;
+    gap: 10px;
+}
+
+.search-box input, .search-box select {
+    border: none;
+    background: transparent;
+    outline: none;
+    font-size: 13px;
+}
+
+/* 5. MODERN TABLE DESIGN & STICKY HEADER */
+.table-container {
+    padding: 20px 40px;
+}
+
+.table-wrapper {
+    margin-top: 20px;
+    max-height: 70vh;
+    overflow-y: auto;
+    border-radius: 10px;
+    border: 1px solid #eee;
+    background: white;
+}
+
+#inventoryTable {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+#inventoryTable thead th {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background-color: var(--primary) !important;
+    color: var(--white) !important;
+    padding: 15px;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.8px;
+}
+
+#inventoryTable td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #eee;
+    font-size: 14px;
+}
+
+#inventoryTable tbody tr:nth-child(even) {
+    background-color: #f2f2f2;
+}
+
+/* 6. ACTION BUTTONS & STATUS BADGES */
+.action-wrapper {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+}
+
+.btn-action {
+    padding: 6px 10px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: 0.3s;
+    border: none;
+    cursor: pointer;
+    color: white !important;
+}
+
+.btn-edit { background-color: #3498db; }
+.btn-withdraw { background-color: #e67e22; }
+.btn-delete { background-color: #e74c3c; }
+
+.btn-action:hover { transform: translateY(-2px); filter: brightness(1.1); }
+
+.status-pending { background: #fff3cd; color: #856404; padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; }
+.status-approved { background: #d4edda; color: #155724; padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; }
+.status-declined { background: #f8d7da; color: #721c24; padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; }
+
+/* 7. ENHANCED MODAL DESIGN */
+.modal {
+    display: none; 
+    position: fixed; 
+    z-index: 9999; 
+    left: 0; top: 0;
+    width: 100%; height: 100%; 
+    background-color: rgba(0,0,0,0.6); 
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background: #ffffff;
+    border-radius: 12px;
+    max-height: 85vh;
+    width: 90%;
+    max-width: 500px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+}
+
+.modal-header {
+    background-color: #f9fafb;
+    padding: 20px 25px;
+    border-bottom: 1px solid #eeeeee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-body-scroll {
+    padding: 25px;
+    overflow-y: auto;
+}
+
+.modal-body-scroll label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #4b5563;
+    margin-bottom: 6px;
+}
+
+.modal-body-scroll input, 
+.modal-body-scroll select {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 14px;
+    border: 1.5px solid #d1d5db;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    box-sizing: border-box;
+}
+
+.submit-btn {
+    width: 100%;
+    padding: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    color: white;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #f1f1f1; }
+::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
+
