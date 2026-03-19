@@ -1,15 +1,28 @@
-<?php 
-die("PHP IS WORKING");
+<?php
+// Force all errors to show
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 session_start();
+
+try {
+    // This is likely where the "Silent Death" happens
+    if (!file_exists('db.php')) {
+        throw new Exception("File 'db.php' is missing from the server.");
+    }
+    require 'db.php'; 
+} catch (Throwable $e) {
+    die("<div style='background:red; color:white; padding:20px; font-family:sans-serif;'>
+            <h2>Database Connection Error</h2>
+            <p>" . $e->getMessage() . "</p>
+            <p>File: " . $e->getFile() . " on line " . $e->getLine() . "</p>
+         </div>");
+}
+
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
     exit();
 }
-include 'db.php'; 
-
-
-// Capture the role from session
-$role = $_SESSION['role'] ?? 'Viewer'; 
 ?>
 <!DOCTYPE html>
 <html lang="en">
