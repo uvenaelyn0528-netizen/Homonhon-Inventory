@@ -272,7 +272,7 @@ html, body {
                     <th>Price</th>
                     <th>Total Amount</th>
                     <?php if ($role == 'Admin' || $role == 'Staff'): ?>
-                      <th style="position: sticky; right: 0; background: #112941; z-index: 11;">Action</th>
+                      <th style="position: sticky; right: 0; background: #112941; z-index: 10;">Action</th>
                     <?php endif; ?>
                 </tr>
             </thead>
