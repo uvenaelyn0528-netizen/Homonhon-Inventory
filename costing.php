@@ -203,61 +203,64 @@ include 'db.php';
     <div class="table-wrapper">
     <?php
     $grand_total = 0;
-    // 1. Prepare and Execute the query via PDO
-    $sql = "SELECT department, purpose, item_name, qty, price, (qty * price) as line_total 
+    
+    // Grouping by department and purpose to get a project-level summary
+    $sql = "SELECT department, purpose, 
+                   SUM(qty) as total_qty, 
+                   SUM(qty * price) as project_total 
             FROM inventory 
             WHERE department IS NOT NULL AND department != ''
-            ORDER BY department ASC, purpose ASC";
+            GROUP BY department, purpose
+            ORDER BY department ASC, project_total DESC";
     
     $stmt = $conn->prepare($sql);
     $stmt->execute();
-    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC); // Fetch all results as an array
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     $current_dept = "";
-    $current_purpose = "";
-    $purpose_total = 0;
 
-    // 2. Check the count of the array (Fixes the num_rows error)
     if (count($rows) > 0):
         foreach($rows as $row):
-            
+            // Check if we have moved to a new Department
             if ($current_dept != $row['department']):
                 if ($current_dept != "") echo "</tbody></table></div>"; 
+                
                 $current_dept = $row['department'];
                 echo "<div class='dept-header'>" . strtoupper($current_dept) . "</div>";
                 echo "<div class='project-section'>";
-                $current_purpose = ""; 
+                echo "<table>
+                        <thead>
+                            <tr>
+                                <th>Project / Purpose</th>
+                                <th style='text-align:center; width: 150px;'>Total Items (Qty)</th>
+                                <th style='text-align:right; width: 200px;'>Total Costing</th>
+                            </tr>
+                        </thead>
+                        <tbody>";
             endif;
 
-            if ($current_purpose != $row['purpose']):
-                if ($current_purpose != "") {
-                    echo "<tr class='subtotal-row'><td colspan='2' style='text-align:right;'>Subtotal:</td>
-                          <td style='text-align:right;'>₱" . number_format($purpose_total, 2) . "</td></tr></tbody></table>";
-                    $purpose_total = 0;
-                }
-                $current_purpose = $row['purpose'];
-                echo "<span class='purpose-label'>📌 PURPOSE: " . ($current_purpose ?: 'GENERAL OPERATIONS') . "</span>";
-                echo "<table><thead><tr><th>Item Description</th><th style='text-align:center; width: 100px;'>Qty</th>
-                      <th style='text-align:right; width: 150px;'>Amount</th></tr></thead><tbody>";
-            endif;
-
-            // 3. Force float for decimal precision
-            $line_cost = (float)$row['line_total'];
-            $purpose_total += $line_cost;
-            $grand_total += $line_cost;
+            $project_cost = (float)$row['project_total'];
+            $grand_total += $project_cost;
     ?>
             <tr class="item-row">
-                <td><?php echo htmlspecialchars($row['item_name']); ?></td>
-                <td style="text-align:center;"><?php echo number_format((float)$row['qty'], 2); ?></td> 
-                <td style="text-align:right;">₱<?php echo number_format($line_cost, 2); ?></td>
+                <td style="font-weight: 600; color: #2c3e50;">
+                    📌 <?php echo htmlspecialchars($row['purpose'] ?: 'GENERAL OPERATIONS'); ?>
+                </td>
+                <td style="text-align:center;">
+                    <?php echo number_format((float)$row['total_qty'], 2); ?>
+                </td>
+                <td style="text-align:right; font-weight: bold; color: #2980b9;">
+                    ₱<?php echo number_format($project_cost, 2); ?>
+                </td>
             </tr>
     <?php 
         endforeach; 
-        echo "<tr class='subtotal-row'><td colspan='2' style='text-align:right;'>Subtotal:</td>
-              <td style='text-align:right;'>₱" . number_format($purpose_total, 2) . "</td></tr></tbody></table></div>";
+        echo "</tbody></table></div>"; // Close final department table
     else: 
     ?>
-        <div style="text-align: center; padding: 100px; color: #7f8c8d;"><h3>No data found.</h3></div>
+        <div style="text-align: center; padding: 100px; color: #7f8c8d;">
+            <h3>No departmental data found.</h3>
+        </div>
     <?php endif; ?>
 </div>
 
