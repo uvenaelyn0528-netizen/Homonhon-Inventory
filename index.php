@@ -7,6 +7,8 @@ session_start();
 
 // ADD THIS LINE HERE TO FIX THE WARNINGS
 $role = $_SESSION['role'] ?? 'Viewer'; 
+// Check if a role is set in the session, otherwise default to 'guest'
+$role = $_SESSION['role'] ?? 'guest';
 
 try {
     if (!file_exists('db.php')) {
