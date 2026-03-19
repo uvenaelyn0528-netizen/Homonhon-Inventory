@@ -3,25 +3,37 @@ include 'db.php';
 session_start();
 
 if (isset($_POST['update_summary'])) {
-    $id = $_POST['id'];
-    $rr = mysqli_real_escape_string($conn, $_POST['rr_number']);
-    
-    // This value comes from the <input name="RDATE"> in your form
+    // Ensure only Admin/Staff can perform this action if needed
+    if (!isset($_SESSION['role']) || ($_SESSION['role'] !== 'Admin' && $_SESSION['role'] !== 'Staff')) {
+        die("Unauthorized access.");
+    }
+
+    $id    = $_POST['id'];
+    $rr    = $_POST['rr_number'];
     $rdate = $_POST['RDATE']; 
-    $qty = $_POST['Qty'];
+    $qty   = $_POST['Qty'];
 
-    // FIXED: Changed 'RDATE' to 'received_date' to match your DB table
-    $sql = "UPDATE received_history SET 
-            rr_number = '$rr', 
-            received_date = '$rdate', 
-            Qty = '$qty' 
-            WHERE id = '$id'";
+    try {
+        // Use PDO Prepared Statements (No need for mysqli_real_escape_string)
+        $sql = "UPDATE received_history SET 
+                rr_number = :rr, 
+                received_date = :rdate, 
+                \"Qty\" = :qty 
+                WHERE id = :id";
 
-    if ($conn->query($sql)) {
+        $stmt = $conn->prepare($sql);
+        $stmt->execute([
+            ':rr'    => $rr,
+            ':rdate' => $rdate,
+            ':qty'   => $qty,
+            ':id'    => $id
+        ]);
+
         header("Location: received_summary.php?msg=success");
-    } else {
-        // This will now show the specific error if something else is wrong
-        echo "Error updating record: " . $conn->error;
+        exit();
+    } catch (PDOException $e) {
+        // Detailed error reporting for debugging
+        echo "Database Error: " . $e->getMessage();
     }
 }
 ?>
