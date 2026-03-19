@@ -2,36 +2,59 @@
 include 'db.php';
 
 if (isset($_POST['id']) && isset($_POST['withdraw_qty'])) {
-    $id = $conn->real_escape_string($_POST['id']);
+    $id = intval($_POST['id']);
     $qty_to_withdraw = (int)$_POST['withdraw_qty'];
-    $dept = $conn->real_escape_string($_POST['Department']);
-    $purpose = $conn->real_escape_string($_POST['Purpose']);
+    $dept = $_POST['Department'] ?? '';
+    $purpose = $_POST['Purpose'] ?? '';
 
-    // 1. Fetch original item details to populate the withdrawal log
-    $res = $conn->query("SELECT * FROM inventory WHERE id = $id");
-    $item = $res->fetch_assoc();
+    try {
+        // 1. Fetch original item details (Case-insensitive check for column names)
+        $stmt = $conn->prepare("SELECT * FROM inventory WHERE id = :id");
+        $stmt->execute(['id' => $id]);
+        $item = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if ($item && $item['Qty'] >= $qty_to_withdraw) {
+        // Check for 'Qty' or 'qty' (Supabase/PostgreSQL is case-sensitive)
+        $current_qty = $item['qty'] ?? $item['Qty'] ?? 0;
 
-        // 2. Reduce the stock in inventory table
-        $conn->query("UPDATE inventory SET Qty = Qty - $qty_to_withdraw WHERE id = $id");
+        if ($item && $current_qty >= $qty_to_withdraw) {
 
-        // 3. Insert into your NEW withdrawals table structure
-        $name = $conn->real_escape_string($item['item_name']);
-        $spec = $conn->real_escape_string($item['Specification']);
-        $um = $conn->real_escape_string($item['UM']);
-        $amount = $item['Amount']; // Transfers the unit price/amount
+            // 2. Reduce the stock in inventory table
+            // We use the lowercase 'qty' to match standard PostgreSQL naming
+            $update = $conn->prepare("UPDATE inventory SET qty = qty - :withdraw WHERE id = :id");
+            $update->execute(['withdraw' => $qty_to_withdraw, 'id' => $id]);
 
-        $sql = "INSERT INTO withdrawals (item_name, Specification, UM, QTY, Department, Purpose, Amoun) 
-                VALUES ('$name', '$spec', '$um', '$qty_to_withdraw', '$dept', '$purpose', '$amount')";
-        
-        if($conn->query($sql)) {
-            header("Location: index.php?status=success");
+            // 3. Insert into withdrawals table
+            $name = $item['item_name'] ?? '';
+            $spec = $item['specification'] ?? $item['Specification'] ?? '';
+            $um = $item['um'] ?? $item['UM'] ?? '';
+            $price = $item['price'] ?? $item['Price'] ?? $item['Amount'] ?? 0;
+
+            // Note: Fixed 'Amoun' typo to 'amount' and used lowercase for PostgreSQL compatibility
+            $sql = "INSERT INTO withdrawals (item_name, specification, um, qty, department, purpose, amount) 
+                    VALUES (:name, :spec, :um, :qty, :dept, :purpose, :amount)";
+            
+            $insert = $conn->prepare($sql);
+            $success = $insert->execute([
+                'name'    => $name,
+                'spec'    => $spec,
+                'um'      => $um,
+                'qty'     => $qty_to_withdraw,
+                'dept'    => $dept,
+                'purpose' => $purpose,
+                'amount'  => $price
+            ]);
+
+            if($success) {
+                header("Location: index.php?status=success");
+                exit();
+            } else {
+                echo "Error logging withdrawal.";
+            }
         } else {
-            echo "Error logging withdrawal: " . $conn->error;
+            echo "<script>alert('Error: Insufficient stock!'); window.location='index.php';</script>";
         }
-    } else {
-        echo "<script>alert('Error: Insufficient stock!'); window.location='index.php';</script>";
+    } catch (PDOException $e) {
+        echo "Database Error: " . $e->getMessage();
     }
 }
 ?>
