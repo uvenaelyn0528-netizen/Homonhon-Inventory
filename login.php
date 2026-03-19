@@ -14,8 +14,11 @@ if (isset($_POST['login'])) {
 
     try {
         // In PDO, we use prepare() to prevent SQL injection (no need for real_escape_string)
-       $stmt = $conn->prepare("SELECT * FROM users WHERE username = ?");
-        $stmt->execute(['username' => $username]);
+       // The SQL uses :username
+$stmt = $conn->prepare("SELECT * FROM users WHERE username = :username");
+
+// The execute must use 'username' as the key
+$stmt->execute(['username' => $_POST['username']]);
         $user = $stmt->fetch(); // Fetches as an associative array automatically
 
         if ($user) {
