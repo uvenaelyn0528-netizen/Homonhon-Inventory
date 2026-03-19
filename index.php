@@ -72,37 +72,75 @@ if (!isset($_SESSION['user_id'])) {
         .submit-btn { width: 100%; padding: 12px; border: none; border-radius: 6px; color: white; font-weight: bold; cursor: pointer; }
         .close-modal { cursor: pointer; font-size: 20px; color: #666; }
 
-        /* Prevent the whole page from scrolling */
-        html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; }
+        /* 1. Allow the page to handle the layout correctly */
+html, body { 
+    height: 100%; 
+    margin: 0; 
+    padding: 0; 
+    overflow: hidden; /* Keeps the sidebar fixed while the main area scrolls */
+}
 
-        /* Fix the layout of the main content */
-        .main-content {
+      /* 2. Fix the layout of the main content */
+.main-content {
     margin-left: 250px;
-    background: #f4f7f6; /* The light grey you see */
-    min-height: 100vh;
-    display: flex !important; /* Ensure it's not hidden */
+    background: #f4f7f6;
+    height: 100vh; /* Full viewport height */
+    display: flex;
     flex-direction: column;
+    transition: margin-left 0.5s;
+}
+CSS
+/* 1. Allow the page to handle the layout correctly */
+html, body { 
+    height: 100%; 
+    margin: 0; 
+    padding: 0; 
+    overflow: hidden; /* Keeps the sidebar fixed while the main area scrolls */
 }
 
-        /* Make the table container the only scrollable area */
-       .table-container {
+/* 2. Fix the layout of the main content */
+.main-content {
+    margin-left: 250px;
+    background: #f4f7f6;
+    height: 100vh; /* Full viewport height */
+    display: flex;
+    flex-direction: column;
+    transition: margin-left 0.5s;
+}
+
+/* 3. The magic for Scrollbars */
+.table-container {
+    flex: 1;                /* Takes up remaining height */
+    overflow-x: auto;       /* ENABLE SIDE-TO-SIDE SCROLL */
+    overflow-y: auto;       /* ENABLE UP-AND-DOWN SCROLL */
     padding: 20px;
+    background: #f4f7f6;
+}
+/* 4. Ensure the table doesn't shrink, forcing the scrollbar */
+#inventoryTable {
+    min-width: 1200px;      /* Force side-scroll on smaller screens */
     width: 100%;
-    box-sizing: border-box;
+    background: white;
+    border-collapse: collapse;
 }
 
-        /* Sticky Header */
-        #inventoryTable thead th { position: sticky; top: 0; z-index: 100; background: var(--dark-blue); color: white; }
-        
-        .sidebar { height: 100%; overflow-y: auto; scrollbar-width: thin; width: 250px; position: fixed; left: 0; top: 0; background: var(--dark-blue); transition: 0.5s; }
-        .sidebar::-webkit-scrollbar { width: 6px; }
-        .sidebar::-webkit-scrollbar-thumb { background: #3e4f5f; }
+/* 5. Keep the Header at the top while scrolling down */
+#inventoryTable thead th { 
+    position: sticky; 
+    top: 0; 
+    z-index: 10; 
+    background: var(--dark-blue); 
+    color: white; 
+    padding: 12px;
+}
 
-        /* Force modals to stay on the very top layer */
-        .modal, #withdrawModal, #editItemModal, #addItemModal, #requestItemModal {
-            z-index: 9999 !important;
-            position: fixed !important;
-        }
+/* 6. Fix the 'Action' column to the right side so it's always visible (Optional) */
+.action-cell {
+    position: sticky;
+    right: 0;
+    background: white;
+    box-shadow: -2px 0 5px rgba(0,0,0,0.05);
+}
     </style>
 </head>
 <body>
@@ -234,7 +272,7 @@ if (!isset($_SESSION['user_id'])) {
                     <th>Price</th>
                     <th>Total Amount</th>
                     <?php if ($role == 'Admin' || $role == 'Staff'): ?>
-                        <th style="position: sticky; right: 0; background: #112941;">Action</th>
+                      <th style="position: sticky; right: 0; background: #112941; z-index: 11;">Action</th>
                     <?php endif; ?>
                 </tr>
             </thead>
