@@ -38,7 +38,10 @@ try {
                 <td>$purp</td>
                 <td>₱" . number_format($price, 2) . "</td>
                 <td>₱" . number_format($stock * $price, 2) . "</td>
-                <td style='display:flex; gap:5px;'>";
+                // ... inside your foreach loop ...
+
+            // UPDATE THIS LINE BELOW:
+            echo "<td style='position: sticky; right: 0; background: white; border-left: 2px solid #ddd; display: flex; gap: 5px; z-index: 5;'>";
             
             // Withdrawal button for Admin/Staff
             if ($role == 'Admin' || $role == 'Staff') {
@@ -50,7 +53,7 @@ try {
                 echo "<button title='Edit' onclick='openEditModal($id, \"" . addslashes($name) . "\", \"" . addslashes($spec) . "\", $min, $max)' style='background:#3498db; color:white; border:none; padding:5px 8px; border-radius:4px; cursor:pointer;'>✏️</button>";
             }
 
-            echo "</td></tr>";
+            echo "</td>"; // Close the sticky TD
         }
     } else {
         echo "<tr><td colspan='11' style='text-align:center; padding:20px;'>No items found in inventory.</td></tr>";
