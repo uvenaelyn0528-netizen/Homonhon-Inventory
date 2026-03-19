@@ -41,8 +41,8 @@ try {
                 // ... inside your foreach loop ...
 
             // UPDATE THIS LINE BELOW:
-            echo "<td style='position: sticky; right: 0; background: white; border-left: 2px solid #ddd; display: flex; gap: 5px; z-index: 5;'>";
-            
+          // Use single quotes for the HTML styles to avoid the syntax error
+echo "<td style='position: sticky; right: 0; background: white; border-left: 2px solid #ddd; display: flex; gap: 5px; z-index: 5;'>";
             // Withdrawal button for Admin/Staff
             if ($role == 'Admin' || $role == 'Staff') {
                 echo "<button title='Withdraw' onclick='openWithdrawModal($id, \"" . addslashes($name) . "\", $stock)' style='background:#e67e22; color:white; border:none; padding:5px 8px; border-radius:4px; cursor:pointer;'>📤</button>";
