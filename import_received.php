@@ -1,89 +1,78 @@
 <?php
-// Enable error reporting to see exactly what is failing
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
 include 'db.php';
 
 if (isset($_POST['submit_import'])) {
-    // 1. Check if a file was actually uploaded
     if (isset($_FILES["excel_file"]) && $_FILES["excel_file"]["error"] == 0) {
         $filename = $_FILES["excel_file"]["tmp_name"];
         $file = fopen($filename, "r");
 
-        // 2. Skip the header row (the titles in Excel)
-        fgetcsv($file); 
+        fgetcsv($file); // Skip header row
 
         $count = 0;
-        while (($column = fgetcsv($file, 10000, ",")) !== FALSE) {
-            // Basic check: skip empty rows
-            if (empty($column[0])) continue;
 
-            // Mapping columns (Adjust the index numbers if your Excel order is different)
-            $item_name     = mysqli_real_escape_string($conn, trim($column[0]));
-            $specification = mysqli_real_escape_string($conn, trim($column[1]));
-            $um            = mysqli_real_escape_string($conn, trim($column[2]));
-            $qty           = mysqli_real_escape_string($conn, trim($column[3]));
-            $department    = mysqli_real_escape_string($conn, trim($column[4]));
-            $purpose       = mysqli_real_escape_string($conn, trim($column[5]));
-            $raw_date      = trim($column[6]);
-            $rr_number     = mysqli_real_escape_string($conn, trim($column[7]));
-            $supplier      = mysqli_real_escape_string($conn, trim($column[8]));
+        try {
+            // 1. Prepare statements OUTSIDE the loop for better performance
+            $stmt_log = $conn->prepare("INSERT INTO received_history 
+                (item_name, specification, um, qty, department, purpose, received_date, rr_number, supplier) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
-            // --- DATE FIX: Convert common formats to MySQL YYYY-MM-DD ---
-            $received_date = date('Y-m-d', strtotime($raw_date));
+            $stmt_check = $conn->prepare("SELECT id FROM inventory WHERE item_name = ? AND specification = ? LIMIT 1");
 
-            // Insert into history
-            $sql_log = "INSERT INTO received_history (item_name, Specification, UM, Qty, Department, Purpose, received_date, rr_number, supplier) 
-                        VALUES ('$item_name', '$specification', '$um', '$qty', '$department', '$purpose', '$received_date', '$rr_number', '$supplier')";
-            
-            if(mysqli_query($conn, $sql_log)) {
-                // Check if exists in inventory to update RDATE and RR#
-                $check_item = mysqli_query($conn, "SELECT id FROM inventory WHERE item_name = '$item_name' AND Specification = '$specification' LIMIT 1");
+            $stmt_update = $conn->prepare("UPDATE inventory SET rr_number = ?, rdate = ? WHERE id = ?");
 
-                if (mysqli_num_rows($check_item) > 0) {
-                    mysqli_query($conn, "UPDATE inventory SET rr_number = '$rr_number', RDATE = '$received_date' WHERE item_name = '$item_name' AND Specification = '$specification'");
+            $stmt_insert = $conn->prepare("INSERT INTO inventory 
+                (item_name, specification, um, department, rdate, rr_number) 
+                VALUES (?, ?, ?, ?, ?, ?)");
+
+            while (($column = fgetcsv($file, 10000, ",")) !== FALSE) {
+                if (empty($column[0])) continue;
+
+                // Mapping columns - No more mysqli_real_escape_string needed!
+                $item_name     = trim($column[0]);
+                $specification = trim($column[1]);
+                $um            = trim($column[2]);
+                $qty           = trim($column[3]);
+                $department    = trim($column[4]);
+                $purpose       = trim($column[5]);
+                $raw_date      = trim($column[6]);
+                $rr_number     = trim($column[7]);
+                $supplier      = trim($column[8]);
+
+                $received_date = date('Y-m-d', strtotime($raw_date));
+
+                // 2. Execute History Log
+                $stmt_log->execute([
+                    $item_name, $specification, $um, $qty, $department, 
+                    $purpose, $received_date, $rr_number, $supplier
+                ]);
+
+                // 3. Update or Insert into Inventory
+                $stmt_check->execute([$item_name, $specification]);
+                $existing = $stmt_check->fetch(PDO::FETCH_ASSOC);
+
+                if ($existing) {
+                    $stmt_update->execute([$rr_number, $received_date, $existing['id']]);
                 } else {
-                    mysqli_query($conn, "INSERT INTO inventory (item_name, Specification, UM, Department, RDATE, rr_number) VALUES ('$item_name', '$specification', '$um', '$department', '$received_date', '$rr_number')");
+                    $stmt_insert->execute([
+                        $item_name, $specification, $um, $department, 
+                        $received_date, $rr_number
+                    ]);
                 }
                 $count++;
             }
+            
+            fclose($file);
+            header("Location: received_summary.php?msg=success&count=$count");
+            exit();
+
+        } catch (PDOException $e) {
+            die("Database Error: " . $e->getMessage());
         }
-        fclose($file);
-        header("Location: received_summary.php?msg=success&count=$count");
-        exit();
     } else {
         echo "<script>alert('Error: No file selected or file too large.'); window.location.href='import_received.php';</script>";
     }
 }
 ?>
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Import Data</title>
-</head>
-<body style="background-color: #f4f7f6; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0;">
-
-<div style="background: white; padding: 40px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center;">
-    <h2 style="color: #112941; margin-top: 0;">📥 Bulk Import</h2>
-    <p style="color: #666; font-size: 14px;">Save your Excel file as <b>CSV (Comma Delimited)</b></p>
-    
-    <form action="import_received.php" method="POST" enctype="multipart/form-data" style="margin-top: 20px;">
-        <div style="border: 2px dashed #cbd5e0; padding: 30px; border-radius: 10px; margin-bottom: 20px; background: #f8fafc;">
-            <input type="file" name="excel_file" accept=".csv" required style="font-size: 14px;">
-        </div>
-        
-        <button type="submit" name="submit_import" style="background: #27ae60; color: white; width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s;">
-            🚀 Start Import
-        </button>
-    </form>
-    
-    <div style="margin-top: 20px;">
-        <a href="received_summary.php" style="text-decoration: none; color: #7f8c8d; font-size: 13px;">⬅ Back to Summary</a>
-    </div>
-</div>
-
-</body>
-</html>
