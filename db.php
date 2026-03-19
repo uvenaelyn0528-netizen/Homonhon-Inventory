@@ -1,20 +1,16 @@
 <?php
-// Supabase Database Connection
-$host = 'aws-1-ap-northeast-1.pooler.supabase.com';
-$port = '6543'; 
+$host = 'db.otrkginfndevnotgkajc.supabase.co'; 
 $db   = 'postgres';
-$user = 'postgres.otrkginfndevnotgkajc'; // Replace with your Project Ref
-$pass = 'Wh01302016!2025'; // Replace with your actual password
-
-$dsn = "pgsql:host=$host;port=$port;dbname=$db;sslmode=require";
+$user = 'postgres';
+$pass = 'Wh01302016!2025'; 
+$port = "5432";
 
 try {
-    $pdo = new PDO($dsn, $user, $pass, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        PDO::ATTR_EMULATE_PREPARES => true,
+    $dsn = "pgsql:host=$host;port=$port;dbname=$db;";
+    $conn = new PDO($dsn, $user, $pass, [
+        PDO::ATTR_ERRMODE => PDO::ATTR_ERRMODE_EXCEPTION
     ]);
 } catch (PDOException $e) {
-    die("Connection failed: " . $e->getMessage());
+    throw new Exception("Connection failed: " . $e->getMessage());
 }
 ?>
