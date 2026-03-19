@@ -1,36 +1,37 @@
 <?php 
 include 'db.php'; 
-session_start();
+if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
-// Replace with your actual session: $_SESSION['role']
-$role = $_SESSION['role'] ?? 'Admin'; 
+$role = $_SESSION['role'] ?? 'Viewer'; 
 
 // PM Approval Logic
 if ($role == 'Project Manager' && isset($_GET['pm_approve']) && isset($_GET['id'])) {
     $id = intval($_GET['id']);
-    $conn->query("UPDATE item_requests SET status = 'PM Approved' WHERE request_id = $id");
+    $stmt = $conn->prepare("UPDATE item_requests SET status = 'PM Approved' WHERE request_id = :id");
+    $stmt->execute(['id' => $id]);
     header("Location: view_requests.php");
     exit();
 }
 
-// Head Office Purchasing Logic (Local vs PO)
+// Head Office Purchasing Logic
 if ($role == 'Head Office Purchasing' && isset($_GET['set_type']) && isset($_GET['id'])) {
     $id = intval($_GET['id']);
-    $type = $_GET['set_type']; // 'Local' or 'PO'
-    $conn->query("UPDATE item_requests SET remarks = '$type', status = 'Processed' WHERE request_id = $id");
+    $type = $_GET['set_type']; 
+    $stmt = $conn->prepare("UPDATE item_requests SET remarks = :type, status = 'Processed' WHERE request_id = :id");
+    $stmt->execute(['type' => $type, 'id' => $id]);
     header("Location: view_requests.php");
     exit();
 }
 
-// Admin/Staff General Delete/Approve
+// Admin Delete Logic
 if ($role == 'Admin' && isset($_GET['delete_id'])) {
     $id = intval($_GET['delete_id']);
-    $conn->query("DELETE FROM item_requests WHERE request_id = $id");
+    $stmt = $conn->prepare("DELETE FROM item_requests WHERE request_id = :id");
+    $stmt->execute(['id' => $id]);
     header("Location: view_requests.php");
     exit();
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -269,50 +270,61 @@ if ($role == 'Admin' && isset($_GET['delete_id'])) {
         <th>Purchased</th> <th class="action-col">Action</th>
     </tr>
 </thead>
-            <tbody>
-                <?php
-$res = $conn->query("SELECT * FROM item_requests ORDER BY request_date DESC");
-if ($res && $res->num_rows > 0) {
-    while ($row = $res->fetch_assoc()) {
-        $status_class = "status-" . strtolower($row['status']);
-        $formatted_date = date('M d, Y', strtotime($row['request_date']));
+           <tbody>
+<?php
+// Execute query using PDO
+$stmt = $conn->prepare("SELECT * FROM item_requests ORDER BY request_date DESC");
+$stmt->execute();
+$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// FIX: Use count() instead of ->num_rows
+if ($rows && count($rows) > 0) {
+    foreach ($rows as $row) {
+        // Handle case-sensitivity for column names
+        $request_id = $row['request_id'] ?? $row['id'];
+        $status = $row['status'] ?? 'Pending';
+        $status_class = "status-" . strtolower($status);
+        
+        $raw_date = $row['request_date'] ?? '';
+        $formatted_date = ($raw_date && $raw_date != '0000-00-00') ? date('M d, Y', strtotime($raw_date)) : '---';
+        
         $remark_val = $row['remarks'] ?? '';
         $bg_color = ($remark_val == 'PO') ? '#3498db' : '#9b59b6';
-        $rf_display = $row['RF_Number'] ?? $row['rf_number'] ?? $row['RF'] ?? '---';
+        $rf_display = $row['rf_number'] ?? $row['RF_Number'] ?? $row['RF'] ?? '---';
         
         $rec_status = $row['received_status'] ?? 'Pending';
         $rec_class = ($rec_status == 'Received') ? 'received-yes' : 'received-no';
         
         echo "<tr style='border-bottom: 1px solid #edf2f7;'>";
-            echo "<td style='padding: 10px; font-size: 11px;'>" . $formatted_date . "</td>";
+            echo "<td style='padding: 10px; font-size: 11px;'>$formatted_date</td>";
             echo "<td style='padding: 10px;'>
-                    <strong style='font-size: 13px; display: block; color: #112941;'>" . htmlspecialchars($row['item_name']) . "</strong>";
+                    <strong style='font-size: 13px; display: block; color: #112941;'>" . htmlspecialchars($row['item_name'] ?? '') . "</strong>";
                     if (!empty($row['specification'])) {
                         echo "<small style='color: #7f8c8d; font-size: 11px; font-style: italic;'>" . htmlspecialchars($row['specification']) . "</small>";
                     }
             echo "</td>";
 
-            echo "<td style='text-align: center; font-weight: bold;'>" . $row['qty'] . "</td>";
+            echo "<td style='text-align: center; font-weight: bold;'>" . ($row['qty'] ?? 0) . "</td>";
             
             echo "<td style='text-align: center;'>";
                 if($remark_val) {
-                    echo "<span class='remark-badge' style='background: " . $bg_color . "; color: white; padding: 2px 6px; border-radius: 10px; font-size: 9px;'>" . $remark_val . "</span>";
+                    echo "<span class='remark-badge' style='background: $bg_color; color: white; padding: 2px 6px; border-radius: 10px; font-size: 9px;'>$remark_val</span>";
                 }
             echo "</td>";
 
-            echo "<td style='font-size: 12px;'>" . htmlspecialchars($row['department']) . "</td>";
+            echo "<td style='font-size: 12px;'>" . htmlspecialchars($row['department'] ?? '') . "</td>";
             echo "<td style='font-size: 11px; color: #555; max-width: 120px;'>" . htmlspecialchars($row['purpose'] ?? '-') . "</td>";
-            echo "<td style='font-size: 12px;'>" . htmlspecialchars($row['requested_by']) . "</td>";
-            echo "<td style='text-align: center; font-weight: bold; color: #2980b9;'>" . $rf_display . "</td>";
-            echo "<td style='text-align: center;'><span class='" . $status_class . "' style='font-size: 10px;'>" . $row['status'] . "</span></td>";
+            echo "<td style='font-size: 12px;'>" . htmlspecialchars($row['requested_by'] ?? '') . "</td>";
+            echo "<td style='text-align: center; font-weight: bold; color: #2980b9;'>$rf_display</td>";
+            echo "<td style='text-align: center;'><span class='$status_class' style='font-size: 10px;'>$status</span></td>";
             
             echo "<td style='text-align: center;'>
                     <div style='display: flex; flex-direction: column; gap: 4px; align-items: center;'>
-                        <span class='" . $rec_class . "' style='margin-bottom: 4px;'>" . $rec_status . "</span>
+                        <span class='$rec_class' style='margin-bottom: 4px;'>$rec_status</span>
                         <div style='display: flex; gap: 3px;'>";
                             if ($role == 'Admin' || $role == 'Staff') {
-                                echo "<a href='view_requests.php?received_action=yes&id=" . $row['request_id'] . "' class='btn-yes' title='Mark as Received'>Yes</a>";
-                                echo "<a href='view_requests.php?received_action=no&id=" . $row['request_id'] . "' class='btn-no' title='Mark as Pending'>No</a>";
+                                echo "<a href='view_requests.php?received_action=yes&id=$request_id' class='btn-yes' title='Mark as Received'>Yes</a>";
+                                echo "<a href='view_requests.php?received_action=no&id=$request_id' class='btn-no' title='Mark as Pending'>No</a>";
                             } else {
                                 echo "<a href='javascript:void(0)' onclick='restricted(\"Admin or Staff\")' class='btn-yes' style='opacity:0.5;'>Yes</a>";
                                 echo "<a href='javascript:void(0)' onclick='restricted(\"Admin or Staff\")' class='btn-no' style='opacity:0.5;'>No</a>";
@@ -321,45 +333,30 @@ if ($res && $res->num_rows > 0) {
                     </div>
                 </td>";
 
-echo "<td class='action-col'>
-        <div class='action-btns'>";
-
-            // EDIT Logic
-            if ($role == 'Admin' || $role == 'Staff') {
-                echo "<a href='#' class='edit-btn' onclick='openEditModal(" . htmlspecialchars(json_encode($row)) . ")'>Edit</a>";
-            } else {
-                echo "<a href='javascript:void(0)' class='edit-btn' style='background:#bdc3c7;' onclick='restricted(\"Admin or Staff\")'>Edit</a>";
-            }
-
-            // PM APPROVE Logic
-            if ($role == 'Project Manager' && $row['status'] == 'Pending') {
-                echo "<a href='view_requests.php?pm_approve=1&id=" . $row['request_id'] . "' class='approve-btn' style='background:#27ae60;'>PM Approve</a>";
-            } else {
-                echo "<a href='javascript:void(0)' class='approve-btn' style='background:#bdc3c7;' onclick='restricted(\"Project Manager\")'>Approve</a>";
-            }
-
-            // HEAD OFFICE Logic
-            if ($role == 'Head Office Purchasing') {
-                echo "<a href='view_requests.php?set_type=Local&id=" . $row['request_id'] . "' class='approve-btn' style='background:#8e44ad;'>Set Local</a>";
-                echo "<a href='view_requests.php?set_type=PO&id=" . $row['request_id'] . "' class='approve-btn' style='background:#2980b9;'>Set PO</a>";
-            } else {
-                echo "<a href='javascript:void(0)' class='approve-btn' style='background:#bdc3c7;' onclick='restricted(\"Head Office\")'>Process</a>";
-            }
-
-            // DELETE Logic
-            if ($role == 'Admin') {
-                echo "<a href='view_requests.php?delete_id=" . $row['request_id'] . "' class='delete-btn-req' onclick='return confirm(\"Delete?\")'>Delete</a>";
-            } else {
-                echo "<a href='javascript:void(0)' class='delete-btn-req' style='background:#bdc3c7;' onclick='restricted(\"Admin\")'>Delete</a>";
-            }
-
-echo "  </div>
-      </td>";
+            echo "<td class='action-col'>
+                    <div class='action-btns'>";
+                        if ($role == 'Admin' || $role == 'Staff') {
+                            echo "<a href='#' class='edit-btn' onclick='openEditModal(" . htmlspecialchars(json_encode($row)) . ")'>Edit</a>";
+                        }
+                        if ($role == 'Project Manager' && $status == 'Pending') {
+                            echo "<a href='view_requests.php?pm_approve=1&id=$request_id' class='approve-btn' style='background:#27ae60;'>PM Approve</a>";
+                        }
+                        if ($role == 'Head Office Purchasing') {
+                            echo "<a href='view_requests.php?set_type=Local&id=$request_id' class='approve-btn' style='background:#8e44ad;'>Set Local</a>";
+                            echo "<a href='view_requests.php?set_type=PO&id=$request_id' class='approve-btn' style='background:#2980b9;'>Set PO</a>";
+                        }
+                        if ($role == 'Admin') {
+                            echo "<a href='view_requests.php?delete_id=$request_id' class='delete-btn-req' onclick='return confirm(\"Delete?\")'>Delete</a>";
+                        }
+            echo "  </div>
+                </td>";
         echo "</tr>";
     }
+} else {
+    echo "<tr><td colspan='11' style='text-align:center; padding: 20px;'>No request records found.</td></tr>";
 }
 ?>
-            </tbody>
+</tbody>
         </table>
     </div>
 </div>
