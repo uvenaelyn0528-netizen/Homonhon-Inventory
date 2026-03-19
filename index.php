@@ -5,13 +5,16 @@ ini_set('display_errors', 1);
 
 session_start();
 
+// ADD THIS LINE HERE TO FIX THE WARNINGS
+$role = $_SESSION['role'] ?? 'Viewer'; 
+
 try {
-    // This is likely where the "Silent Death" happens
     if (!file_exists('db.php')) {
         throw new Exception("File 'db.php' is missing from the server.");
     }
     require 'db.php'; 
 } catch (Throwable $e) {
+    // ... rest of your error handling
     die("<div style='background:red; color:white; padding:20px; font-family:sans-serif;'>
             <h2>Database Connection Error</h2>
             <p>" . $e->getMessage() . "</p>
