@@ -201,59 +201,65 @@ include 'db.php';
     </div>
 
     <div class="table-wrapper">
-        <?php
-        $grand_total = 0;
-        $sql = "SELECT Department, Purpose, item_name, qty, price, (qty * price) as line_total 
-                FROM inventory 
-                WHERE Department IS NOT NULL AND Department != ''
-                ORDER BY Department ASC, Purpose ASC";
-        $result = $conn->query($sql);
+    <?php
+    $grand_total = 0;
+    // 1. Prepare and Execute the query via PDO
+    $sql = "SELECT department, purpose, item_name, qty, price, (qty * price) as line_total 
+            FROM inventory 
+            WHERE department IS NOT NULL AND department != ''
+            ORDER BY department ASC, purpose ASC";
+    
+    $stmt = $conn->prepare($sql);
+    $stmt->execute();
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC); // Fetch all results as an array
 
-        $current_dept = "";
-        $current_purpose = "";
-        $purpose_total = 0;
+    $current_dept = "";
+    $current_purpose = "";
+    $purpose_total = 0;
 
-        if ($result && $result->num_rows > 0):
-            while($row = $result->fetch_assoc()):
-                
-                if ($current_dept != $row['Department']):
-                    if ($current_dept != "") echo "</tbody></table></div>"; 
-                    $current_dept = $row['Department'];
-                    echo "<div class='dept-header'>" . strtoupper($current_dept) . "</div>";
-                    echo "<div class='project-section'>";
-                    $current_purpose = ""; 
-                endif;
+    // 2. Check the count of the array (Fixes the num_rows error)
+    if (count($rows) > 0):
+        foreach($rows as $row):
+            
+            if ($current_dept != $row['department']):
+                if ($current_dept != "") echo "</tbody></table></div>"; 
+                $current_dept = $row['department'];
+                echo "<div class='dept-header'>" . strtoupper($current_dept) . "</div>";
+                echo "<div class='project-section'>";
+                $current_purpose = ""; 
+            endif;
 
-                if ($current_purpose != $row['Purpose']):
-                    if ($current_purpose != "") {
-                        echo "<tr class='subtotal-row'><td colspan='2' style='text-align:right;'>Subtotal:</td>
-                              <td style='text-align:right;'>₱" . number_format($purpose_total, 2) . "</td></tr></tbody></table>";
-                        $purpose_total = 0;
-                    }
-                    $current_purpose = $row['Purpose'];
-                    echo "<span class='purpose-label'>📌 PURPOSE: " . ($current_purpose ?: 'GENERAL OPERATIONS') . "</span>";
-                    echo "<table><thead><tr><th>Item Description</th><th style='text-align:center; width: 100px;'>Qty</th>
-                          <th style='text-align:right; width: 150px;'>Amount</th></tr></thead><tbody>";
-                endif;
+            if ($current_purpose != $row['purpose']):
+                if ($current_purpose != "") {
+                    echo "<tr class='subtotal-row'><td colspan='2' style='text-align:right;'>Subtotal:</td>
+                          <td style='text-align:right;'>₱" . number_format($purpose_total, 2) . "</td></tr></tbody></table>";
+                    $purpose_total = 0;
+                }
+                $current_purpose = $row['purpose'];
+                echo "<span class='purpose-label'>📌 PURPOSE: " . ($current_purpose ?: 'GENERAL OPERATIONS') . "</span>";
+                echo "<table><thead><tr><th>Item Description</th><th style='text-align:center; width: 100px;'>Qty</th>
+                      <th style='text-align:right; width: 150px;'>Amount</th></tr></thead><tbody>";
+            endif;
 
-                $line_cost = (float)$row['line_total'];
-                $purpose_total += $line_cost;
-                $grand_total += $line_cost;
-        ?>
-                <tr class="item-row">
-                    <td><?php echo htmlspecialchars($row['item_name']); ?></td>
-                    <td style="text-align:center;"><?php echo number_format($row['qty']); ?></td>
-                    <td style="text-align:right;">₱<?php echo number_format($line_cost, 2); ?></td>
-                </tr>
-        <?php 
-            endwhile; 
-            echo "<tr class='subtotal-row'><td colspan='2' style='text-align:right;'>Subtotal:</td>
-                  <td style='text-align:right;'>₱" . number_format($purpose_total, 2) . "</td></tr></tbody></table></div>";
-        else: 
-        ?>
-            <div style="text-align: center; padding: 100px; color: #7f8c8d;"><h3>No data found.</h3></div>
-        <?php endif; ?>
-    </div>
+            // 3. Force float for decimal precision
+            $line_cost = (float)$row['line_total'];
+            $purpose_total += $line_cost;
+            $grand_total += $line_cost;
+    ?>
+            <tr class="item-row">
+                <td><?php echo htmlspecialchars($row['item_name']); ?></td>
+                <td style="text-align:center;"><?php echo number_format((float)$row['qty'], 2); ?></td> 
+                <td style="text-align:right;">₱<?php echo number_format($line_cost, 2); ?></td>
+            </tr>
+    <?php 
+        endforeach; 
+        echo "<tr class='subtotal-row'><td colspan='2' style='text-align:right;'>Subtotal:</td>
+              <td style='text-align:right;'>₱" . number_format($purpose_total, 2) . "</td></tr></tbody></table></div>";
+    else: 
+    ?>
+        <div style="text-align: center; padding: 100px; color: #7f8c8d;"><h3>No data found.</h3></div>
+    <?php endif; ?>
+</div>
 
     <div class="grand-total-bar">
         <div>
