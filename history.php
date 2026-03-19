@@ -203,31 +203,45 @@
                 </tr>
             </thead>
             <tbody>
-                <?php
-                $query = "SELECT * FROM withdrawals ORDER BY Wdate DESC"; 
-                $result = mysqli_query($conn, $query);
+    <?php
+    // PDO equivalent of mysqli_query
+    // Note: Added fallback for lowercase 'wdate' just in case
+    $query = "SELECT * FROM withdrawals ORDER BY wdate DESC"; 
+    $stmt = $conn->query($query);
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-                if ($result && mysqli_num_rows($result) > 0) {
-                    while ($row = mysqli_fetch_assoc($result)) {
-                        $formattedDate = date('M d, Y', strtotime($row['Wdate']));
-                        echo "<tr>
-                            <td style='font-weight: 600; color: #34495e; text-align: center;'>$formattedDate</td>
-                            <td style='font-weight: 600;'>".htmlspecialchars($row['item_name'])."</td>
-                            <td style='color: #7f8c8d;'>".htmlspecialchars($row['Specification'])."</td>
-                            <td style='color:#e67e22; font-weight: bold; text-align: center;'>- " . number_format($row['QTY']) . "</td>
-                            <td><span style='background: #f1f2f6; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;'>".htmlspecialchars($row['Department'])."</span></td>
-                            <td style='font-style: italic; color: #7f8c8d;'>".htmlspecialchars($row['Purpose'])."</td>
-                            <td style='font-weight: 500;'>".htmlspecialchars($row['Name'] ?: 'N/A')."</td>
-                            <td class='action-col' style='text-align: center;'>
-                                <a href='delete_log.php?id=".$row['id']."&type=withdrawal' class='delete-btn-log' onclick=\"return confirm('Delete record?')\">🗑️ Delete</a>
-                            </td>
-                        </tr>";
-                    }
-                } else {
-                    echo "<tr><td colspan='8' style='text-align:center; padding: 40px; color: #95a5a6;'>No withdrawal records found.</td></tr>";
-                }
-                ?>
-            </tbody>
+    if ($rows && count($rows) > 0) {
+        foreach ($rows as $row) {
+            // Handle potential casing differences between MySQL and PostgreSQL
+            $db_date = $row['wdate'] ?? $row['Wdate'] ?? '';
+            $formattedDate = ($db_date) ? date('M d, Y', strtotime($db_date)) : '---';
+            
+            $item_name = htmlspecialchars($row['item_name'] ?? $row['Item_Name'] ?? '');
+            $spec = htmlspecialchars($row['specification'] ?? $row['Specification'] ?? '');
+            $qty = number_format($row['qty'] ?? $row['QTY'] ?? 0);
+            $dept = htmlspecialchars($row['department'] ?? $row['Department'] ?? '');
+            $purpose = htmlspecialchars($row['purpose'] ?? $row['Purpose'] ?? '');
+            $name = htmlspecialchars($row['name'] ?? $row['Name'] ?? 'N/A');
+            $id = $row['id'] ?? 0;
+
+            echo "<tr>
+                <td style='font-weight: 600; color: #34495e; text-align: center;'>$formattedDate</td>
+                <td style='font-weight: 600;'>$item_name</td>
+                <td style='color: #7f8c8d;'>$spec</td>
+                <td style='color:#e67e22; font-weight: bold; text-align: center;'>- $qty</td>
+                <td><span style='background: #f1f2f6; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;'>$dept</span></td>
+                <td style='font-style: italic; color: #7f8c8d;'>$purpose</td>
+                <td style='font-weight: 500;'>$name</td>
+                <td class='action-col' style='text-align: center;'>
+                    <a href='delete_log.php?id=$id&type=withdrawal' class='delete-btn-log' onclick=\"return confirm('Delete record?')\">🗑️ Delete</a>
+                </td>
+            </tr>";
+        }
+    } else {
+        echo "<tr><td colspan='8' style='text-align:center; padding: 40px; color: #95a5a6;'>No withdrawal records found.</td></tr>";
+    }
+    ?>
+</tbody>
         </table>
     </div>
 
