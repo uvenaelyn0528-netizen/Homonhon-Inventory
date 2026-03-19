@@ -53,7 +53,7 @@ echo "<td style='position: sticky; right: 0; background: white; border-left: 2px
                 echo "<button title='Edit' onclick='openEditModal($id, \"" . addslashes($name) . "\", \"" . addslashes($spec) . "\", $min, $max)' style='background:#3498db; color:white; border:none; padding:5px 8px; border-radius:4px; cursor:pointer;'>✏️</button>";
             }
 
-            echo "</td>"; // Close the sticky TD
+            echo "</td>""</tr>"; // Close the sticky TD
         }
     } else {
         echo "<tr><td colspan='11' style='text-align:center; padding:20px;'>No items found in inventory.</td></tr>";
