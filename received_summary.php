@@ -181,41 +181,48 @@ $role = strtolower(trim($raw_role));
                 </tr>
             </thead>
            <tbody>
-   <?php
+<?php
 $stmt = $conn->prepare("SELECT * FROM received_history ORDER BY received_date DESC, log_timestamp DESC");
 $stmt->execute();
 $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 if ($rows && count($rows) > 0) {
     foreach ($rows as $row) {
-        // Use 'received_date' from your Supabase screenshot
         $db_date = $row['received_date'] ?? ''; 
         $formattedDate = ($db_date) ? date('M d, Y', strtotime($db_date)) : '---';
         
-        // Use lowercase column names as seen in your Supabase dashboard
+        // Use exact lowercase column names from your Supabase schema
         $item_name = htmlspecialchars($row['item_name'] ?? '');
         $spec      = htmlspecialchars($row['specification'] ?? '');
-        $qty       = number_format($row['qty'] ?? 0);
-        $rr_no     = htmlspecialchars($row['rr_number'] ?? ''); // From screenshot
-        $supplier  = htmlspecialchars($row['supplier'] ?? '');  // From screenshot
+        $qty       = (float)($row['qty'] ?? 0);
+        $price     = (float)($row['price'] ?? 0);
+        $amount    = (float)($row['amount'] ?? ($qty * $price));
+        $rr_no     = htmlspecialchars($row['rr_number'] ?? '');
+        $supplier  = htmlspecialchars($row['supplier'] ?? '');
         $dept      = htmlspecialchars($row['department'] ?? '');
+        $purpose   = htmlspecialchars($row['purpose'] ?? '');
         $id        = $row['id'] ?? 0;
 
         echo "<tr>
-            <td style='text-align: center;'>$formattedDate</td>
-            <td style='font-weight: bold;'>$item_name</td>
-            <td>$spec</td>
-            <td style='text-align: center; color: green; font-weight: bold;'>+ $qty</td>
-            <td>$dept</td>
-            <td style='text-align: center; font-family: monospace;'>$rr_no</td>
+            <td>$formattedDate</td>
+            <td style='font-family: monospace;'>$rr_no</td>
             <td>$supplier</td>
-            <td class='action-col'>
-                <a href='delete_log.php?id=$id&type=received' class='delete-btn-log' onclick=\"return confirm('Delete this record?')\">🗑️</a>
+            <td><b style='color: #112941;'>$item_name</b><br><small style='color: #7f8c8d;'>$spec</small></td>
+            <td style='text-align: center; color: green; font-weight: bold;'>+ " . number_format($qty, 2) . "</td>
+            <td style='text-align: right;'>" . number_format($price, 2) . "</td>
+            <td style='text-align: right; font-weight: bold;'>" . number_format($amount, 2) . "</td>
+            <td>$dept</td>
+            <td>$purpose</td>
+            <td class='action-col' style='text-align: center;'>
+                <a href='#' class='delete-btn-log' style='background: #e3f2fd; color: #1976d2; margin-right: 5px;' 
+                   onclick=\"openEditSummaryModal('$id', '$item_name', '$db_date', '$qty', '$dept', '$purpose', '$rr_no', '$supplier', '$price')\">📝</a>
+                <a href='delete_log.php?id=$id&type=received' class='delete-btn-log' 
+                   onclick=\"return confirm('Delete this record?')\">🗑️</a>
             </td>
         </tr>";
     }
 } else {
-    echo "<tr><td colspan='8' style='text-align:center; padding: 30px;'>No received records found in database.</td></tr>";
+    echo "<tr><td colspan='10' style='text-align:center; padding: 30px;'>No received records found in database.</td></tr>";
 }
 ?>
 </tbody>
