@@ -38,13 +38,13 @@ try {
                 <td>$purp</td>
                 <td>₱" . number_format($price, 2) . "</td>
                 <td>₱" . number_format($stock * $price, 2) . "</td>
-                // ... inside your foreach loop ...
+                 <td style='display:flex; gap:5px;'>";
 
-            // UPDATE THIS LINE BELOW:
-          // Use single quotes for the HTML styles to avoid the syntax error
-echo "<td style='position: sticky; right: 0; background: white; border-left: 2px solid #ddd; display: flex; gap: 5px; z-index: 5;'>";
             // Withdrawal button for Admin/Staff
             if ($role == 'Admin' || $role == 'Staff') {
+                echo "<td>
+                    <button onclick='openWithdrawModal({$row['id']}, \"" . addslashes($name) . "\", $stock)' style='background:#e67e22; color:white; border:none; padding:5px; border-radius:4px; cursor:pointer;'>📤</button>
+                </td>";
                 echo "<button title='Withdraw' onclick='openWithdrawModal($id, \"" . addslashes($name) . "\", $stock)' style='background:#e67e22; color:white; border:none; padding:5px 8px; border-radius:4px; cursor:pointer;'>📤</button>";
             }
 
@@ -52,8 +52,9 @@ echo "<td style='position: sticky; right: 0; background: white; border-left: 2px
             if ($role == 'Admin') {
                 echo "<button title='Edit' onclick='openEditModal($id, \"" . addslashes($name) . "\", \"" . addslashes($spec) . "\", $min, $max)' style='background:#3498db; color:white; border:none; padding:5px 8px; border-radius:4px; cursor:pointer;'>✏️</button>";
             }
+            echo "</tr>";
 
-            echo "</td>""</tr>"; // Close the sticky TD
+            echo "</td></tr>";
         }
     } else {
         echo "<tr><td colspan='11' style='text-align:center; padding:20px;'>No items found in inventory.</td></tr>";
