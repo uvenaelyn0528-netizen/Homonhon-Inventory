@@ -181,68 +181,43 @@ $role = strtolower(trim($raw_role));
                 </tr>
             </thead>
            <tbody>
-    <?php
-    // 1. Prepare and execute using PDO (Supabase style)
-    $stmt = $conn->prepare("SELECT * FROM received_history ORDER BY log_timestamp DESC");
-    $stmt->execute();
-    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+   <?php
+$stmt = $conn->prepare("SELECT * FROM received_history ORDER BY received_date DESC, log_timestamp DESC");
+$stmt->execute();
+$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // 2. Use count() instead of num_rows
-    if(count($rows) > 0) {
-        foreach($rows as $row) {
-            // Case-insensitive column mapping (Fixes PostgreSQL "Undefined index" errors)
-            $current_id = $row['id'] ?? null;
-            $price = $row['price'] ?? $row['Price'] ?? 0;
-            $qty = $row['qty'] ?? $row['Qty'] ?? 0;
-            $amount = $price * $qty;
-            
-            $item_name = htmlspecialchars($row['item_name'] ?? '');
-            $spec = htmlspecialchars($row['specification'] ?? $row['Specification'] ?? '');
-            $rr_number = htmlspecialchars($row['rr_number'] ?? '');
-            $supplier = htmlspecialchars($row['supplier'] ?? '');
-            $dept = htmlspecialchars($row['department'] ?? $row['Department'] ?? '');
-            $purpose = htmlspecialchars($row['purpose'] ?? $row['Purpose'] ?? '');
-            
-            // Fix Date display
-            $raw_date = $row['received_date'] ?? '';
-            $displayDate = ($raw_date != '0000-00-00' && !empty($raw_date)) 
-                           ? date('M d, Y', strtotime($raw_date)) 
-                           : '---';
+if ($rows && count($rows) > 0) {
+    foreach ($rows as $row) {
+        // Use 'received_date' from your Supabase screenshot
+        $db_date = $row['received_date'] ?? ''; 
+        $formattedDate = ($db_date) ? date('M d, Y', strtotime($db_date)) : '---';
+        
+        // Use lowercase column names as seen in your Supabase dashboard
+        $item_name = htmlspecialchars($row['item_name'] ?? '');
+        $spec      = htmlspecialchars($row['specification'] ?? '');
+        $qty       = number_format($row['qty'] ?? 0);
+        $rr_no     = htmlspecialchars($row['rr_number'] ?? ''); // From screenshot
+        $supplier  = htmlspecialchars($row['supplier'] ?? '');  // From screenshot
+        $dept      = htmlspecialchars($row['department'] ?? '');
+        $id        = $row['id'] ?? 0;
 
-            echo "<tr>
-                <td style='white-space:nowrap;'>$displayDate</td>
-                <td style='font-weight: bold; color: #e67e22;'>$rr_number</td>
-                <td>$supplier</td>
-                <td>
-                    <strong>$item_name</strong><br>
-                    <small style='color: #7f8c8d;'>$spec</small>
-                </td>
-                <td style='text-align: center;'>+ " . number_format($qty) . "</td>
-                <td style='text-align: right;'>₱" . number_format($price, 2) . "</td>
-                <td style='text-align: right; font-weight: bold;'>₱" . number_format($amount, 2) . "</td>
-                <td>$dept</td>
-                <td>$purpose</td>
-                <td class='action-col' style='text-align: center;'>";
-                    
-                    if($role === 'admin' || $role === 'staff') {
-                        // Pass cleaned variables to JavaScript
-                        echo "<button onclick=\"openEditSummaryModal('$current_id', '" . addslashes($item_name) . "', '$raw_date', '$qty', '$dept', '" . addslashes($purpose) . "', '$rr_number', '" . addslashes($supplier) . "', '$price')\" 
-                            style='background: #3498db; color: white; border: none; padding: 5px 8px; border-radius: 4px; cursor: pointer; font-size: 11px;'>📝 Edit</button>";
-                    } else {
-                        echo "<button onclick=\"restricted('Admin or Staff')\" style='background: #3498db; opacity: 0.5; color: white; border: none; padding: 5px 8px; border-radius: 4px; cursor: pointer; font-size: 11px;'>📝 Edit</button>";
-                    }
-
-                    if($role === 'admin') {
-                        echo " <a href='delete_log.php?id=$current_id&type=received' class='delete-btn-log' onclick=\"return confirm('Delete?')\">🗑️</a>";
-                    } else {
-                        echo " <button onclick=\"restricted('Admin')\" class='delete-btn-log' style='border:none; cursor:pointer; opacity: 0.5;'>🗑️</button>";
-                    }
-            echo "</td></tr>";
-        }
-    } else {
-        echo "<tr><td colspan='10' style='text-align:center; padding:20px;'>No logs found in history.</td></tr>";
+        echo "<tr>
+            <td style='text-align: center;'>$formattedDate</td>
+            <td style='font-weight: bold;'>$item_name</td>
+            <td>$spec</td>
+            <td style='text-align: center; color: green; font-weight: bold;'>+ $qty</td>
+            <td>$dept</td>
+            <td style='text-align: center; font-family: monospace;'>$rr_no</td>
+            <td>$supplier</td>
+            <td class='action-col'>
+                <a href='delete_log.php?id=$id&type=received' class='delete-btn-log' onclick=\"return confirm('Delete this record?')\">🗑️</a>
+            </td>
+        </tr>";
     }
-    ?>
+} else {
+    echo "<tr><td colspan='8' style='text-align:center; padding: 30px;'>No received records found in database.</td></tr>";
+}
+?>
 </tbody>
         </table>
     </div>
