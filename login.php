@@ -1,5 +1,6 @@
 <?php
 session_start();
+$role = $_SESSION['role'] ?? 'Viewer';
 include 'db.php'; // This provides the $pdo connection
 
 // Redirect if already logged in
