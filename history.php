@@ -204,41 +204,45 @@
             </thead>
             <tbody>
     <?php
-    // PDO equivalent of mysqli_query
-    // Note: Added fallback for lowercase 'wdate' just in case
-    $query = "SELECT * FROM withdrawals ORDER BY wdate DESC"; 
-    $stmt = $conn->query($query);
-    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    try {
+        // Use the exact column name 'withdrawal_date' found in your Supabase dashboard
+        $query = "SELECT * FROM withdrawals ORDER BY withdrawal_date DESC"; 
+        $stmt = $conn->query($query);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    if ($rows && count($rows) > 0) {
-        foreach ($rows as $row) {
-            // Handle potential casing differences between MySQL and PostgreSQL
-            $db_date = $row['wdate'] ?? $row['Wdate'] ?? '';
-            $formattedDate = ($db_date) ? date('M d, Y', strtotime($db_date)) : '---';
-            
-            $item_name = htmlspecialchars($row['item_name'] ?? $row['Item_Name'] ?? '');
-            $spec = htmlspecialchars($row['specification'] ?? $row['Specification'] ?? '');
-            $qty = number_format($row['qty'] ?? $row['QTY'] ?? 0);
-            $dept = htmlspecialchars($row['department'] ?? $row['Department'] ?? '');
-            $purpose = htmlspecialchars($row['purpose'] ?? $row['Purpose'] ?? '');
-            $name = htmlspecialchars($row['name'] ?? $row['Name'] ?? 'N/A');
-            $id = $row['id'] ?? 0;
+        if ($rows && count($rows) > 0) {
+            foreach ($rows as $row) {
+                // Mapping to the specific column names from your database screenshot
+                $db_date = $row['withdrawal_date'] ?? ''; 
+                $formattedDate = ($db_date) ? date('M d, Y', strtotime($db_date)) : '---';
+                
+                $item_name = htmlspecialchars($row['item_name'] ?? '');
+                $spec      = htmlspecialchars($row['specification'] ?? '');
+                $qty       = number_format($row['qty'] ?? 0);
+                $dept      = htmlspecialchars($row['department'] ?? '');
+                $purpose   = htmlspecialchars($row['purpose'] ?? ''); 
+                $name      = htmlspecialchars($row['withdrawn_by'] ?? 'N/A'); 
+                $id        = $row['id'] ?? 0;
 
-            echo "<tr>
-                <td style='font-weight: 600; color: #34495e; text-align: center;'>$formattedDate</td>
-                <td style='font-weight: 600;'>$item_name</td>
-                <td style='color: #7f8c8d;'>$spec</td>
-                <td style='color:#e67e22; font-weight: bold; text-align: center;'>- $qty</td>
-                <td><span style='background: #f1f2f6; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;'>$dept</span></td>
-                <td style='font-style: italic; color: #7f8c8d;'>$purpose</td>
-                <td style='font-weight: 500;'>$name</td>
-                <td class='action-col' style='text-align: center;'>
-                    <a href='delete_log.php?id=$id&type=withdrawal' class='delete-btn-log' onclick=\"return confirm('Delete record?')\">🗑️ Delete</a>
-                </td>
-            </tr>";
+                echo "<tr>
+                    <td style='font-weight: 600; color: #34495e; text-align: center;'>$formattedDate</td>
+                    <td style='font-weight: 600;'>$item_name</td>
+                    <td style='color: #7f8c8d;'>$spec</td>
+                    <td style='color:#e67e22; font-weight: bold; text-align: center;'>- $qty</td>
+                    <td><span style='background: #f1f2f6; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;'>$dept</span></td>
+                    <td style='font-style: italic; color: #7f8c8d;'>$purpose</td>
+                    <td style='font-weight: 500;'>$name</td>
+                    <td class='action-col' style='text-align: center;'>
+                        <a href='delete_log.php?id=$id&type=withdrawal' class='delete-btn-log' onclick=\"return confirm('Delete record?')\">🗑️ Delete</a>
+                    </td>
+                </tr>";
+            }
+        } else {
+            echo "<tr><td colspan='8' style='text-align:center; padding: 40px; color: #95a5a6;'>No withdrawal records found.</td></tr>";
         }
-    } else {
-        echo "<tr><td colspan='8' style='text-align:center; padding: 40px; color: #95a5a6;'>No withdrawal records found.</td></tr>";
+    } catch (PDOException $e) {
+        // Displays the exact error if the query fails again
+        echo "<tr><td colspan='8' style='color:red; text-align:center;'>Database Error: " . htmlspecialchars($e->getMessage()) . "</td></tr>";
     }
     ?>
 </tbody>
