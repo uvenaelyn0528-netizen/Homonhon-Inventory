@@ -1,4 +1,7 @@
 <?php 
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 session_start();
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
@@ -56,10 +59,20 @@ $role = $_SESSION['role'] ?? 'Viewer';
         html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; }
 
         /* Fix the layout of the main content */
-        .main-content { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        .main-content {
+    margin-left: 250px;
+    background: #f4f7f6; /* The light grey you see */
+    min-height: 100vh;
+    display: flex !important; /* Ensure it's not hidden */
+    flex-direction: column;
+}
 
         /* Make the table container the only scrollable area */
-        .table-container { flex: 1; overflow-y: auto; padding: 10px 20px 20px 20px; background: #f4f7f6; }
+       .table-container {
+    padding: 20px;
+    width: 100%;
+    box-sizing: border-box;
+}
 
         /* Sticky Header */
         #inventoryTable thead th { position: sticky; top: 0; z-index: 100; background: var(--dark-blue); color: white; }
