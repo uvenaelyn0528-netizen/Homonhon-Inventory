@@ -21,8 +21,8 @@ $role = strtolower(trim($raw_role));
         /* --- RETAINED ORIGINAL DESIGN --- */
         body {
             background-color: #f4f7f6;
-            padding: 20px;
-            height: 100vh; 
+            padding: 10px;
+            height: 50vh; 
             overflow: hidden; 
             box-sizing: border-box;
             display: flex;
