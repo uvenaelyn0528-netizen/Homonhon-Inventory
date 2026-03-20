@@ -10,13 +10,13 @@ $role = $_SESSION['role'] ?? 'Viewer';
 try {
     $search = $_GET['search'] ?? '';
 
-  // Updated SQL: Matches by item_name instead of item_id
-    $sql = "SELECT i.*, 
-            (SELECT SUM(qty) FROM received_history rh WHERE rh.item_name = i.item_name) as total_received
-            FROM inventory i 
-            WHERE i.item_name ILIKE :search 
-            OR i.department ILIKE :search 
-            ORDER BY i.item_name ASC";
+  // Added 'AND i.is_deleted = FALSE' to the WHERE clause
+$sql = "SELECT i.*, 
+        (SELECT SUM(qty) FROM received_history rh WHERE rh.item_name = i.item_name) as total_received
+        FROM inventory i 
+        WHERE (i.item_name ILIKE :search OR i.department ILIKE :search)
+        AND i.is_deleted = FALSE 
+        ORDER BY i.item_name ASC";
     
     $stmt = $conn->prepare($sql);
     $stmt->execute(['search' => "%$search%"]);
