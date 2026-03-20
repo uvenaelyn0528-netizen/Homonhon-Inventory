@@ -33,13 +33,30 @@ try {
             $min       = $row['min_stock'] ?? 0;
             $max       = $row['max_stock'] ?? 0;
 
+            // --- MIN-MAX WARNING LOGIC ---
+            $stockStyle = "";
+            $warningLabel = "";
+
+            if ($stock <= $min && $min > 0) {
+                // Critical: Low Stock
+                $stockStyle = "background: #ffcccc; color: #8B0000; padding: 2px 6px; border-radius: 4px; border: 1px solid #8B0000;";
+                $warningLabel = " <small style='display:block; font-size:9px;'>⚠️ LOW STOCK</small>";
+            } elseif ($stock > $max && $max > 0) {
+                // Alert: Overstocked
+                $stockStyle = "background: #e1f5fe; color: #01579b; padding: 2px 6px; border-radius: 4px;";
+                $warningLabel = " <small style='display:block; font-size:9px;'>ℹ️ OVERSTOCK</small>";
+            }
+
             echo "<tr>
                 <td style='padding:12px;'><strong>$name</strong></td>
                 <td>$spec</td>
                 <td>$um</td>
                 <td style='color:green;'>$received</td>
                 <td style='color:orange;'>$withdrawn</td>
-                <td><strong>$stock</strong></td>
+                <td>
+                    <span style='$stockStyle'><strong>$stock</strong></span>
+                    $warningLabel
+                </td>
                 <td>$dept</td>
                 <td>$purp</td>
                 <td>₱" . number_format($price, 2) . "</td>
@@ -47,7 +64,8 @@ try {
 
             // Sticky Action Column
             echo "<td style='position: sticky; right: 0; background: white; border-left: 1px solid #ddd; display: flex; gap: 5px; z-index: 5; padding: 10px;'>";
-
+            
+            // ... (Rest of your button logic remains the same) ...
             if ($role == 'Admin' || $role == 'Staff') {
                 echo "<button title='Withdraw' onclick='openWithdrawModal($id, \"" . addslashes($name) . "\", $stock)' style='background:#e67e22; color:white; border:none; padding:5px 8px; border-radius:4px; cursor:pointer;'>📤</button>";
             }
