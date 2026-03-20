@@ -565,6 +565,11 @@ html, body {
     });
 
     function restricted(role) { alert("⛔ Restricted to " + role); }
+    function confirmDelete(id, name) {
+    if (confirm("❗ WARNING: Are you sure you want to delete '" + name + "'?\n\nThis will permanently remove the item from the inventory.")) {
+        window.location.href = "delete_item.php?id=" + id;
+    }
+}
 </script>
 </body>
 </html>
