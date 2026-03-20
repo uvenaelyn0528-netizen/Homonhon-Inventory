@@ -81,9 +81,9 @@ if ($role == 'Admin') {
     // Edit Button
     echo "<button title='Edit' onclick='openEditModal($id, \"" . addslashes($name) . "\", \"" . addslashes($spec) . "\", $min, $max)' style='background:#3498db; color:white; border:none; padding:5px 8px; border-radius:4px; cursor:pointer;'>✏️</button>";
     
-    // DELETE BUTTON (Add this)
-    echo "<button title='Delete' onclick='confirmDelete($id, \"" . addslashes($name) . "\")' style='background:#e74c3c; color:white; border:none; padding:5px 8px; border-radius:4px; cursor:pointer;'>🗑️</button>";
-}
+   echo "<a href='delete_log.php?type=inventory&id=$id' 
+             onclick='return confirm(\"Move this item to Trash? It will be hidden from the inventory.\")' 
+             style='background:#e74c3c; color:white; padding:5px 12px; border-radius:4px; text-decoration:none; font-size:14px;'>🗑️Delete</a>";
 
             echo "</td></tr>";
         }
