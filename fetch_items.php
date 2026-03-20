@@ -76,9 +76,14 @@ try {
                 echo "<button title='Withdraw' onclick='openWithdrawModal($id, \"" . addslashes($name) . "\", $stock)' style='background:#e67e22; color:white; border:none; padding:5px 8px; border-radius:4px; cursor:pointer;'>📤</button>";
             }
 
-            if ($role == 'Admin') {
-                echo "<button title='Edit' onclick='openEditModal($id, \"" . addslashes($name) . "\", \"" . addslashes($spec) . "\", $min, $max)' style='background:#3498db; color:white; border:none; padding:5px 8px; border-radius:4px; cursor:pointer;'>✏️</button>";
-            }
+            // Edit button ONLY for Admin
+if ($role == 'Admin') {
+    // Edit Button
+    echo "<button title='Edit' onclick='openEditModal($id, \"" . addslashes($name) . "\", \"" . addslashes($spec) . "\", $min, $max)' style='background:#3498db; color:white; border:none; padding:5px 8px; border-radius:4px; cursor:pointer;'>✏️</button>";
+    
+    // DELETE BUTTON (Add this)
+    echo "<button title='Delete' onclick='confirmDelete($id, \"" . addslashes($name) . "\")' style='background:#e74c3c; color:white; border:none; padding:5px 8px; border-radius:4px; cursor:pointer;'>🗑️</button>";
+}
 
             echo "</td></tr>";
         }
