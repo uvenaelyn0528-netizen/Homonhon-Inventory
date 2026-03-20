@@ -1,10 +1,13 @@
 <?php
 include 'db.php';
-session_start();
+
+// Only start the session if one isn't already active
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 // Ensure $role is available for the sticky action buttons
 $role = $_SESSION['role'] ?? 'Viewer';
-
 try {
     // 1. Get the search term from the URL
     $search = $_GET['search'] ?? '';
