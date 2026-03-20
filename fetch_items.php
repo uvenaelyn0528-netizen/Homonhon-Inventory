@@ -10,10 +10,9 @@ $role = $_SESSION['role'] ?? 'Viewer';
 try {
     $search = $_GET['search'] ?? '';
 
-    // SQL now calculates BOTH total received and total withdrawn from history tables
+  // Updated SQL: Matches by item_name instead of item_id
     $sql = "SELECT i.*, 
-            (SELECT SUM(qty) FROM received_history rh WHERE rh.item_id = i.id) as total_received,
-            (SELECT SUM(qty) FROM withdrawal_history wh WHERE wh.item_id = i.id) as total_withdrawn
+            (SELECT SUM(qty) FROM received_history rh WHERE rh.item_name = i.item_name) as total_received
             FROM inventory i 
             WHERE i.item_name ILIKE :search 
             OR i.department ILIKE :search 
@@ -29,8 +28,8 @@ try {
             $name  = htmlspecialchars($row['item_name'] ?? '');
             $spec  = htmlspecialchars($row['specification'] ?? '');
             
-            // USE THE CALCULATED TOTALS INSTEAD OF STATIC COLUMNS
-            $received  = $row['total_received'] ?? 0; 
+          // Use total_received from the subquery; fallback to 0 if no history found
+            $received  = $row['total_received'] ?? 0;
             $withdrawn = $row['total_withdrawn'] ?? 0;
             $stock     = $received - $withdrawn;
 
