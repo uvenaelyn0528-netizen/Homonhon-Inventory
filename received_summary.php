@@ -99,32 +99,41 @@ if ($rows) {
                     <th>DATE</th><th>RR NUMBER</th><th>SUPPLIER</th><th>ITEM DESCRIPTION</th><th>UM</th><th>QTY</th><th>PRICE</th><th>AMOUNT</th><th>DEPT</th><th>PURPOSE</th><th class="action-col">ACTION</th>
                 </tr>
             </thead>
-            <tbody>
-                <?php if ($rows): foreach ($rows as $row): 
-                    $p = floatval($row['price'] ?? 0); $q = floatval($row['qty'] ?? 0);
-                ?>
-                <tr>
-                    <td><?= date('M d, Y', strtotime($row['received_date'])) ?></td>
-                    <td style="font-weight:bold; color:#2980b9;"><?= htmlspecialchars($row['rr_number'] ?? '---') ?></td>
-                    <td><?= htmlspecialchars($row['supplier'] ?? '---') ?></td>
-                    <td><strong><?= htmlspecialchars($row['item_name'] ?? '') ?></strong><br><small><?= htmlspecialchars($row['specification'] ?? '') ?></small></td>
-                    <td style="color:green; font-weight:bold;">+ <?= number_format($q, 2) ?></td>
-                    <td>₱<?= number_format($p, 2) ?></td>
-                    <td>₱<?= number_format($p * $q, 2) ?></td>
-                    <td><?= htmlspecialchars($row['department'] ?? '') ?></td>
-                    <td><?= htmlspecialchars($row['purpose'] ?? '') ?></td>
-                    <td class="action-col">
-                        <?php if ($role === 'admin'): ?>
-                            <a href='delete_received_row.php?id=<?= $row['id'] ?>' onclick="return confirm('Delete this row?')" style="text-decoration:none;">🗑️</a>
-                        <?php else: ?>
-                            🔒
-                        <?php endif; ?>
-                    </td>
-                </tr>
-                <?php endforeach; else: ?>
-                    <tr><td colspan="10" style="text-align:center; padding:20px;">No records found.</td></tr>
-                <?php endif; ?>
-            </tbody>
+           <tbody>
+    <?php if ($rows): foreach ($rows as $row): 
+        $p = floatval($row['price'] ?? 0); 
+        $q = floatval($row['qty'] ?? 0);
+        $amount = $row['amount'] ?? ($p * $q);
+    ?>
+    <tr>
+        <td><?= date('M d, Y', strtotime($row['received_date'])) ?></td>
+        <td style="font-weight:bold; color:#2980b9;"><?= htmlspecialchars($row['rr_number'] ?? '---') ?></td>
+        <td><?= htmlspecialchars($row['supplier'] ?? '---') ?></td>
+        <td>
+            <strong><?= htmlspecialchars($row['item_name'] ?? '') ?></strong><br>
+            <small><?= htmlspecialchars($row['specification'] ?? '') ?></small>
+        </td>
+        
+        <td style="font-weight:bold; color:#7f8c8d;"><?= htmlspecialchars($row['um'] ?? 'PC/S') ?></td>
+        
+        <td style="color:green; font-weight:bold;">+ <?= number_format($q, 2) ?></td>
+        <td>₱<?= number_format($p, 2) ?></td>
+        <td>₱<?= number_format($amount, 2) ?></td>
+        <td><?= htmlspecialchars($row['department'] ?? '') ?></td>
+        <td><?= htmlspecialchars($row['purpose'] ?? '') ?></td>
+        
+        <td class="action-col">
+            <?php if ($role === 'admin'): ?>
+                <a href='delete_received_row.php?id=<?= $row['id'] ?>' onclick="return confirm('Delete this row?')" style="text-decoration:none;">🗑️</a>
+            <?php else: ?>
+                🔒
+            <?php endif; ?>
+        </td>
+    </tr>
+    <?php endforeach; else: ?>
+        <tr><td colspan="11" style="text-align:center; padding:20px;">No records found.</td></tr>
+    <?php endif; ?>
+</tbody>
         </table>
     </div>
 </div>
