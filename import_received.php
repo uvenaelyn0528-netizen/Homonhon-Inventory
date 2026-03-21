@@ -75,13 +75,18 @@ if (isset($_POST['import_btn'])) {
                     $current_id = $result['id'];
                 }
 
-                // LOG THE RECEIPT in received_history so your 'Total Received' column updates
-                $historySql = "INSERT INTO received_history (item_name, qty, date_received) 
-                               VALUES (:name, :qty, NOW())";
+               // LOG THE RECEIPT in received_history using your actual column names
+                $historySql = "INSERT INTO received_history 
+                               (item_name, specification, um, qty, department, received_date) 
+                               VALUES (:name, :spec, :um, :qty, :dept, NOW())";
+                
                 $historyStmt = $conn->prepare($historySql);
                 $historyStmt->execute([
                     'name' => $item_name,
-                    'qty'  => $qty_received
+                    'spec' => $specification,
+                    'um'   => $um,
+                    'qty'  => $qty_received,
+                    'dept' => $department
                 ]);
             }
 
