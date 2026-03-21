@@ -10,19 +10,10 @@ $role = $_SESSION['role'] ?? 'Viewer';
 try {
     $search = $_GET['search'] ?? '';
 
-    // Department Mapping Array
-    $dept_map = [
-        1 => 'Warehouse',
-        2 => 'Admin',
-        3 => 'Mechanical',
-        4 => 'Safety',
-        5 => 'Engineering'
-    ];
-
     $sql = "SELECT i.*, 
             (SELECT SUM(qty) FROM received_history rh WHERE rh.item_name = i.item_name) as total_received
             FROM inventory i 
-            WHERE (i.item_name ILIKE :search OR i.department::text ILIKE :search)
+            WHERE (i.item_name ILIKE :search OR i.department ILIKE :search)
             AND i.is_deleted = FALSE 
             ORDER BY i.item_name ASC";
     
@@ -42,11 +33,8 @@ try {
 
             $um    = htmlspecialchars($row['um'] ?? 'pcs');
             
-            // --- DEPARTMENT TRANSLATION LOGIC ---
-            // If the database has a number, it looks it up in the map. 
-            // If it's not a number (or not in the map), it shows the raw value.
-            $dept_raw = $row['department'] ?? '';
-            $dept     = $dept_map[$dept_raw] ?? htmlspecialchars($dept_raw);
+            // Display department directly since your database uses text
+            $dept  = htmlspecialchars($row['department'] ?? '');
             
             $purp  = htmlspecialchars($row['purpose'] ?? '');
             $price = $row['price'] ?? 0;
