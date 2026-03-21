@@ -9,6 +9,34 @@ if (session_status() === PHP_SESSION_NONE) {
 // Convert role to lowercase and trim for accurate matching
 $raw_role = isset($_SESSION['role']) ? $_SESSION['role'] : 'Viewer'; 
 $role = strtolower(trim($raw_role)); 
+
+// FETCH DATA FIRST (Needed for the summary cards calculation)
+$query = "SELECT * FROM received_history ORDER BY received_date DESC, id DESC";
+$stmt = $conn->prepare($query);
+$stmt->execute();
+$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// --- CALCULATION LOGIC FOR SUMMARY CARDS ---
+$currentMonth = date('Y-m');
+$totalValue = 0;
+$totalItems = 0;
+$thisMonthValue = 0;
+
+if ($rows) {
+    foreach ($rows as $row) {
+        $rowPrice = floatval($row['price'] ?? 0);
+        $rowQty   = floatval($row['qty'] ?? 0);
+        $rowAmount = floatval($row['amount'] ?? ($rowPrice * $rowQty));
+        
+        $totalValue += $rowAmount;
+        $totalItems += $rowQty;
+        
+        // Check if the record belongs to the current month/year
+        if (strpos($row['received_date'], $currentMonth) === 0) {
+            $thisMonthValue += $rowAmount;
+        }
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -18,16 +46,21 @@ $role = strtolower(trim($raw_role));
     <title>Received Items Summary</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        /* --- RETAINED ORIGINAL DESIGN --- */
         body {
             background-color: #f4f7f6;
             padding: 10px;
-            height: 100vh; /* Changed from 50vh to 100vh for better visibility */
+            height: 100vh; 
             overflow: hidden; 
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        @keyframes fadeOut {
+            0% { opacity: 1; transform: translateY(0); }
+            80% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-20px); visibility: hidden; }
         }
 
         .history-card {
@@ -38,10 +71,27 @@ $role = strtolower(trim($raw_role));
             max-width: 1550px;
             margin: auto;
             width: 100%;
-            max-height: 95vh;
+            max-height: 98vh; /* Adjusted to accommodate cards */
             display: flex;
             flex-direction: column;
         }
+
+        /* Summary Card Styling */
+        .summary-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .stat-card {
+            background: #fff;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+            border: 1px solid #edf2f7;
+        }
+        .stat-label { font-size: 11px; color: #7f8c8d; text-transform: uppercase; font-weight: bold; letter-spacing: 1px; }
+        .stat-value { font-size: 20px; font-weight: 800; color: #2c3e50; margin-top: 5px; }
 
         .header-section {
             display: flex;
@@ -109,13 +159,20 @@ $role = strtolower(trim($raw_role));
         .submit-btn { width: 100%; padding: 14px; background: #27ae60; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
 
         @media print {
-            .header-left, .table-controls, .action-col { display: none !important; }
+            .header-left, .table-controls, .action-col, #successAlert, .summary-container { display: none !important; }
             .history-card { box-shadow: none; padding: 0; }
             body { background: white; overflow: visible; }
         }
     </style>
 </head>
 <body>
+
+<?php if (isset($_GET['import']) && $_GET['import'] === 'success'): ?>
+    <div id="successAlert" style="max-width: 1550px; margin: 10px auto; padding: 15px; background: #d4edda; color: #155724; border: 1px solid #c3e6cb; border-radius: 10px; display: flex; align-items: center; gap: 10px; font-weight: bold; animation: fadeOut 5s forwards; z-index: 9999;">
+        <span>✅ Successfully imported <?php echo intval($_GET['count'] ?? 0); ?> items into the inventory logs!</span>
+        <button onclick="this.parentElement.style.display='none'" style="margin-left: auto; background: none; border: none; cursor: pointer; font-size: 20px; color: #155724;">&times;</button>
+    </div>
+<?php endif; ?>
 
 <div class="history-card">
     <div class="header-section">
@@ -136,6 +193,21 @@ $role = strtolower(trim($raw_role));
             </div>
         </div>
         <div class="header-right"></div>
+    </div>
+
+    <div class="summary-container">
+        <div class="stat-card" style="border-left: 5px solid #2980b9;">
+            <div class="stat-label">Overall Total Value</div>
+            <div class="stat-value">₱<?php echo number_format($totalValue, 2); ?></div>
+        </div>
+        <div class="stat-card" style="border-left: 5px solid #27ae60;">
+            <div class="stat-label">Spent This Month (<?php echo date('F'); ?>)</div>
+            <div class="stat-value">₱<?php echo number_format($thisMonthValue, 2); ?></div>
+        </div>
+        <div class="stat-card" style="border-left: 5px solid #f39c12;">
+            <div class="stat-label">Total Items Received</div>
+            <div class="stat-value"><?php echo number_format($totalItems, 0); ?> <small style="font-size: 12px; font-weight: normal; color: #7f8c8d;">pcs</small></div>
+        </div>
     </div>
 
     <div class="table-controls" style="background: #112941; padding: 10px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
@@ -177,22 +249,12 @@ $role = strtolower(trim($raw_role));
         </thead>
         <tbody>
         <?php
-        // FETCH DIRECTLY from received_history now that you have a price column
-        $query = "SELECT * FROM received_history ORDER BY received_date DESC, id DESC";
-        $stmt = $conn->prepare($query);
-        $stmt->execute();
-        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        $grand_total = 0;
-
         if ($rows) {
             foreach ($rows as $row) {
                 $price = floatval($row['price'] ?? 0);
                 $qty   = floatval($row['qty'] ?? 0);
                 $amount = floatval($row['amount'] ?? ($price * $qty)); 
-                $grand_total += $amount;
 
-                // For the Edit Modal JS Function
                 $js_params = sprintf("'%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s'", 
                     $row['id'], 
                     addslashes($row['item_name']), 
@@ -224,11 +286,6 @@ $role = strtolower(trim($raw_role));
                       </td>";
                 echo "</tr>";
             }
-            
-            echo "<tr style='background: #f8f9fa; font-weight: bold; border-top: 2px solid #112941;'>
-                    <td colspan='6' style='text-align: right; padding: 15px;'>GRAND TOTAL:</td>
-                    <td colspan='4' style='text-align: left; color: #112941; font-size: 16px;'>₱" . number_format($grand_total, 2) . "</td>
-                  </tr>";
         } else {
             echo "<tr><td colspan='10' style='text-align:center; padding: 20px;'>No received logs found.</td></tr>";
         }
