@@ -4,22 +4,24 @@ if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
 $role = $_SESSION['role'] ?? 'Viewer'; 
 
-// PM Approval Logic
-if ($role == 'Project Manager' && isset($_GET['pm_approve']) && isset($_GET['id'])) {
-    $id = intval($_GET['id']);
-    $stmt = $conn->prepare("UPDATE item_requests SET status = 'PM Approved' WHERE request_id = :id");
-    $stmt->execute(['id' => $id]);
-    header("Location: view_requests.php");
+// PM Approval Logic - Now accepts Qty and Status
+if ($role == 'Project Manager' && isset($_POST['pm_approve']) && isset($_POST['id'])) {
+    $id = intval($_POST['id']);
+    $qty = intval($_POST['qty']);
+    $stmt = $conn->prepare("UPDATE item_requests SET status = 'PM Approved', qty = :qty WHERE request_id = :id");
+    $stmt->execute(['qty' => $qty, 'id' => $id]);
+    header("Location: view_requests.php?msg=Approved");
     exit();
 }
 
-// Head Office Purchasing Logic
-if ($role == 'Head Office Purchasing' && isset($_GET['set_type']) && isset($_GET['id'])) {
-    $id = intval($_GET['id']);
-    $type = $_GET['set_type']; 
-    $stmt = $conn->prepare("UPDATE item_requests SET remarks = :type, status = 'Processed' WHERE request_id = :id");
-    $stmt->execute(['type' => $type, 'id' => $id]);
-    header("Location: view_requests.php");
+// Head Office Purchasing Logic - Now accepts Remarks and Qty
+if ($role == 'Head Office Purchasing' && isset($_POST['ho_process']) && isset($_POST['id'])) {
+    $id = intval($_POST['id']);
+    $type = $_POST['set_type']; 
+    $qty = intval($_POST['qty']);
+    $stmt = $conn->prepare("UPDATE item_requests SET remarks = :type, qty = :qty, status = 'Processed' WHERE request_id = :id");
+    $stmt->execute(['type' => $type, 'qty' => $qty, 'id' => $id]);
+    header("Location: view_requests.php?msg=Processed");
     exit();
 }
 
@@ -338,13 +340,29 @@ if ($rows && count($rows) > 0) {
                         if ($role == 'Admin' || $role == 'Staff') {
                             echo "<a href='#' class='edit-btn' onclick='openEditModal(" . htmlspecialchars(json_encode($row)) . ")'>Edit</a>";
                         }
-                        if ($role == 'Project Manager' && $status == 'Pending') {
-                            echo "<a href='view_requests.php?pm_approve=1&id=$request_id' class='approve-btn' style='background:#27ae60;'>PM Approve</a>";
-                        }
-                        if ($role == 'Head Office Purchasing') {
-                            echo "<a href='view_requests.php?set_type=Local&id=$request_id' class='approve-btn' style='background:#8e44ad;'>Set Local</a>";
-                            echo "<a href='view_requests.php?set_type=PO&id=$request_id' class='approve-btn' style='background:#2980b9;'>Set PO</a>";
-                        }
+                        // PROJECT MANAGER SECTION
+if ($role == 'Project Manager' && $status == 'Pending') {
+    echo "<form method='POST' style='display:flex; flex-direction:column; gap:3px; background:#f4f7f6; padding:5px; border-radius:5px;'>
+            <label style='font-size:9px; font-weight:bold;'>ADJUST QTY:</label>
+            <input type='number' name='qty' value='".($row['qty'] ?? 0)."' style='width:50px; font-size:11px; padding:2px;'>
+            <input type='hidden' name='id' value='$request_id'>
+            <button type='submit' name='pm_approve' class='approve-btn' style='background:#27ae60; border:none; cursor:pointer;'>✅ Approve</button>
+          </form>";
+}
+
+// HEAD OFFICE SECTION
+if ($role == 'Head Office Purchasing') {
+    echo "<form method='POST' style='display:flex; flex-direction:column; gap:3px; background:#ebf5fb; padding:5px; border-radius:5px;'>
+            <label style='font-size:9px; font-weight:bold;'>FINAL QTY:</label>
+            <input type='number' name='qty' value='".($row['qty'] ?? 0)."' style='width:50px; font-size:11px; padding:2px;'>
+            <select name='set_type' style='font-size:10px; padding:2px;'>
+                <option value='Local' ".($remark_val == 'Local' ? 'selected' : '').">Local</option>
+                <option value='PO' ".($remark_val == 'PO' ? 'selected' : '').">PO</option>
+            </select>
+            <input type='hidden' name='id' value='$request_id'>
+            <button type='submit' name='ho_process' class='approve-btn' style='background:#2980b9; border:none; cursor:pointer;'>💾 Process</button>
+          </form>";
+}
                         if ($role == 'Admin') {
                             echo "<a href='view_requests.php?delete_id=$request_id' class='delete-btn-req' onclick='return confirm(\"Delete?\")'>Delete</a>";
                         }
