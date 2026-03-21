@@ -16,15 +16,33 @@ if ($role == 'Project Manager' && isset($_POST['pm_approve']) && isset($_POST['i
     exit();
 }
 
-// Head Office Purchasing Logic - Now accepts Purchase Type AND HO Remarks
+// Head Office Purchasing Logic - Refined to prevent duplicate notes
 if ($role == 'Head Office Purchasing' && isset($_POST['ho_process']) && isset($_POST['id'])) {
     $id = intval($_POST['id']);
     $type = $_POST['set_type']; 
     $qty = intval($_POST['qty']);
-    $ho_note = $_POST['ho_remarks'] ?? ''; 
+    $ho_note = trim($_POST['ho_remarks'] ?? ''); 
     
-    $stmt = $conn->prepare("UPDATE item_requests SET remarks = :type, qty = :qty, status = 'Processed', purpose = CONCAT(purpose, ' | HO: ', :note) WHERE request_id = :id");
-    $stmt->execute(['type' => $type, 'qty' => $qty, 'note' => $ho_note, 'id' => $id]);
+    // 1. First, get current purpose to see if note already exists
+    $check = $conn->prepare("SELECT purpose FROM item_requests WHERE request_id = :id");
+    $check->execute(['id' => $id]);
+    $current_purpose = $check->fetchColumn();
+
+    // 2. Only append if there's a new note and it's not already in the text
+    if (!empty($ho_note) && strpos($current_purpose, "HO: $ho_note") === false) {
+        $new_purpose = $current_purpose . " | HO: " . $ho_note;
+    } else {
+        $new_purpose = $current_purpose; // Keep as is if note is empty or duplicate
+    }
+    
+    $stmt = $conn->prepare("UPDATE item_requests SET remarks = :type, qty = :qty, status = 'Processed', purpose = :purpose WHERE request_id = :id");
+    $stmt->execute([
+        'type' => $type, 
+        'qty' => $qty, 
+        'purpose' => $new_purpose, 
+        'id' => $id
+    ]);
+    
     header("Location: view_requests.php?msg=Processed");
     exit();
 }
