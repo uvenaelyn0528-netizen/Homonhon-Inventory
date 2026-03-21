@@ -24,7 +24,7 @@ $query .= " ORDER BY rdate DESC, rtime DESC";
 $stmt = $conn->prepare($query);
 $stmt->execute($params);
 
-// 2. Calculate Current Balance - Updated for PDO
+// 2. Calculate Current Balance
 $bal_stmt = $conn->query("SELECT SUM(CASE WHEN activity = 'INFLOW' THEN qty ELSE -qty END) as balance FROM diesel_inventory");
 $balance_row = $bal_stmt->fetch(PDO::FETCH_ASSOC);
 $balance = $balance_row['balance'] ?? 0;
@@ -34,7 +34,6 @@ $balance = $balance_row['balance'] ?? 0;
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Diesel Ledger | Goldrich Construction</title>
     <style>
         :root {
@@ -59,12 +58,10 @@ $balance = $balance_row['balance'] ?? 0;
             box-shadow: 0 4px 10px rgba(0,0,0,0.1); z-index: 100;
         }
 
-        .header-left { flex: 1; }
         .header-center { 
             flex: 2; display: flex; align-items: center; justify-content: center; 
             gap: 15px; text-align: center; 
         }
-        .header-right { flex: 1; display: flex; justify-content: flex-end; align-items: center; gap: 15px; }
 
         .logo-img { width: 55px; height: auto; }
         .company-name { color: var(--dark-red); margin: 0; font-size: 17px; font-family: Broadway, sans-serif; line-height: 1; }
@@ -97,19 +94,14 @@ $balance = $balance_row['balance'] ?? 0;
 
         .btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; text-decoration: none; font-size: 11px; display: inline-flex; align-items: center; gap: 8px; transition: 0.3s; }
         .btn-issuance { background: var(--dark-red); color: white; border: 1px solid var(--gold); }
-        .btn-print { background: #3498db; color: white; }
-        .btn-import { background: #27ae60; color: white; }
         
         .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:1000; justify-content:center; align-items:center; }
-        .modal-content { background:white; padding:25px; border-radius:10px; width:450px; }
+        .modal-content { background:white; padding:25px; border-radius:10px; width:450px; max-height: 90vh; overflow-y: auto; }
+        .modal-content label { display: block; font-size: 11px; font-weight: bold; margin-bottom: 5px; color: var(--navy); }
         .modal-content input, .modal-content select { width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
 
-        @media print {
-            .main-header, .controls-bar, .btn, .col-action { display: none !important; }
-            .table-container { overflow: visible !important; }
-            thead th { position: static; background: #eee !important; color: black !important; border: 1px solid #000; }
-            td { border: 1px solid #000; }
-        }
+        .btn-edit { color: #3498db; background: none; border: 1px solid #3498db; padding: 4px 8px; border-radius: 4px; cursor: pointer; }
+        .btn-delete { color: #e74c3c; background: none; border: 1px solid #e74c3c; padding: 4px 8px; border-radius: 4px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -147,12 +139,7 @@ $balance = $balance_row['balance'] ?? 0;
 
         <div class="controls-right" style="display:flex; gap:10px;">
             <a href="issuance.php" class="btn btn-issuance" style="background:white; color:var(--navy);">📋 DAILY ISSUANCE RECORD</a>
-            <button class="btn btn-import" onclick="document.getElementById('importFile').click()">📥 IMPORT</button>
-            <button class="btn btn-print" onclick="window.print()">🖨️ PRINT REPORT</button>
-            
-            <form id="importForm" action="import_process.php" method="POST" enctype="multipart/form-data" style="display:none;">
-                <input type="file" name="excel_file" id="importFile" accept=".csv" onchange="document.getElementById('importForm').submit()">
-            </form>
+            <button class="btn" onclick="window.print()" style="background:#3498db; color:white;">🖨️ PRINT REPORT</button>
         </div>
     </nav>
 
@@ -162,12 +149,12 @@ $balance = $balance_row['balance'] ?? 0;
                 <tr>
                     <th>DATE / TIME</th>
                     <th>ACTIVITY</th>
-                    <th>RECEIVED FROM</th>
+                    <th>RECEIVED FROM / OPERATOR</th>
                     <th>RR NO.</th>
                     <th>WS NO.</th>
+                    <th>WITHDRAWN FROM</th>
                     <th>DEPOSITED TO</th>
                     <th>QTY (L)</th>
-                     <th>Withdrawn From</th>
                     <th class="col-action">ACTION</th>
                 </tr>
             </thead>
@@ -179,11 +166,12 @@ $balance = $balance_row['balance'] ?? 0;
                     <td><?= htmlspecialchars($row['received_from'] ?: '---') ?></td>
                     <td><?= htmlspecialchars($row['rr_no'] ?: '---') ?></td>
                     <td><?= htmlspecialchars($row['ws_no'] ?: '---') ?></td>
-                    <td><?= htmlspecialchars($row['deposited_to']) ?></td>
+                    <td><?= htmlspecialchars($row['from_tank_no'] ?: '---') ?></td>
+                    <td style="font-weight: bold;"><?= htmlspecialchars($row['deposited_to']) ?></td>
                     <td style="font-weight:bold;"><?= number_format($row['qty'], 2) ?></td>
                     <td class="col-action">
-                        <button class="btn-edit" onclick='editRecord(<?= json_encode($row) ?>)'>Edit</button>
-                        <button class="btn-delete" onclick="deleteRecord(<?= $row['id'] ?>)">Delete</button>
+                        <button class="btn-edit" onclick='editRecord(<?= json_encode($row) ?>)'>✏️</button>
+                        <button class="btn-delete" onclick="deleteRecord(<?= $row['id'] ?>)">🗑️</button>
                     </td>
                 </tr>
                 <?php endwhile; ?>
@@ -194,30 +182,50 @@ $balance = $balance_row['balance'] ?? 0;
 
 <div id="fuelModal" class="modal">
     <div class="modal-content">
-        <h2 id="modalTitle" style="margin-top:0; color: var(--navy);">Fuel Entry</h2>
+        <h2 id="modalTitle" style="margin-top:0; color: var(--navy); border-bottom: 2px solid #eee; padding-bottom:10px;">Fuel Entry</h2>
         <form action="diesel_process.php" method="POST">
             <input type="hidden" name="id" id="formId">
+            
             <label>Transaction Type</label>
             <select name="activity" id="activityType" onchange="toggleFields()" required>
-                <option value="INFLOW">📥 STOCK INFLOW</option>
-                <option value="OUTFLOW">📤 STOCK OUTFLOW</option>
+                <option value="INFLOW">📥 STOCK INFLOW (Delivery)</option>
+                <option value="OUTFLOW">📤 STOCK OUTFLOW (Issuance)</option>
             </select>
+
             <label>Date</label><input type="date" name="rdate" id="formDate" required>
             <label>Time</label><input type="time" name="rtime" id="formTime" required>
-            
+
             <div id="inflowFields">
-                <label>Received From</label><input type="text" name="received_from" id="in_rec">
-                <label>RR No.</label><input type="text" name="rr_no" id="in_rr">
+                <label>Received From (Supplier)</label>
+                <input type="text" name="received_from" id="in_rec">
+                <label>RR No.</label>
+                <input type="text" name="rr_no" id="in_rr">
             </div>
+
             <div id="outflowFields" style="display:none;">
-                <label>WS No.</label><input type="text" name="ws_no" id="out_ws">
+                <label>Withdrawn From</label>
+                <select name="from_tank_no" id="out_tank">
+                    <option value="">-- Select Source Tank --</option>
+                    <?php for($i=1; $i<=9; $i++) echo "<option value='Tank $i'>Tank $i</option>"; ?>
+                </select>
+                <label>WS No.</label>
+                <input type="text" name="ws_no" id="out_ws">
             </div>
-            
-            <label>Deposited To</label><input type="text" name="deposited_to" id="formDep" required>
-            <label>Quantity</label><input type="number" step="0.01" name="qty" id="formQty" required>
-            
-            <div style="margin-top:15px; display: flex; gap: 10px;">
-                <button type="submit" class="btn" style="flex:1; background:var(--navy); color:white;">SAVE</button>
+
+            <label>Deposited To</label>
+            <select name="deposited_to" id="formDep" required>
+                <option value="">-- Select Destination --</option>
+                <?php for($i=1; $i<=9; $i++) echo "<option value='Tank $i'>Tank $i</option>"; ?>
+                <option value="FT 3">FT 3</option>
+                <option value="FT 4">FT 4</option>
+                <option value="Direct to Unit">Direct to Unit (Equiptment)</option>
+            </select>
+
+            <label>Quantity (Liters)</label>
+            <input type="number" step="0.01" name="qty" id="formQty" required>
+
+            <div style="margin-top:20px; display: flex; gap: 10px;">
+                <button type="submit" class="btn" style="flex:1; background:var(--navy); color:white;">SAVE ENTRY</button>
                 <button type="button" onclick="closeFuelModal()" class="btn" style="flex:1; background:#ccc;">CANCEL</button>
             </div>
         </form>
@@ -228,29 +236,44 @@ $balance = $balance_row['balance'] ?? 0;
 function openFuelModal() {
     document.getElementById('fuelModal').style.display = 'flex';
     document.getElementById('formId').value = '';
+    document.querySelector('form').reset();
+    document.getElementById('formDate').value = "<?= date('Y-m-d') ?>";
+    document.getElementById('formTime').value = "<?= date('H:i') ?>";
     toggleFields();
 }
+
 function closeFuelModal() { document.getElementById('fuelModal').style.display = 'none'; }
+
 function toggleFields() {
     const type = document.getElementById('activityType').value;
     document.getElementById('inflowFields').style.display = type === 'INFLOW' ? 'block' : 'none';
     document.getElementById('outflowFields').style.display = type === 'OUTFLOW' ? 'block' : 'none';
 }
+
 function editRecord(data) {
     openFuelModal();
     document.getElementById('formId').value = data.id;
     document.getElementById('activityType').value = data.activity;
     document.getElementById('formDate').value = data.rdate;
     document.getElementById('formTime').value = data.rtime;
-    document.getElementById('in_rec').value = data.received_from;
-    document.getElementById('in_rr').value = data.rr_no;
-    document.getElementById('out_ws').value = data.ws_no;
-    document.getElementById('formDep').value = data.deposited_to;
+    
+    // Set text fields
+    document.getElementById('in_rec').value = data.received_from || '';
+    document.getElementById('in_rr').value = data.rr_no || '';
+    document.getElementById('out_ws').value = data.ws_no || '';
+    
+    // Set Dropdowns
+    document.getElementById('out_tank').value = data.from_tank_no || '';
+    document.getElementById('formDep').value = data.deposited_to || '';
+    
     document.getElementById('formQty').value = data.qty;
     toggleFields();
 }
+
 function deleteRecord(id) {
-    if(confirm("Delete this record?")) window.location.href = "delete_fuel.php?id=" + id;
+    if(confirm("Are you sure you want to delete this fuel record?")) {
+        window.location.href = "delete_fuel.php?id=" + id;
+    }
 }
 </script>
 </body>
