@@ -164,70 +164,75 @@ $role = strtolower(trim($raw_role));
         </div>
     </div>
 
-    <div class="table-wrapper">
-        <table id="receivedTable">
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>RR Number</th>
-                    <th>Supplier</th>
-                    <th style="min-width: 250px;">Item Description & Specs</th> 
-                    <th style="text-align: center;">Qty</th>
-                    <th style="text-align: right; min-width: 100px;">Price</th>
-                    <th style="text-align: right; min-width: 120px;">Amount</th>
-                    <th>Dept</th>
-                    <th style="min-width: 180px;">Purpose / Remarks</th>
-                    <th class="action-col" style="text-align: center; min-width: 100px;">Action</th>
-                </tr>
-            </thead>
-           <tbody>
-<?php
-$stmt = $conn->prepare("SELECT * FROM received_history ORDER BY received_date DESC, log_timestamp DESC");
-$stmt->execute();
-$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-if ($rows && count($rows) > 0) {
-    foreach ($rows as $row) {
-        $db_date = $row['received_date'] ?? ''; 
-        $formattedDate = ($db_date) ? date('M d, Y', strtotime($db_date)) : '---';
+   <div class="table-wrapper">
+    <table id="inflowTable" style="width: 100%; border-collapse: collapse;">
+        <thead>
+            <tr style="background: #112941; color: white;">
+                <th>DATE</th>
+                <th>RR NUMBER</th>
+                <th>SUPPLIER</th>
+                <th style="text-align: left;">ITEM DESCRIPTION & SPECS</th>
+                <th>QTY</th>
+                <th>PRICE</th>
+                <th>AMOUNT</th>
+                <th>DEPT</th>
+                <th>PURPOSE / REMARKS</th>
+                <th class="action-col">ACTION</th>
+            </tr>
+        </thead>
+        <tbody>
+        <?php
+        // 1. JOIN with the inventory table to get the Price
+        $query = "SELECT rh.*, i.price 
+                  FROM received_history rh
+                  LEFT JOIN inventory i ON rh.item_name = i.item_name
+                  ORDER BY rh.received_date DESC, rh.id DESC";
         
-        // Use exact lowercase column names from your Supabase schema
-        $item_name = htmlspecialchars($row['item_name'] ?? '');
-        $spec      = htmlspecialchars($row['specification'] ?? '');
-        $qty       = (float)($row['qty'] ?? 0);
-        $price     = (float)($row['price'] ?? 0);
-        $amount    = (float)($row['amount'] ?? ($qty * $price));
-        $rr_no     = htmlspecialchars($row['rr_number'] ?? '');
-        $supplier  = htmlspecialchars($row['supplier'] ?? '');
-        $dept      = htmlspecialchars($row['department'] ?? '');
-        $purpose   = htmlspecialchars($row['purpose'] ?? '');
-        $id        = $row['id'] ?? 0;
+        $stmt = $conn->prepare($query);
+        $stmt->execute();
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        echo "<tr>
-            <td>$formattedDate</td>
-            <td style='font-family: monospace;'>$rr_no</td>
-            <td>$supplier</td>
-            <td><b style='color: #112941;'>$item_name</b><br><small style='color: #7f8c8d;'>$spec</small></td>
-            <td style='text-align: center; color: green; font-weight: bold;'>+ " . number_format($qty, 2) . "</td>
-            <td style='text-align: right;'>" . number_format($price, 2) . "</td>
-            <td style='text-align: right; font-weight: bold;'>" . number_format($amount, 2) . "</td>
-            <td>$dept</td>
-            <td>$purpose</td>
-            <td class='action-col' style='text-align: center;'>
-                <a href='#' class='delete-btn-log' style='background: #e3f2fd; color: #1976d2; margin-right: 5px;' 
-                   onclick=\"openEditSummaryModal('$id', '$item_name', '$db_date', '$qty', '$dept', '$purpose', '$rr_no', '$supplier', '$price')\">📝</a>
-                <a href='delete_log.php?id=$id&type=received' class='delete-btn-log' 
-                   onclick=\"return confirm('Delete this record?')\">🗑️</a>
-            </td>
-        </tr>";
-    }
-} else {
-    echo "<tr><td colspan='10' style='text-align:center; padding: 30px;'>No received records found in database.</td></tr>";
-}
-?>
-</tbody>
-        </table>
-    </div>
+        $grand_total = 0;
+
+        if ($rows && count($rows) > 0) {
+            foreach ($rows as $row) {
+                // 2. Use the price from the inventory table
+                $price = floatval($row['price'] ?? 0);
+                $qty   = floatval($row['qty'] ?? 0);
+                $amount = $price * $qty; 
+                $grand_total += $amount;
+
+                echo "<tr>";
+                echo "<td>" . date('M d, Y', strtotime($row['received_date'])) . "</td>";
+                echo "<td style='font-weight: bold; color: #2980b9;'>" . htmlspecialchars($row['rr_number'] ?? '---') . "</td>";
+                echo "<td>" . htmlspecialchars($row['supplier'] ?? '---') . "</td>";
+                echo "<td style='text-align: left;'>
+                        <strong>" . htmlspecialchars($row['item_name'] ?? '') . "</strong><br>
+                        <small style='color: #666; font-style: italic;'>" . htmlspecialchars($row['specification'] ?? '') . "</small>
+                      </td>";
+                echo "<td style='color: green; font-weight: bold;'>+ " . number_format($qty, 2) . "</td>";
+                echo "<td>₱" . number_format($price, 2) . "</td>";
+                echo "<td style='font-weight: bold;'>₱" . number_format($amount, 2) . "</td>";
+                echo "<td>" . htmlspecialchars($row['department'] ?? '') . "</td>";
+                echo "<td style='font-size: 11px;'>" . htmlspecialchars($row['purpose'] ?? '') . "</td>";
+                echo "<td class='action-col'>
+                        <button class='edit-btn' style='padding: 5px; cursor: pointer;'>📝</button>
+                        <button class='delete-btn' style='padding: 5px; cursor: pointer;'>🗑️</button>
+                      </td>";
+                echo "</tr>";
+            }
+            
+            echo "<tr style='background: #f8f9fa; font-weight: bold; border-top: 2px solid #112941;'>
+                    <td colspan='6' style='text-align: right; padding: 15px;'>GRAND TOTAL:</td>
+                    <td colspan='4' style='text-align: left; color: #112941; font-size: 16px;'>₱" . number_format($grand_total, 2) . "</td>
+                  </tr>";
+        } else {
+            echo "<tr><td colspan='10' style='text-align:center; padding: 20px;'>No received logs found.</td></tr>";
+        }
+        ?>
+        </tbody>
+    </table>
+</div>
 </div>
 
 <div id="editSummaryModal" class="modal">
