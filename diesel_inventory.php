@@ -1,6 +1,8 @@
 <?php 
 include 'db.php'; 
 
+if (session_status() === PHP_SESSION_NONE) { session_start(); } // Ensure session is active
+
 // 1. Handle Filters - Updated for PDO
 $search = $_GET['search'] ?? '';
 $from_date = $_GET['from_date'] ?? '';
@@ -137,7 +139,17 @@ $balance = $balance_row['balance'] ?? 0;
             <button type="submit" class="btn" style="background: var(--gold); color: var(--navy);">FILTER</button>
         </form>
 
-        <div class="controls-right" style="display:flex; gap:10px;">
+        <div class="controls-right" style="display:flex; gap:10px; align-items: center;">
+            <?php if (strtolower(trim($_SESSION['role'] ?? '')) === 'admin'): ?>
+                <button type="button" class="btn" onclick="document.getElementById('dieselFile').click()" style="background: #8e44ad; color: white;">
+                    📥 IMPORT DIESEL EXCEL
+                </button>
+
+                <form id="dieselImportForm" action="import_diesel.php" method="POST" enctype="multipart/form-data" style="display:none;">
+                    <input type="file" name="diesel_file" id="dieselFile" accept=".csv" onchange="this.form.submit()">
+                </form>
+            <?php endif; ?>
+            
             <a href="issuance.php" class="btn btn-issuance" style="background:white; color:var(--navy);">📋 DAILY ISSUANCE RECORD</a>
             <button class="btn" onclick="window.print()" style="background:#3498db; color:white;">🖨️ PRINT REPORT</button>
         </div>
@@ -179,7 +191,6 @@ $balance = $balance_row['balance'] ?? 0;
         </table>
     </div>
 </div>
-
 <div id="fuelModal" class="modal">
     <div class="modal-content">
         <h2 id="modalTitle" style="margin-top:0; color: var(--navy); border-bottom: 2px solid #eee; padding-bottom:10px;">Fuel Entry</h2>
