@@ -49,7 +49,7 @@ if ($rows) {
         body {
             background-color: #f4f7f6;
             padding: 10px;
-            height: 100vh; 
+            height: 50vh; 
             overflow: hidden; 
             box-sizing: border-box;
             display: flex;
