@@ -80,12 +80,12 @@ if ($rows) {
         .summary-container {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-            margin-bottom: 15px;
+            gap: 10px;
+            margin-bottom: 10px;
         }
         .stat-card {
             background: #fff;
-            padding: 15px;
+            padding: 10px;
             border-radius: 12px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.03);
             border: 1px solid #edf2f7;
