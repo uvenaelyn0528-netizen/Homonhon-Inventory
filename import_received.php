@@ -1,81 +1,118 @@
 <?php
+// 1. Enable error reporting to find why the screen was blank
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
 
 include 'db.php';
 
-if (isset($_POST['submit_import'])) {
-    if (isset($_FILES["excel_file"]) && $_FILES["excel_file"]["error"] == 0) {
-        $filename = $_FILES["excel_file"]["tmp_name"];
-        $file = fopen($filename, "r");
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
-        fgetcsv($file); // Skip header row
+// Security: Only Admin/Staff should be able to import
+$role = $_SESSION['role'] ?? 'Viewer';
+if ($role === 'Viewer') {
+    die("Access Denied: You do not have permission to import data.");
+}
 
-        $count = 0;
+if (isset($_POST['import_btn'])) {
+    $fileName = $_FILES["excel_file"]["tmp_name"];
+
+    if ($_FILES["excel_file"]["size"] > 0) {
+        $file = fopen($fileName, "r");
+        
+        // Skip the header row of your CSV
+        fgetcsv($file); 
 
         try {
-            // 1. Prepare statements OUTSIDE the loop for better performance
-            $stmt_log = $conn->prepare("INSERT INTO received_history 
-                (item_name, specification, um, qty, department, purpose, received_date, rr_number, supplier) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-
-            $stmt_check = $conn->prepare("SELECT id FROM inventory WHERE item_name = ? AND specification = ? LIMIT 1");
-
-            $stmt_update = $conn->prepare("UPDATE inventory SET rr_number = ?, rdate = ? WHERE id = ?");
-
-            $stmt_insert = $conn->prepare("INSERT INTO inventory 
-                (item_name, specification, um, department, rdate, rr_number) 
-                VALUES (?, ?, ?, ?, ?, ?)");
+            $conn->beginTransaction();
 
             while (($column = fgetcsv($file, 10000, ",")) !== FALSE) {
-                if (empty($column[0])) continue;
+                // Map your CSV columns here (Example: Name, Spec, UM, Dept, Price)
+                $item_name     = $column[0] ?? '';
+                $specification = $column[1] ?? '';
+                $um            = $column[2] ?? 'pcs';
+                $department    = $column[3] ?? '';
+                $price         = floatval($column[4] ?? 0);
+                $qty_received  = intval($column[5] ?? 0);
 
-                // Mapping columns - No more mysqli_real_escape_string needed!
-                $item_name     = trim($column[0]);
-                $specification = trim($column[1]);
-                $um            = trim($column[2]);
-                $qty           = trim($column[3]);
-                $department    = trim($column[4]);
-                $purpose       = trim($column[5]);
-                $raw_date      = trim($column[6]);
-                $rr_number     = trim($column[7]);
-                $supplier      = trim($column[8]);
+                if (empty($item_name)) continue;
 
-                $received_date = date('Y-m-d', strtotime($raw_date));
+                // CHECK IF ITEM EXISTS (Including those previously "deleted")
+                $checkSql = "SELECT id FROM inventory WHERE item_name = :name LIMIT 1";
+                $checkStmt = $conn->prepare($checkSql);
+                $checkStmt->execute(['name' => $item_name]);
+                $existingItem = $checkStmt->fetch();
 
-                // 2. Execute History Log
-                $stmt_log->execute([
-                    $item_name, $specification, $um, $qty, $department, 
-                    $purpose, $received_date, $rr_number, $supplier
-                ]);
-
-                // 3. Update or Insert into Inventory
-                $stmt_check->execute([$item_name, $specification]);
-                $existing = $stmt_check->fetch(PDO::FETCH_ASSOC);
-
-                if ($existing) {
-                    $stmt_update->execute([$rr_number, $received_date, $existing['id']]);
-                } else {
-                    $stmt_insert->execute([
-                        $item_name, $specification, $um, $department, 
-                        $received_date, $rr_number
+                if ($existingItem) {
+                    // UPDATE existing item and bring it back to life (is_deleted = FALSE)
+                    $updateSql = "UPDATE inventory 
+                                  SET specification = :spec, 
+                                      price = :price, 
+                                      is_deleted = FALSE 
+                                  WHERE id = :id";
+                    $updateStmt = $conn->prepare($updateSql);
+                    $updateStmt->execute([
+                        'spec'  => $specification,
+                        'price' => $price,
+                        'id'    => $existingItem['id']
                     ]);
+                    $current_id = $existingItem['id'];
+                } else {
+                    // INSERT new item
+                    $insertSql = "INSERT INTO inventory (item_name, specification, um, department, price, is_deleted) 
+                                  VALUES (:name, :spec, :um, :dept, :price, FALSE) RETURNING id";
+                    $insertStmt = $conn->prepare($insertSql);
+                    $insertStmt->execute([
+                        'name'  => $item_name,
+                        'spec'  => $specification,
+                        'um'    => $um,
+                        'dept'  => $department,
+                        'price' => $price
+                    ]);
+                    $result = $insertStmt->fetch();
+                    $current_id = $result['id'];
                 }
-                $count++;
+
+                // LOG THE RECEIPT in received_history so your 'Total Received' column updates
+                $historySql = "INSERT INTO received_history (item_name, qty, date_received) 
+                               VALUES (:name, :qty, NOW())";
+                $historyStmt = $conn->prepare($historySql);
+                $historyStmt->execute([
+                    'name' => $item_name,
+                    'qty'  => $qty_received
+                ]);
             }
-            
-            fclose($file);
-            header("Location: received_summary.php?msg=success&count=$count");
+
+            $conn->commit();
+            header("Location: index.php?import=success");
             exit();
 
-        } catch (PDOException $e) {
-            die("Database Error: " . $e->getMessage());
+        } catch (Exception $e) {
+            $conn->rollBack();
+            die("Error during import: " . $e->getMessage());
         }
-    } else {
-        echo "<script>alert('Error: No file selected or file too large.'); window.location.href='import_received.php';</script>";
     }
 }
 ?>
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Import Inventory</title>
+    <link rel="stylesheet" href="style.css"> </head>
+<body style="font-family: sans-serif; padding: 20px;">
+    <h2>📥 Import Received Items (CSV)</h2>
+    <p>Upload a CSV file with columns: Name, Specification, UM, Department, Price, Qty</p>
+    
+    <form action="" method="post" enctype="multipart/form-data" style="background: #f4f4f4; padding: 20px; border-radius: 8px;">
+        <input type="file" name="excel_file" accept=".csv" required>
+        <br><br>
+        <button type="submit" name="import_btn" style="background: #2ecc71; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">
+            Start Import
+        </button>
+        <a href="index.php" style="margin-left: 10px; text-decoration: none; color: #666;">Cancel</a>
+    </form>
+</body>
+</html>
