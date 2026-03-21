@@ -206,11 +206,17 @@ html, body {
     </div>
 
     <div class="sidebar-section">
-        <label style="color:#7f8c8d; font-size:10px; margin-left:15px;">RECORDS & HISTORY</label>
-        <a href="view_requests.php">📋 Request History</a>
-        <a href="received_summary.php">📥 Received History</a>
-        <a href="history.php">📤 Withdrawal History</a>
-    </div>
+    <label style="color:#7f8c8d; font-size:10px; margin-left:15px;">RECORDS & HISTORY</label>
+    <a href="view_requests.php">📋 Request History</a>
+    <a href="received_summary.php">📥 Received History</a>
+    <a href="history.php">📤 Withdrawal History</a>
+    
+    <?php if ($role == 'Admin'): ?>
+        <a href="trash_bin.php" style="color: #e74c3c; font-weight: bold; margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">
+            🗑️ Inventory Trash Bin
+        </a>
+    <?php endif; ?>
+</div>
 
     <div id="costingSummary" style="display:none; background: #1a252f; padding: 10px 15px; font-size: 11px; border-radius: 4px; margin: 0 10px;">
     <?php
