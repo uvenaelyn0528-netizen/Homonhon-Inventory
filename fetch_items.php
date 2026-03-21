@@ -10,10 +10,19 @@ $role = $_SESSION['role'] ?? 'Viewer';
 try {
     $search = $_GET['search'] ?? '';
 
+    // Department Mapping Array
+    $dept_map = [
+        1 => 'Warehouse',
+        2 => 'Admin',
+        3 => 'Mechanical',
+        4 => 'Safety',
+        5 => 'Engineering'
+    ];
+
     $sql = "SELECT i.*, 
             (SELECT SUM(qty) FROM received_history rh WHERE rh.item_name = i.item_name) as total_received
             FROM inventory i 
-            WHERE (i.item_name ILIKE :search OR i.department ILIKE :search)
+            WHERE (i.item_name ILIKE :search OR i.department::text ILIKE :search)
             AND i.is_deleted = FALSE 
             ORDER BY i.item_name ASC";
     
@@ -32,7 +41,13 @@ try {
             $stock     = $received - $withdrawn;
 
             $um    = htmlspecialchars($row['um'] ?? 'pcs');
-            $dept  = htmlspecialchars($row['department'] ?? '');
+            
+            // --- DEPARTMENT TRANSLATION LOGIC ---
+            // If the database has a number, it looks it up in the map. 
+            // If it's not a number (or not in the map), it shows the raw value.
+            $dept_raw = $row['department'] ?? '';
+            $dept     = $dept_map[$dept_raw] ?? htmlspecialchars($dept_raw);
+            
             $purp  = htmlspecialchars($row['purpose'] ?? '');
             $price = $row['price'] ?? 0;
             $min   = $row['min_stock'] ?? 0;
@@ -65,25 +80,25 @@ try {
                 <td>₱" . number_format($price, 2) . "</td>
                 <td>₱" . number_format($stock * $price, 2) . "</td>";
 
-            // Sticky Action Column with fixed layout
-echo "<td class='action-cell' style='position: sticky; right: 0; background: white; border-left: 1px solid #ddd; z-index: 5; padding: 10px; white-space: nowrap; text-align: center;'>";
+            // Sticky Action Column
+            echo "<td class='action-cell' style='position: sticky; right: 0; background: white; border-left: 1px solid #ddd; z-index: 5; padding: 10px; white-space: nowrap; text-align: center;'>";
 
-// Withdraw Button for Admin or Staff
-if ($role == 'Admin' || $role == 'Staff') {
-    echo "<button title='Withdraw' onclick='openWithdrawModal($id, \"" . addslashes($name) . "\", $stock)' style='background:#e67e22; color:white; border:none; padding:5px 8px; border-radius:4px; cursor:pointer; margin-right: 4px;'>📤</button>";
-}
+            // Withdraw Button
+            if ($role == 'Admin' || $role == 'Staff') {
+                echo "<button title='Withdraw' onclick='openWithdrawModal($id, \"" . addslashes($name) . "\", $stock)' style='background:#e67e22; color:white; border:none; padding:5px 8px; border-radius:4px; cursor:pointer; margin-right: 4px;'>📤</button>";
+            }
 
-// Edit & Delete buttons ONLY for Admin
-if ($role == 'Admin') {
-    echo "<button title='Edit' onclick='openEditModal($id, \"" . addslashes($name) . "\", \"" . addslashes($spec) . "\", $min, $max)' style='background:#3498db; color:white; border:none; padding:5px 8px; border-radius:4px; cursor:pointer; margin-right: 4px;'>✏️</button>";
-    
-    echo "<a href='delete_log.php?type=inventory&id=$id' 
-         onclick='return confirm(\"Move this item to Trash? It will be hidden from the inventory.\")' 
-         style='background:#e74c3c; color:white; padding:6px 10px; border-radius:4px; text-decoration:none; font-size:14px; display: inline-block; vertical-align: middle;'>🗑️</a>";
-}
+            // Edit & Delete buttons
+            if ($role == 'Admin') {
+                echo "<button title='Edit' onclick='openEditModal($id, \"" . addslashes($name) . "\", \"" . addslashes($spec) . "\", $min, $max)' style='background:#3498db; color:white; border:none; padding:5px 8px; border-radius:4px; cursor:pointer; margin-right: 4px;'>✏️</button>";
+                
+                echo "<a href='delete_log.php?type=inventory&id=$id' 
+                     onclick='return confirm(\"Move this item to Trash? It will be hidden from the inventory.\")' 
+                     style='background:#e74c3c; color:white; padding:6px 10px; border-radius:4px; text-decoration:none; font-size:14px; display: inline-block; vertical-align: middle;'>🗑️</a>";
+            }
 
-echo "</td></tr>";
-        } // End of foreach
+            echo "</td></tr>";
+        }
     } else {
         echo "<tr><td colspan='11' style='text-align:center; padding:20px;'>No items found in inventory.</td></tr>";
     }
