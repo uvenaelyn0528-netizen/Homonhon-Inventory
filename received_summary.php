@@ -96,7 +96,7 @@ if ($rows) {
         <table id="inflowTable">
             <thead>
                 <tr>
-                    <th>DATE</th><th>RR NUMBER</th><th>SUPPLIER</th><th>ITEM DESCRIPTION</th><th>SPECIFICATION</th><th>QTY</th><th>PRICE</th><th>AMOUNT</th><th>DEPT</th><th>PURPOSE</th><th class="action-col">ACTION</th>
+                    <th>DATE</th><th>RR NUMBER</th><th>SUPPLIER</th><th>ITEM DESCRIPTION</th><th>QTY</th><th>PRICE</th><th>AMOUNT</th><th>DEPT</th><th>PURPOSE</th><th class="action-col">ACTION</th>
                 </tr>
             </thead>
             <tbody>
