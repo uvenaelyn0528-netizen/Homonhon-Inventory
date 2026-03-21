@@ -4,27 +4,30 @@ if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
 $role = $_SESSION['role'] ?? 'Viewer'; 
 
-// PM Approval Logic - Now accepts Qty and Status
+// PM Approval Logic - Now accepts Qty AND PM Remarks
 if ($role == 'Project Manager' && isset($_POST['pm_approve']) && isset($_POST['id'])) {
     $id = intval($_POST['id']);
     $qty = intval($_POST['qty']);
-    $stmt = $conn->prepare("UPDATE item_requests SET status = 'PM Approved', qty = :qty WHERE request_id = :id");
-    $stmt->execute(['qty' => $qty, 'id' => $id]);
+    $pm_note = $_POST['pm_remarks'] ?? ''; // New Input
+    
+    $stmt = $conn->prepare("UPDATE item_requests SET status = 'PM Approved', qty = :qty, purpose = CONCAT(purpose, ' | PM: ', :note) WHERE request_id = :id");
+    $stmt->execute(['qty' => $qty, 'note' => $pm_note, 'id' => $id]);
     header("Location: view_requests.php?msg=Approved");
     exit();
 }
 
-// Head Office Purchasing Logic - Now accepts Remarks and Qty
+// Head Office Purchasing Logic - Now accepts Purchase Type AND HO Remarks
 if ($role == 'Head Office Purchasing' && isset($_POST['ho_process']) && isset($_POST['id'])) {
     $id = intval($_POST['id']);
     $type = $_POST['set_type']; 
     $qty = intval($_POST['qty']);
-    $stmt = $conn->prepare("UPDATE item_requests SET remarks = :type, qty = :qty, status = 'Processed' WHERE request_id = :id");
-    $stmt->execute(['type' => $type, 'qty' => $qty, 'id' => $id]);
+    $ho_note = $_POST['ho_remarks'] ?? ''; // New Input
+    
+    $stmt = $conn->prepare("UPDATE item_requests SET remarks = :type, qty = :qty, status = 'Processed', purpose = CONCAT(purpose, ' | HO: ', :note) WHERE request_id = :id");
+    $stmt->execute(['type' => $type, 'qty' => $qty, 'note' => $ho_note, 'id' => $id]);
     header("Location: view_requests.php?msg=Processed");
     exit();
 }
-
 // Admin Delete Logic
 if ($role == 'Admin' && isset($_GET['delete_id'])) {
     $id = intval($_GET['delete_id']);
