@@ -70,11 +70,11 @@ if (isset($_POST['import_btn'])) {
                 $specification  = $column[4] ?? '';
                 $um             = $column[5] ?? 'pcs';
                 $department     = $column[6] ?? '';
-                $price          = floatval($column[7] ?? 0);
-                $qty_received   = floatval($column[8] ?? 0);
+                $price = floatval(preg_replace('/[^0-9.]/', '', $column[7] ?? '0'));
+$qty_received = floatval(preg_replace('/[^0-9.]/', '', $column[8] ?? '0'));
                 $purpose        = $column[9] ?? '';
                 
-                $total_amount   = $price * $qty_received;
+           $total_amount = $price * $qty_received;
 
                 if (empty($item_name)) continue;
 
