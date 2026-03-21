@@ -167,6 +167,7 @@ $balance = $balance_row['balance'] ?? 0;
                     <th>WS NO.</th>
                     <th>DEPOSITED TO</th>
                     <th>QTY (L)</th>
+                     <th>Withdrawn From</th>
                     <th class="col-action">ACTION</th>
                 </tr>
             </thead>
