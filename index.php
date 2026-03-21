@@ -572,8 +572,9 @@ html, body {
 
     function restricted(role) { alert("⛔ Restricted to " + role); }
     function confirmDelete(id, name) {
-    if (confirm("❗ WARNING: Are you sure you want to delete '" + name + "'?\n\nThis will permanently remove the item from the inventory.")) {
-        window.location.href = "delete_log.php?id=" + id;
+    if (confirm("❗ Move '" + name + "' to Trash Bin?\n\nYou can restore it later if needed.")) {
+        // Change this line to include the 'type'
+        window.location.href = "delete_log.php?type=inventory&id=" + id;
     }
 }
 </script>
