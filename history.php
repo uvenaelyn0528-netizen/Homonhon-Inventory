@@ -1,4 +1,11 @@
-<?php include 'db.php'; ?>
+<?php 
+include 'db.php'; 
+
+// 1. Start session to verify Admin role
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -11,7 +18,7 @@
         body {
             background-color: #f4f7f6;
             padding: 20px;
-            height: 50vh;
+            height: 100vh; /* Changed to 100vh for better layout */
             overflow: hidden;
             box-sizing: border-box;
             display: flex;
@@ -44,33 +51,12 @@
             width: 100%;
         }
 
-        .header-left {
-            flex: 1;
-            display: flex;
-            justify-content: flex-start;
-        }
+        .header-left { flex: 1; display: flex; justify-content: flex-start; }
+        .header-center { flex: 3; display: flex; align-items: center; justify-content: center; gap: 25px; }
+        .header-right { flex: 1; }
 
-        .header-center {
-            flex: 3;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 25px;
-        }
-
-        .header-right {
-            flex: 1;
-        }
-
-        .header-center img {
-            width: 90px;
-            height: auto;
-            display: block;
-        }
-
-        .header-text-group {
-            text-align: left;
-        }
+        .header-center img { width: 90px; height: auto; display: block; }
+        .header-text-group { text-align: left; }
 
         /* 4. Table and Scrollbar */
         .table-wrapper {
@@ -86,16 +72,12 @@
         .table-wrapper::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
 
         /* 5. Table Design */
-        #withdrawalTable {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
+        #withdrawalTable { width: 100%; border-collapse: collapse; }
         #withdrawalTable thead th {
             position: sticky;
             top: 0;
             z-index: 10;
-            background: #112941 !important; /* Orange for Withdrawal/Outflow */
+            background: #112941 !important;
             color: white;
             padding: 15px;
             text-transform: uppercase;
@@ -147,6 +129,12 @@
 <body>
 
 <div class="history-card">
+    <?php if (isset($_GET['import']) && $_GET['import'] == 'success'): ?>
+        <div style="background: #d4edda; color: #155724; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 13px; font-weight: bold; border: 1px solid #c3e6cb; text-align: center;">
+            ✅ Withdrawal logs imported successfully!
+        </div>
+    <?php endif; ?>
+
     <div class="header-section">
         <div class="header-left">
             <a href="index.php" style="background: #34495e; padding: 10px 18px; text-decoration: none; border-radius: 8px; color: white; font-size: 12px; display: flex; align-items: center; gap: 8px; font-weight: bold;">
@@ -169,32 +157,31 @@
                 </h2>
             </div>
         </div>
-
         <div class="header-right"></div>
     </div>
 
-    <div class="table-controls" style="background: #112941; padding: 5px; border-radius: 10px; border: 1px solid #edf2f7; display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px;">
+    <div class="table-controls" style="background: #112941; padding: 10px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
         <div class="left-side">
-            <label style="display: block; font-size: 10px; font-weight: bold; color: #7f8c8d; margin-bottom: 5px; text-transform: uppercase;">Quick Search History</label>
-            <input type="text" id="searchInput" onkeyup="searchTable()" placeholder="Search items, names, or departments..." style="width: 350px; padding: 5px; border-radius: 8px; border: 1px solid #ddd; outline: none;">
+            <input type="text" id="searchInput" onkeyup="searchTable()" placeholder="Search items, names, or departments..." style="width: 350px; padding: 8px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 13px;">
         </div>
         
-       <div class="right-side" style="display: flex; gap: 10px; align-items: center;">
-    <?php if (isset($_SESSION['role']) && $_SESSION['role'] == 'Admin'): ?>
-        <button onclick="document.getElementById('importFile').click()" style="height: 30px; padding: 0 15px; background: #27ae60; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 12px;">
-            📥 Import CSV
-        </button>
-        <form id="importForm" action="import_withdrawals.php" method="POST" enctype="multipart/form-data" style="display:none;">
-            <input type="file" id="importFile" name="withdrawal_csv" accept=".csv" onchange="document.getElementById('importForm').submit()">
-        </form>
-    <?php endif; ?>
+        <div class="right-side" style="display: flex; gap: 10px; align-items: center;">
+            <?php if (isset($_SESSION['role']) && $_SESSION['role'] == 'Admin'): ?>
+                <button onclick="document.getElementById('importFile').click()" style="height: 35px; padding: 0 15px; background: #27ae60; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 5px;">
+                    📥 Import CSV
+                </button>
+                <form id="importForm" action="import_withdrawals.php" method="POST" enctype="multipart/form-data" style="display:none;">
+                    <input type="file" id="importFile" name="withdrawal_csv" accept=".csv" onchange="document.getElementById('importForm').submit()">
+                </form>
+            <?php endif; ?>
 
-    <form method="POST" action="delete_log.php" onsubmit="return confirm('PERMANENTLY DELETE ALL WITHDRAWAL RECORDS?');" style="margin: 0;">
-        <input type="hidden" name="clear_type" value="withdrawal">
-        <button type="submit" style="height: 30px; padding: 0 15px; background: #e74c3c; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 12px;">🗑️ Clear History</button>
-    </form>
-    <button onclick="window.print()" style="height: 30px; padding: 0 15px; background: #2980b9; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 12px;">Generate Report 🖨️</button>
-</div>
+            <form method="POST" action="delete_log.php" onsubmit="return confirm('PERMANENTLY DELETE ALL WITHDRAWAL RECORDS?');" style="margin: 0;">
+                <input type="hidden" name="clear_type" value="withdrawal">
+                <button type="submit" style="height: 35px; padding: 0 15px; background: #e74c3c; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 12px;">🗑️ Clear History</button>
+            </form>
+            
+            <button onclick="window.print()" style="height: 35px; padding: 0 15px; background: #2980b9; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 12px;">Generate Report 🖨️</button>
+        </div>
     </div>
 
     <div class="table-wrapper">
@@ -212,49 +199,46 @@
                 </tr>
             </thead>
             <tbody>
-    <?php
-    try {
-        // Use the exact column name 'withdrawal_date' found in your Supabase dashboard
-        $query = "SELECT * FROM withdrawals ORDER BY withdrawal_date DESC"; 
-        $stmt = $conn->query($query);
-        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                <?php
+                try {
+                    $query = "SELECT * FROM withdrawals ORDER BY withdrawal_date DESC"; 
+                    $stmt = $conn->query($query);
+                    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        if ($rows && count($rows) > 0) {
-            foreach ($rows as $row) {
-                // Mapping to the specific column names from your database screenshot
-                $db_date = $row['withdrawal_date'] ?? ''; 
-                $formattedDate = ($db_date) ? date('M d, Y', strtotime($db_date)) : '---';
-                
-                $item_name = htmlspecialchars($row['item_name'] ?? '');
-                $spec      = htmlspecialchars($row['specification'] ?? '');
-                $qty       = number_format($row['qty'] ?? 0);
-                $dept      = htmlspecialchars($row['department'] ?? '');
-                $purpose   = htmlspecialchars($row['purpose'] ?? ''); 
-                $name      = htmlspecialchars($row['withdrawn_by'] ?? 'N/A'); 
-                $id        = $row['id'] ?? 0;
+                    if ($rows && count($rows) > 0) {
+                        foreach ($rows as $row) {
+                            $db_date = $row['withdrawal_date'] ?? ''; 
+                            $formattedDate = ($db_date) ? date('M d, Y', strtotime($db_date)) : '---';
+                            
+                            $item_name = htmlspecialchars($row['item_name'] ?? '');
+                            $spec      = htmlspecialchars($row['specification'] ?? '');
+                            $qty       = number_format($row['qty'] ?? 0);
+                            $dept      = htmlspecialchars($row['department'] ?? '');
+                            $purpose   = htmlspecialchars($row['purpose'] ?? ''); 
+                            $name      = htmlspecialchars($row['withdrawn_by'] ?? 'N/A'); 
+                            $id        = $row['id'] ?? 0;
 
-                echo "<tr>
-                    <td style='font-weight: 600; color: #34495e; text-align: center;'>$formattedDate</td>
-                    <td style='font-weight: 600;'>$item_name</td>
-                    <td style='color: #7f8c8d;'>$spec</td>
-                    <td style='color:#e67e22; font-weight: bold; text-align: center;'>- $qty</td>
-                    <td><span style='background: #f1f2f6; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;'>$dept</span></td>
-                    <td style='font-style: italic; color: #7f8c8d;'>$purpose</td>
-                    <td style='font-weight: 500;'>$name</td>
-                    <td class='action-col' style='text-align: center;'>
-                        <a href='delete_log.php?id=$id&type=withdrawal' class='delete-btn-log' onclick=\"return confirm('Delete record?')\">🗑️ Delete</a>
-                    </td>
-                </tr>";
-            }
-        } else {
-            echo "<tr><td colspan='8' style='text-align:center; padding: 40px; color: #95a5a6;'>No withdrawal records found.</td></tr>";
-        }
-    } catch (PDOException $e) {
-        // Displays the exact error if the query fails again
-        echo "<tr><td colspan='8' style='color:red; text-align:center;'>Database Error: " . htmlspecialchars($e->getMessage()) . "</td></tr>";
-    }
-    ?>
-</tbody>
+                            echo "<tr>
+                                <td style='font-weight: 600; color: #34495e; text-align: center;'>$formattedDate</td>
+                                <td style='font-weight: 600;'>$item_name</td>
+                                <td style='color: #7f8c8d;'>$spec</td>
+                                <td style='color:#e67e22; font-weight: bold; text-align: center;'>- $qty</td>
+                                <td><span style='background: #f1f2f6; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;'>$dept</span></td>
+                                <td style='font-style: italic; color: #7f8c8d;'>$purpose</td>
+                                <td style='font-weight: 500;'>$name</td>
+                                <td class='action-col' style='text-align: center;'>
+                                    <a href='delete_log.php?id=$id&type=withdrawal' class='delete-btn-log' onclick=\"return confirm('Delete record?')\">🗑️ Delete</a>
+                                </td>
+                            </tr>";
+                        }
+                    } else {
+                        echo "<tr><td colspan='8' style='text-align:center; padding: 40px; color: #95a5a6;'>No withdrawal records found.</td></tr>";
+                    }
+                } catch (PDOException $e) {
+                    echo "<tr><td colspan='8' style='color:red; text-align:center;'>Database Error: " . htmlspecialchars($e->getMessage()) . "</td></tr>";
+                }
+                ?>
+            </tbody>
         </table>
     </div>
 
