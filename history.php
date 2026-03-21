@@ -192,9 +192,12 @@ if (session_status() === PHP_SESSION_NONE) {
                     <th>Item Description</th>
                     <th>Specification</th>
                     <th style="text-align: center;">Qty Out</th>
+                    <th>UM</th>
                     <th>Department</th>
                     <th>Purpose</th>
+                    <th>Price</th>
                     <th>Withdrawn By</th>
+                    <th style="text-align: center;">WS No.</th>
                     <th class="action-col" style="text-align: center;">Action</th>
                 </tr>
             </thead>
