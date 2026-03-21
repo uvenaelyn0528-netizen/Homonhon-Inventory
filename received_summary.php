@@ -13,8 +13,8 @@ $stmt->execute();
 $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // CALCULATIONS
-$currentMonth = date('Y-m');
 $totalValue = 0; $totalItems = 0; $thisMonthValue = 0;
+$currentMonth = date('Y-m');
 
 foreach ($rows as $row) {
     $rowPrice = floatval($row['price'] ?? 0);
@@ -43,27 +43,21 @@ foreach ($rows as $row) {
         .header-center img { width: 70px; }
         .table-wrapper { overflow: auto; flex-grow: 1; margin-top: 10px; border: 1px solid #f1f1f1; border-radius: 10px; }
         #inflowTable { width: 100%; border-collapse: collapse; min-width: 1400px; }
-        #inflowTable thead th { position: sticky; top: 0; background: #112941; color: white; padding: 12px; font-size: 11px; text-align: left; }
+        #inflowTable thead th { position: sticky; top: 0; background: #112941; color: white; padding: 12px; font-size: 11px; text-align: left; z-index: 10; }
         #inflowTable td { padding: 10px; border-bottom: 1px solid #f1f1f1; font-size: 13px; }
-        .action-col { position: sticky; right: 0; background: white; text-align: center; }
-        .btn-import { height: 35px; padding: 0 15px; background: #8e44ad; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px; font-size: 12px; }
+        .action-col { position: sticky; right: 0; background: white; text-align: center; border-left: 1px solid #eee; }
+        .btn-control { height: 35px; padding: 0 15px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px; font-size: 12px; color: white; text-decoration: none; }
     </style>
 </head>
 <body>
 
-<?php if (isset($_GET['import']) && $_GET['import'] === 'success'): ?>
-    <div id="successAlert" style="background: #d4edda; color: #155724; padding: 15px; margin-bottom: 10px; border-radius: 10px;">
-        ✅ Successfully imported <?= intval($_GET['count'] ?? 0); ?> items!
-    </div>
-<?php endif; ?>
-
 <div class="history-card">
     <div class="header-section">
-        <div class="header-left"><a href="index.php" style="background: #34495e; color: white; padding: 8px 15px; text-decoration: none; border-radius: 5px; font-size: 12px;">⬅ Dashboard</a></div>
+        <div class="header-left"><a href="index.php" class="btn-control" style="background: #34495e;">⬅ Dashboard</a></div>
         <div class="header-center">
             <img src="images/logo.png">
-            <div>
-                <h2 style="color: darkred; margin: 0; font-size: 20px;">GOLDRICH CONSTRUCTION AND TRADING</h2>
+            <div style="text-align:center;">
+                <h2 style="color: darkred; margin: 0; font-size: 20px; font-family: Broadway;">GOLDRICH CONSTRUCTION AND TRADING</h2>
                 <h3 style="margin: 0; color: #2c3e50;">INVENTORY INFLOW REPORT</h3>
             </div>
         </div>
@@ -72,17 +66,21 @@ foreach ($rows as $row) {
 
     <div class="summary-container">
         <div class="stat-card" style="border-left: 5px solid #2980b9;"><div class="stat-label">Total Value</div><div class="stat-value">₱<?= number_format($totalValue, 2); ?></div></div>
-        <div class="stat-card" style="border-left: 5px solid #27ae60;"><div class="stat-label">This Month</div><div class="stat-value">₱<?= number_format($thisMonthValue, 2); ?></div></div>
+        <div class="stat-card" style="border-left: 5px solid #27ae60;"><div class="stat-label">Spent This Month</div><div class="stat-value">₱<?= number_format($thisMonthValue, 2); ?></div></div>
         <div class="stat-card" style="border-left: 5px solid #f39c12;"><div class="stat-label">Total Items</div><div class="stat-value"><?= number_format($totalItems, 0); ?> pcs</div></div>
     </div>
 
     <div style="background: #112941; padding: 10px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center;">
-        <input type="text" id="searchInput" onkeyup="searchTable()" placeholder="Search logs..." style="padding: 8px; border-radius: 5px; width: 300px;">
+        <input type="text" id="searchInput" onkeyup="searchTable()" placeholder="Search RR#, items, suppliers..." style="padding: 8px; border-radius: 5px; width: 350px; border:none;">
         <div style="display: flex; gap: 10px;">
             <?php if($role === 'admin'): ?>
-                <button type="button" class="btn-import" onclick="document.getElementById('importFile').click()">📥 Import Excel</button>
+                <form action="delete_log.php" method="POST" onsubmit="return confirm('DELETE ALL RECORDS PERMANENTLY?');" style="margin:0;">
+                    <input type="hidden" name="clear_type" value="received">
+                    <button type="submit" class="btn-control" style="background: #e74c3c;">🗑️ Clear History</button>
+                </form>
+                <button type="button" class="btn-control" style="background: #8e44ad;" onclick="document.getElementById('importFile').click()">📥 Import Excel</button>
             <?php endif; ?>
-            <button onclick="window.print()" style="background: #2980b9; color: white; border: none; padding: 0 15px; border-radius: 8px; font-weight: bold; cursor: pointer;">Print 🖨️</button>
+            <button onclick="window.print()" class="btn-control" style="background: #2980b9;">Print Report 🖨️</button>
         </div>
     </div>
 
@@ -94,24 +92,26 @@ foreach ($rows as $row) {
                 </tr>
             </thead>
             <tbody>
-                <?php foreach ($rows as $row): 
-                    $p = floatval($row['price']); $q = floatval($row['qty']);
+                <?php if ($rows): foreach ($rows as $row): 
+                    $p = floatval($row['price'] ?? 0); $q = floatval($row['qty'] ?? 0);
                 ?>
                 <tr>
                     <td><?= date('M d, Y', strtotime($row['received_date'])) ?></td>
-                    <td style="font-weight:bold; color:#2980b9;"><?= htmlspecialchars($row['rr_number']) ?></td>
-                    <td><?= htmlspecialchars($row['supplier']) ?></td>
-                    <td><strong><?= htmlspecialchars($row['item_name']) ?></strong><br><small><?= htmlspecialchars($row['specification']) ?></small></td>
+                    <td style="font-weight:bold; color:#2980b9;"><?= htmlspecialchars($row['rr_number'] ?? '---') ?></td>
+                    <td><?= htmlspecialchars($row['supplier'] ?? '---') ?></td>
+                    <td><strong><?= htmlspecialchars($row['item_name'] ?? '') ?></strong><br><small><?= htmlspecialchars($row['specification'] ?? '') ?></small></td>
                     <td style="color:green; font-weight:bold;">+ <?= number_format($q, 2) ?></td>
                     <td>₱<?= number_format($p, 2) ?></td>
                     <td>₱<?= number_format($p * $q, 2) ?></td>
-                    <td><?= htmlspecialchars($row['department']) ?></td>
-                    <td><?= htmlspecialchars($row['purpose']) ?></td>
+                    <td><?= htmlspecialchars($row['department'] ?? '') ?></td>
+                    <td><?= htmlspecialchars($row['purpose'] ?? '') ?></td>
                     <td class="action-col">
-                        <a href='delete_received_row.php?id=<?= $row['id'] ?>' onclick="return confirm('Delete?')">🗑️</a>
+                        <a href='delete_received_row.php?id=<?= $row['id'] ?>' onclick="return confirm('Delete this row?')" style="text-decoration:none;">🗑️</a>
                     </td>
                 </tr>
-                <?php endforeach; ?>
+                <?php endforeach; else: ?>
+                    <tr><td colspan="10" style="text-align:center; padding:20px;">No records found.</td></tr>
+                <?php endif; ?>
             </tbody>
         </table>
     </div>
