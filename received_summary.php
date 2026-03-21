@@ -3,6 +3,7 @@ include 'db.php';
 
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
+// 1. Get the user role (default to Viewer if not set)
 $raw_role = $_SESSION['role'] ?? 'Viewer'; 
 $role = strtolower(trim($raw_role)); 
 
@@ -16,13 +17,15 @@ $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $totalValue = 0; $totalItems = 0; $thisMonthValue = 0;
 $currentMonth = date('Y-m');
 
-foreach ($rows as $row) {
-    $rowPrice = floatval($row['price'] ?? 0);
-    $rowQty   = floatval($row['qty'] ?? 0);
-    $rowAmount = floatval($row['amount'] ?? ($rowPrice * $rowQty));
-    $totalValue += $rowAmount;
-    $totalItems += $rowQty;
-    if (strpos($row['received_date'], $currentMonth) === 0) { $thisMonthValue += $rowAmount; }
+if ($rows) {
+    foreach ($rows as $row) {
+        $rowPrice = floatval($row['price'] ?? 0);
+        $rowQty   = floatval($row['qty'] ?? 0);
+        $rowAmount = floatval($row['amount'] ?? ($rowPrice * $rowQty));
+        $totalValue += $rowAmount;
+        $totalItems += $rowQty;
+        if (strpos($row['received_date'], $currentMonth) === 0) { $thisMonthValue += $rowAmount; }
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -73,13 +76,18 @@ foreach ($rows as $row) {
     <div style="background: #112941; padding: 10px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center;">
         <input type="text" id="searchInput" onkeyup="searchTable()" placeholder="Search RR#, items, suppliers..." style="padding: 8px; border-radius: 5px; width: 350px; border:none;">
         <div style="display: flex; gap: 10px;">
-            <?php if($role === 'admin'): ?>
+            
+            <?php if ($role === 'admin'): ?>
                 <form action="delete_log.php" method="POST" onsubmit="return confirm('DELETE ALL RECORDS PERMANENTLY?');" style="margin:0;">
                     <input type="hidden" name="clear_type" value="received">
                     <button type="submit" class="btn-control" style="background: #e74c3c;">🗑️ Clear History</button>
                 </form>
                 <button type="button" class="btn-control" style="background: #8e44ad;" onclick="document.getElementById('importFile').click()">📥 Import Excel</button>
+            <?php else: ?>
+                <button onclick="alert('Admin Access Required')" class="btn-control" style="background: #e74c3c; opacity: 0.5;">🗑️ Clear History</button>
+                <button onclick="alert('Admin Access Required')" class="btn-control" style="background: #8e44ad; opacity: 0.5;">📥 Import Excel</button>
             <?php endif; ?>
+
             <button onclick="window.print()" class="btn-control" style="background: #2980b9;">Print Report 🖨️</button>
         </div>
     </div>
@@ -106,7 +114,11 @@ foreach ($rows as $row) {
                     <td><?= htmlspecialchars($row['department'] ?? '') ?></td>
                     <td><?= htmlspecialchars($row['purpose'] ?? '') ?></td>
                     <td class="action-col">
-                        <a href='delete_received_row.php?id=<?= $row['id'] ?>' onclick="return confirm('Delete this row?')" style="text-decoration:none;">🗑️</a>
+                        <?php if ($role === 'admin'): ?>
+                            <a href='delete_received_row.php?id=<?= $row['id'] ?>' onclick="return confirm('Delete this row?')" style="text-decoration:none;">🗑️</a>
+                        <?php else: ?>
+                            🔒
+                        <?php endif; ?>
                     </td>
                 </tr>
                 <?php endforeach; else: ?>
