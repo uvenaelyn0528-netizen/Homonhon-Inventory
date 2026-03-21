@@ -17,8 +17,8 @@ if (session_status() === PHP_SESSION_NONE) {
         /* 1. Global Page Setup */
         body {
             background-color: #f4f7f6;
-            padding: 20px;
-            height: 100vh; /* Changed to 100vh for better layout */
+            padding: 10px;
+            height: 50vh; /* Changed to 100vh for better layout */
             overflow: hidden;
             box-sizing: border-box;
             display: flex;
