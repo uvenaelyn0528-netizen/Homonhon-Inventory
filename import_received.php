@@ -4,7 +4,7 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 ini_set('memory_limit', '256M');
-set_time_limit(300); // Gives the script 5 minutes for large CSVs
+set_time_limit(300); 
 
 include 'db.php';
 
@@ -31,7 +31,6 @@ if (isset($_POST['import_btn'])) {
         try {
             $conn->beginTransaction();
 
-            // Prepare statements outside the loop for maximum performance
             $checkStmt = $conn->prepare("SELECT id FROM inventory WHERE item_name = :name LIMIT 1");
             $uStmt = $conn->prepare("UPDATE inventory SET specification = :spec, price = :price, is_deleted = FALSE WHERE id = :id");
             $iStmt = $conn->prepare("INSERT INTO inventory (item_name, specification, um, department, price, is_deleted) VALUES (:name, :spec, :um, :dept, :price, FALSE)");
@@ -42,12 +41,29 @@ if (isset($_POST['import_btn'])) {
             $historyStmt = $conn->prepare($historySql);
 
             while (($column = fgetcsv($file, 10000, ",")) !== FALSE) {
-                // Break if we hit a completely empty row to prevent 502 timeout loops
                 if (empty($column[1]) && empty($column[3])) {
                     break; 
                 }
 
-                $received_date  = !empty($column[0]) ? $column[0] : date('Y-m-d');
+                // --- DATE CLEANING LOGIC ---
+                $raw_date = trim($column[0]);
+                
+                // If the date is a range (contains a hyphen), take the first date only
+                if (strpos($raw_date, '-') !== false) {
+                    $date_parts = explode('-', $raw_date);
+                    $raw_date = trim($date_parts[0]);
+                }
+
+                // Convert DD/MM/YYYY or DD-MM-YYYY to YYYY-MM-DD
+                $clean_date = str_replace('/', '-', $raw_date);
+                $final_date = date('Y-m-d', strtotime($clean_date));
+
+                // If conversion fails, use today's date as a fallback
+                if (!$final_date || $final_date == '1970-01-01') {
+                    $final_date = date('Y-m-d');
+                }
+                // ---------------------------
+
                 $rr_number      = $column[1] ?? '';
                 $supplier       = $column[2] ?? '';
                 $item_name      = $column[3] ?? '';
@@ -62,7 +78,6 @@ if (isset($_POST['import_btn'])) {
 
                 if (empty($item_name)) continue;
 
-                // 1. UPDATE/INSERT MAIN INVENTORY
                 $checkStmt->execute(['name' => $item_name]);
                 $existingItem = $checkStmt->fetch(PDO::FETCH_ASSOC);
 
@@ -72,9 +87,8 @@ if (isset($_POST['import_btn'])) {
                     $iStmt->execute(['name' => $item_name, 'spec' => $specification, 'um' => $um, 'dept' => $department, 'price' => $price]);
                 }
 
-                // 2. INSERT INTO RECEIVED HISTORY
                 $historyStmt->execute([
-                    'rdate'   => $received_date,
+                    'rdate'   => $final_date, // Used cleaned date here
                     'rr'      => $rr_number,
                     'supp'    => $supplier,
                     'name'    => $item_name,
