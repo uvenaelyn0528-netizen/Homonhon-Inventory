@@ -215,7 +215,7 @@ if (session_status() === PHP_SESSION_NONE) {
                             
                             $item_name = htmlspecialchars($row['item_name'] ?? '');
                             $spec      = htmlspecialchars($row['specification'] ?? '');
-                            $qty       = number_format($row['qty'] ?? 0);
+                            $qty = number_format($row['qty_withdrawn'] ?? 0);
                             $dept      = htmlspecialchars($row['department'] ?? '');
                             $purpose   = htmlspecialchars($row['purpose'] ?? ''); 
                             $name      = htmlspecialchars($row['withdrawn_by'] ?? 'N/A'); 
