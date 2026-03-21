@@ -1,7 +1,12 @@
 <?php 
 include 'db.php'; 
-// Fetch records for the detailed issuance log
-$res = $conn->query("SELECT * FROM diesel_inventory WHERE activity = 'OUTFLOW' ORDER BY rdate DESC, rtime DESC");
+
+/**
+ * FIXED: Standardized to PDO query for Supabase/PostgreSQL compatibility.
+ * replaced $res->fetch_assoc() with $res->fetch(PDO::FETCH_ASSOC)
+ */
+$query = "SELECT * FROM diesel_inventory WHERE activity = 'OUTFLOW' ORDER BY rdate DESC, rtime DESC";
+$res = $conn->query($query);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -120,25 +125,25 @@ $res = $conn->query("SELECT * FROM diesel_inventory WHERE activity = 'OUTFLOW' O
                 </tr>
             </thead>
             <tbody>
-                <?php while($row = $res->fetch_assoc()): ?>
+                <?php while($row = $res->fetch(PDO::FETCH_ASSOC)): ?>
                 <tr>
                     <td style="text-align: center;">
                         <button class="btn-edit" onclick='editIssuance(<?= json_encode($row) ?>)'>✏️</button>
                         <button class="btn-delete" onclick="deleteIssuance(<?= $row['id'] ?>)">🗑️</button>
                     </td>
-                    <td><?= htmlspecialchars($row['from_tank_no']) ?></td>
-                    <td><?= htmlspecialchars($row['rdate']) ?></td>
+                    <td><?= htmlspecialchars($row['from_tank_no'] ?? '') ?></td>
+                    <td><?= htmlspecialchars($row['rdate'] ?? '') ?></td>
                     <td><?= htmlspecialchars($row['shift'] ?? '---') ?></td>
-                    <td><strong><?= htmlspecialchars($row['deposited_to']) ?></strong></td>
-                    <td><?= htmlspecialchars($row['ws_no']) ?></td>
-                    <td><?= htmlspecialchars($row['received_from']) ?></td>
+                    <td><strong><?= htmlspecialchars($row['deposited_to'] ?? '') ?></strong></td>
+                    <td><?= htmlspecialchars($row['ws_no'] ?? '') ?></td>
+                    <td><?= htmlspecialchars($row['received_from'] ?? '') ?></td>
                     <td><?= htmlspecialchars($row['eqpt_type'] ?? '---') ?></td>
-                    <td><?= htmlspecialchars($row['deposited_to']) ?></td>
+                    <td><?= htmlspecialchars($row['deposited_to'] ?? '') ?></td>
                     <td><?= htmlspecialchars($row['eqpt_code'] ?? '---') ?></td>
                     <td><?= htmlspecialchars($row['odometer'] ?? '---') ?></td>
-                    <td><?= date('h:i A', strtotime($row['rtime'])) ?></td>
+                    <td><?= $row['rtime'] ? date('h:i A', strtotime($row['rtime'])) : '---' ?></td>
                     <td><?= htmlspecialchars($row['slip_no'] ?? '---') ?></td>
-                    <td style="text-align:right; font-weight:bold;"><?= number_format($row['qty'], 2) ?></td>
+                    <td style="text-align:right; font-weight:bold;"><?= number_format($row['qty'] ?? 0, 2) ?></td>
                 </tr>
                 <?php endwhile; ?>
             </tbody>
