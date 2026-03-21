@@ -13,7 +13,7 @@ if (strtolower(trim($_SESSION['role'] ?? '')) !== 'admin') {
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES["excel_file"])) {
     $file = fopen($_FILES["excel_file"]["tmp_name"], "r");
-    fgetcsv($file); // Skip Header
+    fgetcsv($file); // Skip the Header Row
 
     try {
         $conn->beginTransaction();
@@ -23,34 +23,56 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES["excel_file"])) {
 
         $count = 0;
         while (($column = fgetcsv($file, 10000, ",")) !== FALSE) {
-            if (empty($column[3])) continue; 
+            if (empty($column[3])) continue; // Skip if Item Name is empty
 
-            // MAPPING:
-            // Col 0: Date | Col 1: RR# | Col 2: Supplier | Col 3: Item Name | Col 4: Spec | Col 5: UM
-            // Col 6 (G): QUANTITY 
-            // Col 7 (H): PRICE 
-            // Col 8: Dept | Col 9: Purpose
+            // --- 10-COLUMN MAPPING (A to J) ---
+            // A (0): Date
+            // B (1): RR# 
+            // C (2): Supplier
+            // D (3): Item Name
+            // E (4): Specification (e.g., '0' or 'PYLOX')
+            // F (5): UM (e.g., 'PC/S', 'TANK/S')
+            // G (6): QTY
+            // H (7): PRICE
+            // I (8): DEPT
+            // J (9): PURPOSE
             
             $raw_date = trim($column[0]);
             $final_date = ($raw_date) ? date('Y-m-d', strtotime(str_replace('/', '-', $raw_date))) : date('Y-m-d');
             
             $item_name = trim($column[3]);
-            $spec      = trim($column[4] ?? '');
-            $um        = trim($column[5] ?? '');
+            $spec      = trim($column[4] ?? '0');
+            $um        = trim($column[5] ?? 'PC/S');
             
-            // SWAPPED PER YOUR REQUEST:
-            $qty    = floatval(preg_replace('/[^0-9.]/', '', $column[6] ?? '0')); // G is now Qty
-            $price  = floatval(preg_replace('/[^0-9.]/', '', $column[7] ?? '0')); // H is now Price
+            // Clean numbers to prevent shifts in calculation
+            $qty    = floatval(preg_replace('/[^0-9.]/', '', $column[6] ?? '0'));
+            $price  = floatval(preg_replace('/[^0-9.]/', '', $column[7] ?? '0'));
             $amount = $price * $qty;
             
             $dept    = trim($column[8] ?? '');
-            $purpose = trim($column[9] ?? '');
+            $purpose = trim($column[9] ?? ''); // Now reading Column J
 
-            // Update Master Inventory
-            $uStmt->execute(['spec' => $spec, 'price' => $price, 'name' => $item_name]);
+            // 1. Update Master Inventory (Main Dashboard)
+            $uStmt->execute([
+                'spec'  => $spec,
+                'price' => $price,
+                'name'  => $item_name
+            ]);
 
-            // Insert History
-            $iStmt->execute([$final_date, $column[1], $column[2], $item_name, $spec, $um, $qty, $price, $amount, $dept, $purpose]);
+            // 2. Insert into History (History Table)
+            $iStmt->execute([
+                $final_date, 
+                $column[1] ?? '', 
+                $column[2] ?? '', 
+                $item_name, 
+                $spec, 
+                $um, 
+                $qty, 
+                $price, 
+                $amount, 
+                $dept, 
+                $purpose
+            ]);
 
             $count++;
         }
