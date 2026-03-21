@@ -343,27 +343,35 @@ if ($rows && count($rows) > 0) {
                         if ($role == 'Admin' || $role == 'Staff') {
                             echo "<a href='#' class='edit-btn' onclick='openEditModal(" . htmlspecialchars(json_encode($row)) . ")'>Edit</a>";
                         }
-                        // PROJECT MANAGER SECTION
+                       // --- PROJECT MANAGER ACTION ---
 if ($role == 'Project Manager' && $status == 'Pending') {
-    echo "<form method='POST' style='display:flex; flex-direction:column; gap:3px; background:#f4f7f6; padding:5px; border-radius:5px;'>
-            <label style='font-size:9px; font-weight:bold;'>ADJUST QTY:</label>
-            <input type='number' name='qty' value='".($row['qty'] ?? 0)."' style='width:50px; font-size:11px; padding:2px;'>
+    echo "<form method='POST' style='display:flex; flex-direction:column; gap:5px; background:#f4f7f6; padding:8px; border-radius:8px; border:1px solid #ddd;'>
+            <div style='display:flex; gap:5px;'>
+                <div style='flex:1;'><label style='font-size:9px; font-weight:bold;'>QTY:</label><input type='number' name='qty' value='".($row['qty'] ?? 0)."' style='width:100%; font-size:11px;'></div>
+            </div>
+            <label style='font-size:9px; font-weight:bold;'>PM REMARKS:</label>
+            <input type='text' name='pm_remarks' placeholder='e.g. Approved for site A' style='font-size:10px; padding:3px;'>
             <input type='hidden' name='id' value='$request_id'>
-            <button type='submit' name='pm_approve' class='approve-btn' style='background:#27ae60; border:none; cursor:pointer;'>✅ Approve</button>
+            <button type='submit' name='pm_approve' class='approve-btn' style='background:#27ae60; border:none; cursor:pointer; padding:5px;'>✅ Approve</button>
           </form>";
 }
 
-// HEAD OFFICE SECTION
+// --- HEAD OFFICE ACTION ---
 if ($role == 'Head Office Purchasing') {
-    echo "<form method='POST' style='display:flex; flex-direction:column; gap:3px; background:#ebf5fb; padding:5px; border-radius:5px;'>
-            <label style='font-size:9px; font-weight:bold;'>FINAL QTY:</label>
-            <input type='number' name='qty' value='".($row['qty'] ?? 0)."' style='width:50px; font-size:11px; padding:2px;'>
-            <select name='set_type' style='font-size:10px; padding:2px;'>
-                <option value='Local' ".($remark_val == 'Local' ? 'selected' : '').">Local</option>
-                <option value='PO' ".($remark_val == 'PO' ? 'selected' : '').">PO</option>
-            </select>
+    echo "<form method='POST' style='display:flex; flex-direction:column; gap:5px; background:#ebf5fb; padding:8px; border-radius:8px; border:1px solid #ddd;'>
+            <div style='display:flex; gap:5px;'>
+                <div style='flex:1;'><label style='font-size:9px; font-weight:bold;'>QTY:</label><input type='number' name='qty' value='".($row['qty'] ?? 0)."' style='width:100%; font-size:11px;'></div>
+                <div style='flex:1;'><label style='font-size:9px; font-weight:bold;'>TYPE:</label>
+                    <select name='set_type' style='width:100%; font-size:10px;'>
+                        <option value='Local' ".($remark_val == 'Local' ? 'selected' : '').">Local</option>
+                        <option value='PO' ".($remark_val == 'PO' ? 'selected' : '').">PO</option>
+                    </select>
+                </div>
+            </div>
+            <label style='font-size:9px; font-weight:bold;'>HO REMARKS:</label>
+            <input type='text' name='ho_remarks' placeholder='e.g. Price checked' style='font-size:10px; padding:3px;'>
             <input type='hidden' name='id' value='$request_id'>
-            <button type='submit' name='ho_process' class='approve-btn' style='background:#2980b9; border:none; cursor:pointer;'>💾 Process</button>
+            <button type='submit' name='ho_process' class='approve-btn' style='background:#2980b9; border:none; cursor:pointer; padding:5px;'>💾 Process</button>
           </form>";
 }
                         if ($role == 'Admin') {
