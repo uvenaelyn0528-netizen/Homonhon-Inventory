@@ -28,65 +28,54 @@ if (isset($_POST['import_btn'])) {
         try {
             $conn->beginTransaction();
 
-            while (($column = fgetcsv($file, 10000, ",")) !== FALSE) {
-                // Map your CSV columns here (Example: Name, Spec, UM, Dept, Price)
-                $item_name     = $column[0] ?? '';
-                $specification = $column[1] ?? '';
-                $um            = $column[2] ?? 'pcs';
-                $department    = $column[3] ?? '';
-                $price         = floatval($column[4] ?? 0);
-                $qty_received  = intval($column[5] ?? 0);
+           while (($column = fgetcsv($file, 10000, ",")) !== FALSE) {
+                // Mapping all 10 columns from your CSV
+                $received_date  = !empty($column[0]) ? $column[0] : date('Y-m-d'); // Uses today if empty
+                $rr_number      = $column[1] ?? '';
+                $supplier       = $column[2] ?? '';
+                $item_name      = $column[3] ?? '';
+                $specification  = $column[4] ?? '';
+                $um             = $column[5] ?? 'pcs';
+                $department     = $column[6] ?? '';
+                $price          = floatval($column[7] ?? 0);
+                $qty_received   = floatval($column[8] ?? 0);
+                $purpose        = $column[9] ?? '';
+                
+                $total_amount   = $price * $qty_received;
 
                 if (empty($item_name)) continue;
 
-                // CHECK IF ITEM EXISTS (Including those previously "deleted")
-                $checkSql = "SELECT id FROM inventory WHERE item_name = :name LIMIT 1";
-                $checkStmt = $conn->prepare($checkSql);
+                // 1. UPDATE/INSERT MAIN INVENTORY
+                $checkStmt = $conn->prepare("SELECT id FROM inventory WHERE item_name = :name LIMIT 1");
                 $checkStmt->execute(['name' => $item_name]);
                 $existingItem = $checkStmt->fetch();
 
                 if ($existingItem) {
-                    // UPDATE existing item and bring it back to life (is_deleted = FALSE)
-                    $updateSql = "UPDATE inventory 
-                                  SET specification = :spec, 
-                                      price = :price, 
-                                      is_deleted = FALSE 
-                                  WHERE id = :id";
-                    $updateStmt = $conn->prepare($updateSql);
-                    $updateStmt->execute([
-                        'spec'  => $specification,
-                        'price' => $price,
-                        'id'    => $existingItem['id']
-                    ]);
-                    $current_id = $existingItem['id'];
+                    $uStmt = $conn->prepare("UPDATE inventory SET specification = :spec, price = :price, is_deleted = FALSE WHERE id = :id");
+                    $uStmt->execute(['spec' => $specification, 'price' => $price, 'id' => $existingItem['id']]);
                 } else {
-                    // INSERT new item
-                    $insertSql = "INSERT INTO inventory (item_name, specification, um, department, price, is_deleted) 
-                                  VALUES (:name, :spec, :um, :dept, :price, FALSE) RETURNING id";
-                    $insertStmt = $conn->prepare($insertSql);
-                    $insertStmt->execute([
-                        'name'  => $item_name,
-                        'spec'  => $specification,
-                        'um'    => $um,
-                        'dept'  => $department,
-                        'price' => $price
-                    ]);
-                    $result = $insertStmt->fetch();
-                    $current_id = $result['id'];
+                    $iStmt = $conn->prepare("INSERT INTO inventory (item_name, specification, um, department, price, is_deleted) VALUES (:name, :spec, :um, :dept, :price, FALSE)");
+                    $iStmt->execute(['name' => $item_name, 'spec' => $specification, 'um' => $um, 'dept' => $department, 'price' => $price]);
                 }
 
-               // LOG THE RECEIPT in received_history using your actual column names
+                // 2. INSERT INTO RECEIVED HISTORY (The Inflow Report)
                 $historySql = "INSERT INTO received_history 
-                               (item_name, specification, um, qty, department, received_date) 
-                               VALUES (:name, :spec, :um, :qty, :dept, NOW())";
+                               (received_date, rr_number, supplier, item_name, specification, um, qty, price, amount, department, purpose) 
+                               VALUES (:rdate, :rr, :supp, :name, :spec, :um, :qty, :price, :amount, :dept, :purpose)";
                 
                 $historyStmt = $conn->prepare($historySql);
                 $historyStmt->execute([
-                    'name' => $item_name,
-                    'spec' => $specification,
-                    'um'   => $um,
-                    'qty'  => $qty_received,
-                    'dept' => $department
+                    'rdate'   => $received_date,
+                    'rr'      => $rr_number,
+                    'supp'    => $supplier,
+                    'name'    => $item_name,
+                    'spec'    => $specification,
+                    'um'      => $um,
+                    'qty'     => $qty_received,
+                    'price'   => $price,
+                    'amount'  => $total_amount,
+                    'dept'    => $department,
+                    'purpose' => $purpose
                 ]);
             }
 
