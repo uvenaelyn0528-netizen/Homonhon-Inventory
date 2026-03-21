@@ -346,6 +346,16 @@ html, body {
                             <option value="Admin">Admin</option>
                             <option value="Mechanical">Mechanical</option>
                             <option value="Safety">Safety</option>
+                            <option value="Mechanical">TSG</option>
+                            <option value="Safety">Assay</option>
+                            <option value="Mechanical">Mine Operation</option>
+                            <option value="Safety">Port Operation</option>
+                            <option value="Mechanical">Comrel</option>
+                            <option value="Safety">Envi</option>
+                            <option value="Mechanical">Mechanical</option>
+                            <option value="Safety">Forestry</option>
+                            <option value="Mechanical">Engineering</option>
+                            
                         </select>
                     </div>
                     <div style="flex:1;">
