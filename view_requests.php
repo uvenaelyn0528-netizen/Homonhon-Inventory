@@ -77,8 +77,8 @@ if ($role == 'Admin' && isset($_GET['delete_id'])) {
         /* 1. Global Page Setup */
         body {
             background-color: #f4f7f6;
-            padding: 20px;
-            height: 100vh; /* Changed from 50vh to 100vh for better visibility */
+            padding: 10px;
+            height: 50vh; /* Changed from 50vh to 100vh for better visibility */
             overflow: hidden;
             box-sizing: border-box;
             display: flex;
