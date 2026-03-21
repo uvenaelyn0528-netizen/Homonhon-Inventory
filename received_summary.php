@@ -22,7 +22,7 @@ $role = strtolower(trim($raw_role));
         body {
             background-color: #f4f7f6;
             padding: 10px;
-            height: 50vh; 
+            height: 100vh; /* Changed from 50vh to 100vh for better visibility */
             overflow: hidden; 
             box-sizing: border-box;
             display: flex;
@@ -34,11 +34,11 @@ $role = strtolower(trim($raw_role));
             background: white;
             border-radius: 15px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-            padding: 10px;
-            max-width: 1450px;
+            padding: 15px;
+            max-width: 1550px;
             margin: auto;
             width: 100%;
-            max-height: 100vh;
+            max-height: 95vh;
             display: flex;
             flex-direction: column;
         }
@@ -77,26 +77,25 @@ $role = strtolower(trim($raw_role));
         .table-wrapper::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
         .table-wrapper::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
 
-        #receivedTable { width: 100%; border-collapse: collapse; min-width: 1350px; }
-        #receivedTable thead th {
+        #inflowTable { width: 100%; border-collapse: collapse; min-width: 1400px; }
+        #inflowTable thead th {
             position: sticky; top: 0; z-index: 10;
             background: #112941 !important; color: white;
             padding: 15px; text-transform: uppercase; font-size: 11px;
             letter-spacing: 1px; text-align: left; white-space: nowrap; 
         }
 
-        #receivedTable td { padding: 12px 15px; border-bottom: 1px solid #f1f1f1; font-size: 13px; color: #2c3e50; }
-        #receivedTable tbody tr:hover { background-color: #f9fbf9; }
+        #inflowTable td { padding: 12px 15px; border-bottom: 1px solid #f1f1f1; font-size: 13px; color: #2c3e50; }
+        #inflowTable tbody tr:hover { background-color: #f9fbf9; }
 
-        #receivedTable th.action-col, #receivedTable td.action-col {
+        #inflowTable th.action-col, #inflowTable td.action-col {
             position: sticky; right: 0; box-shadow: -3px 0 5px rgba(0,0,0,0.05);
         }
-        #receivedTable th.action-col { z-index: 12; background: #112941 !important; }
-        #receivedTable td.action-col { z-index: 2; background-color: white; }
+        #inflowTable th.action-col { z-index: 12; background: #112941 !important; }
+        #inflowTable td.action-col { z-index: 2; background-color: white; }
 
         .badge-count { background: #e8f5e9; color: #27ae60; padding: 3px 10px; border-radius: 15px; font-size: 11px; font-weight: bold; margin-left: 8px; }
-        .delete-btn-log { background: #ffeeee; color: #e74c3c; padding: 5px 10px; border-radius: 5px; text-decoration: none; font-size: 11px; font-weight: bold; }
-
+        
         .modal {
             display: none; position: fixed; z-index: 1000; left: 0; top: 0;
             width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
@@ -110,7 +109,7 @@ $role = strtolower(trim($raw_role));
         .submit-btn { width: 100%; padding: 14px; background: #27ae60; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
 
         @media print {
-            .header-left, .table-controls, .action-col, .delete-btn-log { display: none !important; }
+            .header-left, .table-controls, .action-col { display: none !important; }
             .history-card { box-shadow: none; padding: 0; }
             body { background: white; overflow: visible; }
         }
@@ -121,7 +120,7 @@ $role = strtolower(trim($raw_role));
 <div class="history-card">
     <div class="header-section">
         <div class="header-left">
-            <a href="index.php" class="back-btn" style="background: #34495e; padding: 10px 18px; text-decoration: none; border-radius: 8px; color: white; font-size: 12px; display: flex; align-items: center; gap: 8px; font-weight: bold;">
+            <a href="index.php" style="background: #34495e; padding: 10px 18px; text-decoration: none; border-radius: 8px; color: white; font-size: 12px; display: flex; align-items: center; gap: 8px; font-weight: bold;">
                 ⬅ Back to Dashboard
             </a>
         </div>
@@ -150,13 +149,9 @@ $role = strtolower(trim($raw_role));
                     <input type="hidden" name="clear_type" value="received">
                     <button type="submit" style="height: 35px; padding: 0 15px; background: #e74c3c; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">🗑️ Clear History</button>
                 </form>
-            <?php else: ?>
-                <button onclick="restricted('Admin')" style="height: 35px; padding: 0 15px; background: #e74c3c; opacity: 0.6; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">🗑️ Clear History</button>
-            <?php endif; ?>
-
-            <?php if($role === 'admin'): ?>
                 <a href="import_received.php" style="height: 35px; padding: 0 15px; background: #8e44ad; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; text-decoration: none; font-size: 12px; display: flex; align-items: center;">📥 Import Excel</a>
             <?php else: ?>
+                <button onclick="restricted('Admin')" style="height: 35px; padding: 0 15px; background: #e74c3c; opacity: 0.6; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">🗑️ Clear History</button>
                 <button onclick="restricted('Admin')" style="height: 35px; padding: 0 15px; background: #8e44ad; opacity: 0.6; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">📥 Import Excel</button>
             <?php endif; ?>
 
@@ -165,9 +160,9 @@ $role = strtolower(trim($raw_role));
     </div>
 
    <div class="table-wrapper">
-    <table id="inflowTable" style="width: 100%; border-collapse: collapse;">
+    <table id="inflowTable">
         <thead>
-            <tr style="background: #112941; color: white;">
+            <tr>
                 <th>DATE</th>
                 <th>RR NUMBER</th>
                 <th>SUPPLIER</th>
@@ -182,25 +177,33 @@ $role = strtolower(trim($raw_role));
         </thead>
         <tbody>
         <?php
-        // 1. JOIN with the inventory table to get the Price
-        $query = "SELECT rh.*, i.price 
-                  FROM received_history rh
-                  LEFT JOIN inventory i ON rh.item_name = i.item_name
-                  ORDER BY rh.received_date DESC, rh.id DESC";
-        
+        // FETCH DIRECTLY from received_history now that you have a price column
+        $query = "SELECT * FROM received_history ORDER BY received_date DESC, id DESC";
         $stmt = $conn->prepare($query);
         $stmt->execute();
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         $grand_total = 0;
 
-        if ($rows && count($rows) > 0) {
+        if ($rows) {
             foreach ($rows as $row) {
-                // 2. Use the price from the inventory table
                 $price = floatval($row['price'] ?? 0);
                 $qty   = floatval($row['qty'] ?? 0);
-                $amount = $price * $qty; 
+                $amount = floatval($row['amount'] ?? ($price * $qty)); 
                 $grand_total += $amount;
+
+                // For the Edit Modal JS Function
+                $js_params = sprintf("'%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s'", 
+                    $row['id'], 
+                    addslashes($row['item_name']), 
+                    $row['received_date'], 
+                    $qty, 
+                    addslashes($row['department']), 
+                    addslashes($row['purpose']), 
+                    addslashes($row['rr_number']), 
+                    addslashes($row['supplier']), 
+                    $price
+                );
 
                 echo "<tr>";
                 echo "<td>" . date('M d, Y', strtotime($row['received_date'])) . "</td>";
@@ -216,8 +219,8 @@ $role = strtolower(trim($raw_role));
                 echo "<td>" . htmlspecialchars($row['department'] ?? '') . "</td>";
                 echo "<td style='font-size: 11px;'>" . htmlspecialchars($row['purpose'] ?? '') . "</td>";
                 echo "<td class='action-col'>
-                        <button class='edit-btn' style='padding: 5px; cursor: pointer;'>📝</button>
-                        <button class='delete-btn' style='padding: 5px; cursor: pointer;'>🗑️</button>
+                        <button onclick=\"openEditSummaryModal($js_params)\" style='background:none; border:none; cursor:pointer;'>📝</button>
+                        <a href='delete_received_row.php?id=".$row['id']."' onclick=\"return confirm('Delete this log?')\" style='text-decoration:none;'>🗑️</a>
                       </td>";
                 echo "</tr>";
             }
@@ -266,7 +269,7 @@ function restricted(allowedRole) {
 function searchTable() {
     var input = document.getElementById("searchInput");
     var filter = input.value.toUpperCase();
-    var tr = document.getElementById("receivedTable").getElementsByTagName("tr");
+    var tr = document.getElementById("inflowTable").getElementsByTagName("tr");
     for (var i = 1; i < tr.length; i++) {
         var found = false;
         var td = tr[i].getElementsByTagName("td");
