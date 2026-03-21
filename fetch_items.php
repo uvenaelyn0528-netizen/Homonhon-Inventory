@@ -10,13 +10,12 @@ $role = $_SESSION['role'] ?? 'Viewer';
 try {
     $search = $_GET['search'] ?? '';
 
-  // Added 'AND i.is_deleted = FALSE' to the WHERE clause
-$sql = "SELECT i.*, 
-        (SELECT SUM(qty) FROM received_history rh WHERE rh.item_name = i.item_name) as total_received
-        FROM inventory i 
-        WHERE (i.item_name ILIKE :search OR i.department ILIKE :search)
-        AND i.is_deleted = FALSE 
-        ORDER BY i.item_name ASC";
+    $sql = "SELECT i.*, 
+            (SELECT SUM(qty) FROM received_history rh WHERE rh.item_name = i.item_name) as total_received
+            FROM inventory i 
+            WHERE (i.item_name ILIKE :search OR i.department ILIKE :search)
+            AND i.is_deleted = FALSE 
+            ORDER BY i.item_name ASC";
     
     $stmt = $conn->prepare($sql);
     $stmt->execute(['search' => "%$search%"]);
@@ -28,7 +27,6 @@ $sql = "SELECT i.*,
             $name  = htmlspecialchars($row['item_name'] ?? '');
             $spec  = htmlspecialchars($row['specification'] ?? '');
             
-          // Use total_received from the subquery; fallback to 0 if no history found
             $received  = $row['total_received'] ?? 0;
             $withdrawn = $row['total_withdrawn'] ?? 0;
             $stock     = $received - $withdrawn;
@@ -48,7 +46,6 @@ $sql = "SELECT i.*,
                 $stockStyle = "background: #ffcccc; color: #8B0000; padding: 2px 6px; border-radius: 4px; border: 1px solid #8B0000;";
                 $warningLabel = " <small style='display:block; font-size:9px;'>⚠️ LOW STOCK</small>";
             } elseif ($stock > $max && $max > 0) {
-                // Alert: Overstocked
                 $stockStyle = "background: #e1f5fe; color: #01579b; padding: 2px 6px; border-radius: 4px;";
                 $warningLabel = " <small style='display:block; font-size:9px;'>ℹ️ OVERSTOCK</small>";
             }
@@ -71,23 +68,23 @@ $sql = "SELECT i.*,
             // Sticky Action Column
             echo "<td style='position: sticky; right: 0; background: white; border-left: 1px solid #ddd; display: flex; gap: 5px; z-index: 5; padding: 10px;'>";
             
-            // ... (Rest of your button logic remains the same) ...
+            // Withdraw Button for Admin or Staff
             if ($role == 'Admin' || $role == 'Staff') {
                 echo "<button title='Withdraw' onclick='openWithdrawModal($id, \"" . addslashes($name) . "\", $stock)' style='background:#e67e22; color:white; border:none; padding:5px 8px; border-radius:4px; cursor:pointer;'>📤</button>";
             }
 
-            // Edit button ONLY for Admin
-if ($role == 'Admin') {
-    // Edit Button
-    echo "<button title='Edit' onclick='openEditModal($id, \"" . addslashes($name) . "\", \"" . addslashes($spec) . "\", $min, $max)' style='background:#3498db; color:white; border:none; padding:5px 8px; border-radius:4px; cursor:pointer;'>✏️</button>";
-    
-   echo "<a href='delete_log.php?type=inventory&id=$id' 
-             onclick='return confirm(\"Move this item to Trash? It will be hidden from the inventory.\")' 
-             style='background:#e74c3c; color:white; padding:5px 12px; border-radius:4px; text-decoration:none; font-size:14px;'>🗑️Delete</a>";
+            // Edit & Delete buttons ONLY for Admin
+            if ($role == 'Admin') {
+                echo "<button title='Edit' onclick='openEditModal($id, \"" . addslashes($name) . "\", \"" . addslashes($spec) . "\", $min, $max)' style='background:#3498db; color:white; border:none; padding:5px 8px; border-radius:4px; cursor:pointer;'>✏️</button>";
+                
+                echo "<a href='delete_log.php?type=inventory&id=$id' 
+                     onclick='return confirm(\"Move this item to Trash? It will be hidden from the inventory.\")' 
+                     style='background:#e74c3c; color:white; padding:5px 12px; border-radius:4px; text-decoration:none; font-size:14px;'>🗑️</a>";
+            }
 
             echo "</td></tr>";
-        }
-    else {
+        } // End of foreach
+    } else {
         echo "<tr><td colspan='11' style='text-align:center; padding:20px;'>No items found in inventory.</td></tr>";
     }
 } catch (PDOException $e) {
