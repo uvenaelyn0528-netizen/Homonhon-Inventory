@@ -93,7 +93,7 @@ $count++;
 $conn->commit();
 fclose($file);
 header("Location: received_summary.php?import=success&count=$count");
-@@ -63,15 +71,4 @@
+
 die("Import Error: " . $e->getMessage());
 }
 }
