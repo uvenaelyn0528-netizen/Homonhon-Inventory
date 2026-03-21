@@ -179,13 +179,22 @@
             <input type="text" id="searchInput" onkeyup="searchTable()" placeholder="Search items, names, or departments..." style="width: 350px; padding: 5px; border-radius: 8px; border: 1px solid #ddd; outline: none;">
         </div>
         
-        <div class="right-side" style="display: flex; gap: 10px; align-items: center;">
-            <form method="POST" action="delete_log.php" onsubmit="return confirm('PERMANENTLY DELETE ALL WITHDRAWAL RECORDS?');" style="margin: 0;">
-                <input type="hidden" name="clear_type" value="withdrawal">
-                <button type="submit" style="height: 30px; padding: 0 15px; background: #e74c3c; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 12px;">🗑️ Clear History</button>
-            </form>
-            <button onclick="window.print()" style="height: 30px; padding: 0 15px; background: #2980b9; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 12px;">Generate Report 🖨️</button>
-        </div>
+       <div class="right-side" style="display: flex; gap: 10px; align-items: center;">
+    <?php if (isset($_SESSION['role']) && $_SESSION['role'] == 'Admin'): ?>
+        <button onclick="document.getElementById('importFile').click()" style="height: 30px; padding: 0 15px; background: #27ae60; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 12px;">
+            📥 Import CSV
+        </button>
+        <form id="importForm" action="import_withdrawals.php" method="POST" enctype="multipart/form-data" style="display:none;">
+            <input type="file" id="importFile" name="withdrawal_csv" accept=".csv" onchange="document.getElementById('importForm').submit()">
+        </form>
+    <?php endif; ?>
+
+    <form method="POST" action="delete_log.php" onsubmit="return confirm('PERMANENTLY DELETE ALL WITHDRAWAL RECORDS?');" style="margin: 0;">
+        <input type="hidden" name="clear_type" value="withdrawal">
+        <button type="submit" style="height: 30px; padding: 0 15px; background: #e74c3c; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 12px;">🗑️ Clear History</button>
+    </form>
+    <button onclick="window.print()" style="height: 30px; padding: 0 15px; background: #2980b9; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 12px;">Generate Report 🖨️</button>
+</div>
     </div>
 
     <div class="table-wrapper">
