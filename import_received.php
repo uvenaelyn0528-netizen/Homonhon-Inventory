@@ -59,9 +59,9 @@ if (isset($_POST['import_btn'])) {
                 }
 
                 // 2. INSERT INTO RECEIVED HISTORY (The Inflow Report)
-                $historySql = "INSERT INTO received_history 
-                               (received_date, rr_number, supplier, item_name, specification, um, qty, price, amount, department, purpose) 
-                               VALUES (:rdate, :rr, :supp, :name, :spec, :um, :qty, :price, :amount, :dept, :purpose)";
+               $historySql = "INSERT INTO received_history 
+               (received_date, rr_number, supplier, item_name, specification, um, qty, amount, department, purpose) 
+               VALUES (:rdate, :rr, :supp, :name, :spec, :um, :qty, :amount, :dept, :purpose)";
                 
                 $historyStmt = $conn->prepare($historySql);
                 $historyStmt->execute([
