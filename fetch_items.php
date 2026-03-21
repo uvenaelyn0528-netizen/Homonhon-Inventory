@@ -87,7 +87,7 @@ if ($role == 'Admin') {
 
             echo "</td></tr>";
         }
-    } else {
+    else {
         echo "<tr><td colspan='11' style='text-align:center; padding:20px;'>No items found in inventory.</td></tr>";
     }
 } catch (PDOException $e) {
