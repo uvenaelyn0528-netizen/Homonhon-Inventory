@@ -4,19 +4,17 @@ if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
 $role = $_SESSION['role'] ?? 'Viewer'; 
 
-// UPDATED: PM Action Logic (Approve, Reject, or Hold)
+// PM Action Logic
 if ($role == 'Project Manager' && isset($_POST['pm_action']) && isset($_POST['id'])) {
     $id = intval($_POST['id']);
     $qty = intval($_POST['qty']);
     $pm_note = $_POST['pm_remarks'] ?? ''; 
     $action = $_POST['pm_action'];
 
-    // Determine status based on button clicked
     $status = 'PM Approved';
     if ($action === 'reject') $status = 'Rejected';
     if ($action === 'hold') $status = 'On Hold';
     
-    // ADDED CASTING (::TEXT) to :note to fix Indeterminate Datatype error
     $stmt = $conn->prepare("UPDATE item_requests 
                             SET status = :status, 
                                 qty = :qty, 
@@ -34,23 +32,21 @@ if ($role == 'Project Manager' && isset($_POST['pm_action']) && isset($_POST['id
     exit();
 }
 
-// Head Office Purchasing Logic - Refined to prevent duplicate notes
+// Head Office Purchasing Logic
 if ($role == 'Head Office Purchasing' && isset($_POST['ho_process']) && isset($_POST['id'])) {
     $id = intval($_POST['id']);
     $type = $_POST['set_type']; 
     $qty = intval($_POST['qty']);
     $ho_note = trim($_POST['ho_remarks'] ?? ''); 
     
-    // 1. First, get current purpose to see if note already exists
     $check = $conn->prepare("SELECT purpose FROM item_requests WHERE request_id = :id");
     $check->execute(['id' => $id]);
     $current_purpose = $check->fetchColumn();
 
-    // 2. Only append if there's a new note and it's not already in the text
     if (!empty($ho_note) && strpos($current_purpose, "HO: $ho_note") === false) {
         $new_purpose = $current_purpose . " | HO: " . $ho_note;
     } else {
-        $new_purpose = $current_purpose; // Keep as is if note is empty or duplicate
+        $new_purpose = $current_purpose;
     }
     
     $stmt = $conn->prepare("UPDATE item_requests SET remarks = :type, qty = :qty, status = 'Processed', purpose = :purpose WHERE request_id = :id");
@@ -92,114 +88,43 @@ if ($role == 'Admin' && isset($_GET['delete_id'])) {
     <title>Request History Log | Goldrich</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        /* 1. Global Page Setup */
-        body {
-            background-color: #f4f7f6;
-            padding: 10px;
-            height: 50vh; /* Changed from 50vh to 100vh for better visibility */
-            overflow: hidden;
-            box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-        }
-
-        /* 2. Main Card Container */
-        .history-card {
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-            padding: 25px;
-            max-width: 1400px;
-            margin: auto;
-            width: 100%;
-            max-height: 95vh;
-            display: flex;
-            flex-direction: column;
-        }
-
-        /* 3. Header Section */
-        .header-section {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 2px solid #f8f9fa;
-            padding-bottom: 5px;
-            margin-bottom: 5px;
-            width: 100%;
-        }
+        body { background-color: #f4f7f6; padding: 10px; height: 100vh; overflow: hidden; box-sizing: border-box; display: flex; flex-direction: column; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; }
+        .history-card { background: white; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); padding: 25px; max-width: 1400px; margin: auto; width: 100%; max-height: 95vh; display: flex; flex-direction: column; }
+        .header-section { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f8f9fa; padding-bottom: 5px; margin-bottom: 5px; width: 100%; }
         .header-left { flex: 1; display: flex; justify-content: flex-start; }
         .header-right { flex: 1; }
         .header-center { flex: 3; display: flex; align-items: center; justify-content: center; gap: 25px; }
         .header-center img { width: 90px; height: auto; display: block; }
         .header-text-group { text-align: left; }
-
-        /* 4. Table and Scrollbar */
-        .table-wrapper {
-            overflow-y: auto;
-            flex-grow: 1;
-            margin-top: 5px;
-            border: 1px solid #f1f1f1;
-            border-radius: 5px;
-        }
+        .table-wrapper { overflow-y: auto; flex-grow: 1; margin-top: 5px; border: 1px solid #f1f1f1; border-radius: 5px; }
         .table-wrapper::-webkit-scrollbar { width: 8px; }
         .table-wrapper::-webkit-scrollbar-track { background: #f1f1f1; }
         .table-wrapper::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
-
-        /* 5. Table Design */
         #inventoryTable { width: 100%; border-collapse: collapse; }
-        #inventoryTable thead th {
-            position: sticky; top: 0; z-index: 10;
-            background: #112941 !important;
-            color: white; padding: 15px;
-            text-transform: uppercase; font-size: 11px; letter-spacing: 1px;
-        }
+        #inventoryTable thead th { position: sticky; top: 0; z-index: 10; background: #112941 !important; color: white; padding: 15px; text-transform: uppercase; font-size: 11px; letter-spacing: 1px; }
         #inventoryTable td { padding: 12px 15px; border-bottom: 1px solid #f1f1f1; font-size: 13px; color: #112941; }
         #inventoryTable tbody tr:hover { background-color: #f9fbf9; }
-
-        /* Status Colors */
         .status-pending { color: #f39c12; font-weight: bold; background: #fef5e7; padding: 4px 8px; border-radius: 4px; font-size: 11px; }
         .status-approved { color: #27ae60; font-weight: bold; background: #eafaf1; padding: 4px 8px; border-radius: 4px; font-size: 11px; }
+        .status-pmapproved { color: #27ae60; font-weight: bold; background: #eafaf1; padding: 4px 8px; border-radius: 4px; font-size: 11px; }
         .status-processed { color: #2980b9; font-weight: bold; background: #ebf5fb; padding: 4px 8px; border-radius: 4px; font-size: 11px; }
+        .status-rejected { color: #ffffff; font-weight: bold; background: #e74c3c; padding: 4px 8px; border-radius: 4px; font-size: 11px; }
+        .status-onhold { color: #ffffff; font-weight: bold; background: #f39c12; padding: 4px 8px; border-radius: 4px; font-size: 11px; }
         .received-yes { color: #27ae60; font-weight: bold; background: #eafaf1; padding: 4px 8px; border-radius: 4px; font-size: 11px; }
         .received-no { color: #af1c11; font-weight: bold; background: #f4f7f6; padding: 4px 8px; border-radius: 4px; font-size: 11px; }
-
-        /* Action Buttons */
         .action-btns { display: flex; gap: 5px; justify-content: center; flex-direction: column; }
-        .action-btns a, .action-btns button {
-            padding: 5px 8px; text-decoration: none; color: white; border-radius: 4px;
-            font-size: 10px; font-weight: bold; border: none; cursor: pointer;
-        }
+        .action-btns a, .action-btns button { padding: 5px 8px; text-decoration: none; color: white; border-radius: 4px; font-size: 10px; font-weight: bold; border: none; cursor: pointer; }
         .edit-btn { background: #3498db; }
         .approve-btn { background: #27ae60; }
         .delete-btn-req { background: #e74c3c; text-align: center; }
-
-        /* New Upload Buttons */
         .btn-upload-po { background: #34495e !important; }
         .btn-upload-rr { background: #27ae60 !important; }
         .view-scan-link { font-size: 9px; color: #2980b9; text-decoration: underline; display: block; margin-top: 2px; }
-
-        /* Modal Styles */
-        .modal {
-            display: none; position: fixed; z-index: 1000; left: 0; top: 0;
-            width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
-            align-items: center; justify-content: center;
-        }
-        .modal-content {
-            background-color: #fff; border-radius: 15px; width: 450px;
-            box-shadow: 0 15px 40px rgba(0,0,0,0.2); overflow: hidden;
-        }
-
-        @media print {
-            .header-left, .table-controls, .action-col { display: none !important; }
-            body { background: white; overflow: visible; }
-        }
-        
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); backdrop-filter: blur(4px); align-items: center; justify-content: center; }
+        .modal-content { background-color: #fff; border-radius: 15px; width: 450px; box-shadow: 0 15px 40px rgba(0,0,0,0.2); overflow: hidden; }
         .btn-yes { background: #2ecc71; color: white; border-radius: 4px; padding: 2px 8px; text-decoration: none; font-size: 10px; }
         .btn-no { background: #95a5a6; color: white; border-radius: 4px; padding: 2px 8px; text-decoration: none; font-size: 10px; }
-        .status-rejected { color: #ffffff; font-weight: bold; background: #e74c3c; padding: 4px 8px; border-radius: 4px; font-size: 11px; }
-.status-onhold { color: #ffffff; font-weight: bold; background: #f39c12; padding: 4px 8px; border-radius: 4px; font-size: 11px; }
+        @media print { .header-left, .table-controls, .action-col { display: none !important; } body { background: white; overflow: visible; } }
     </style>
 </head>
 <body>
@@ -240,10 +165,9 @@ if ($role == 'Admin' && isset($_GET['delete_id'])) {
                     <th>Qty</th>
                     <th>Type</th> 
                     <th>Dept</th>
-                    <th>Purpose</th> 
                     <th>Requested By</th>
                     <th>RF #</th> 
-                    <th>Status</th>
+                    <th>Status & Remarks</th>
                     <th>Purchased</th> 
                     <th class="action-col">Action</th>
                 </tr>
@@ -270,12 +194,17 @@ if ($rows && count($rows) > 0) {
             echo "<td style='text-align: center; font-weight: bold;'>".$row['qty']."</td>";
             echo "<td style='text-align: center;'><span style='background:".($remark_val=='PO'?'#3498db':'#9b59b6')."; color:white; padding:2px 6px; border-radius:10px; font-size:9px;'>$remark_val</span></td>";
             echo "<td>".$row['department']."</td>";
-            echo "<td style='font-size: 11px; max-width:150px;'>".htmlspecialchars($row['purpose'])."</td>";
             echo "<td>".$row['requested_by']."</td>";
             echo "<td style='text-align: center; font-weight: bold; color: #2980b9;'>$rf_display</td>";
-            echo "<td style='text-align: center;'><span class='$status_class'>$status</span></td>";
             
-            // Received Status Column + Scan Links
+            // UPDATED STATUS & REMARKS COLUMN
+            echo "<td style='text-align: center;'>
+                    <span class='$status_class'>$status</span>
+                    <div style='font-size: 10px; color: #7f8c8d; margin-top: 5px; line-height: 1.2; max-width: 150px; margin-left: auto; margin-right: auto; word-wrap: break-word;'>
+                        ".htmlspecialchars($row['purpose'])."
+                    </div>
+                  </td>";
+            
             echo "<td style='text-align: center;'>
                     <span class='$rec_class'>$rec_status</span>
                     <div style='margin-top:5px;'>";
@@ -286,8 +215,6 @@ if ($rows && count($rows) > 0) {
 
             echo "<td class='action-col'>
                     <div class='action-btns'>";
-                        
-                        // STAFF / ADMIN: RR UPLOAD + EDIT
                         if ($role == 'Admin' || $role == 'Staff') {
                             echo "<button onclick='openUploadModal($request_id, \"RR\")' class='btn-upload-rr' style='padding:4px; font-size:9px;'>📷 UPLOAD RR</button>";
                             echo "<a href='#' class='edit-btn' onclick='openEditModal(".htmlspecialchars(json_encode($row)).")'>Edit</a>";
@@ -297,23 +224,19 @@ if ($rows && count($rows) > 0) {
                                   </div>";
                         }
 
-                        // PROJECT MANAGER: Approve, Reject, or Hold
-if ($role == 'Project Manager' && ($status == 'Pending' || $status == 'On Hold')) {
-    echo "<form method='POST' style='background:#f4f7f6; padding:8px; border:1px solid #ddd; border-radius:5px; display:flex; flex-direction:column; gap:4px;'>
-            <input type='number' name='qty' value='".$row['qty']."' style='width:100%; padding:2px;'>
-            <input type='text' name='pm_remarks' placeholder='PM Note' style='width:100%; font-size:10px; padding:2px;'>
-            <input type='hidden' name='id' value='$request_id'>
-            
-            <button type='submit' name='pm_action' value='approve' class='approve-btn' style='width:100%; background:#27ae60; color:white; border:none; padding:4px; cursor:pointer;'>✅ Approve</button>
-            
-            <div style='display:flex; gap:2px;'>
-                <button type='submit' name='pm_action' value='hold' style='flex:1; background:#f39c12; color:white; border:none; padding:4px; font-size:9px; border-radius:4px; cursor:pointer;'>⏳ Hold</button>
-                <button type='submit' name='pm_action' value='reject' style='flex:1; background:#e74c3c; color:white; border:none; padding:4px; font-size:9px; border-radius:4px; cursor:pointer;' onclick='return confirm(\"Reject this request?\")'>✖ Reject</button>
-            </div>
-          </form>";
-}
+                        if ($role == 'Project Manager' && ($status == 'Pending' || $status == 'On Hold')) {
+                            echo "<form method='POST' style='background:#f4f7f6; padding:8px; border:1px solid #ddd; border-radius:5px; display:flex; flex-direction:column; gap:4px;'>
+                                    <input type='number' name='qty' value='".$row['qty']."' style='width:100%; padding:2px;'>
+                                    <input type='text' name='pm_remarks' placeholder='PM Note' style='width:100%; font-size:10px; padding:2px;'>
+                                    <input type='hidden' name='id' value='$request_id'>
+                                    <button type='submit' name='pm_action' value='approve' class='approve-btn' style='width:100%; background:#27ae60; color:white; border:none; padding:4px; cursor:pointer;'>✅ Approve</button>
+                                    <div style='display:flex; gap:2px;'>
+                                        <button type='submit' name='pm_action' value='hold' style='flex:1; background:#f39c12; color:white; border:none; padding:4px; font-size:9px; border-radius:4px; cursor:pointer;'>⏳ Hold</button>
+                                        <button type='submit' name='pm_action' value='reject' style='flex:1; background:#e74c3c; color:white; border:none; padding:4px; font-size:9px; border-radius:4px; cursor:pointer;' onclick='return confirm(\"Reject this request?\")'>✖ Reject</button>
+                                    </div>
+                                  </form>";
+                        }
 
-                        // HO PURCHASING: PO UPLOAD + PROCESS
                         if ($role == 'Head Office Purchasing') {
                             echo "<form method='POST' style='background:#ebf5fb; padding:5px; border:1px solid #ddd; border-radius:5px;'>
                                     <div style='display:flex; gap:2px;'>
@@ -385,8 +308,6 @@ if ($role == 'Project Manager' && ($status == 'Pending' || $status == 'On Hold')
 </div>
 
 <script>
-function restricted(allowedRole) { alert("⛔ ACCESS RESTRICTED\n\nOnly " + allowedRole + " can use this."); }
-
 function openUploadModal(id, type) {
     document.getElementById('uploadModal').style.display = 'flex';
     document.getElementById('upload_id').value = id;
