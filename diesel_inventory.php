@@ -8,7 +8,7 @@ $search = $_GET['search'] ?? '';
 $from_date = $_GET['from_date'] ?? '';
 $to_date = $_GET['to_date'] ?? '';
 
-$query = "SELECT * FROM diesel_inventory WHERE 1=1";
+$sql = "SELECT * FROM diesel_inventory WHERE 1=1 ORDER BY rdate DESC, recorded_at DESC";
 $params = [];
 
 if (!empty($search)) {
