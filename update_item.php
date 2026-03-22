@@ -13,20 +13,30 @@ if (isset($_POST['update_item'])) {
     $spec = $_POST['specification'];
     $min  = (int)$_POST['min_stock'];
     $max  = (int)$_POST['max_stock'];
+    
+    // 1. INSERT THE CAPTURE HERE
+    // This captures the text-based department value (e.g., "MECHANICAL")
+    $dept = $_POST['department']; 
 
     try {
-        // Use PDO prepared statements for security
+        // 2. UPDATE THE SQL STRING
+        // Add the department field to the SET clause
         $sql = "UPDATE inventory SET 
                 item_name = :name, 
                 specification = :spec, 
+                department = :dept, 
                 min_stock = :min, 
                 max_stock = :max 
                 WHERE id = :id";
 
         $stmt = $conn->prepare($sql);
+        
+        // 3. UPDATE THE EXECUTION ARRAY
+        // Include the ':dept' mapping in the array
         $stmt->execute([
             ':name' => $name,
             ':spec' => $spec,
+            ':dept' => $dept,
             ':min'  => $min,
             ':max'  => $max,
             ':id'   => $id
