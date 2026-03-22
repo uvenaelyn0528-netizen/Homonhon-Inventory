@@ -27,11 +27,28 @@ $sql .= " ORDER BY rdate DESC, recorded_at DESC";
 $stmt = $conn->prepare($sql);
 $stmt->execute($params);
 
-// 2. Calculate Overall Balance
-$bal_stmt = $conn->query("SELECT SUM(CASE WHEN activity = 'INFLOW' THEN qty ELSE -qty END) as balance FROM diesel_inventory");
+// 2. UPDATED: Calculate Overall Balance excluding FD and PH
+$bal_stmt = $conn->query("
+    SELECT SUM(amount) as balance 
+    FROM (
+        -- Sum inflows to legitimate storage tanks
+        SELECT qty as amount FROM diesel_inventory 
+        WHERE activity = 'INFLOW' 
+        AND deposited_to NOT LIKE 'FD%' 
+        AND deposited_to NOT LIKE 'PH%'
+        AND deposited_to != 'Direct to Unit'
+
+        UNION ALL
+
+        -- Subtract outflows from legitimate storage tanks
+        SELECT -qty as amount FROM diesel_inventory 
+        WHERE activity = 'OUTFLOW' 
+        AND withdrawn_from NOT LIKE 'FD%' 
+        AND withdrawn_from NOT LIKE 'PH%'
+    ) as net_balance
+");
 $balance_row = $bal_stmt->fetch(PDO::FETCH_ASSOC);
 $balance = $balance_row['balance'] ?? 0;
-
 // 3. UPDATED: Calculate Breakdown including Transfers
 $breakdown_stmt = $conn->query("
     SELECT unit_name, SUM(amount) as unit_balance
