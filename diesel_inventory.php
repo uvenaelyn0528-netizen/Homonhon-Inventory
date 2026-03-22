@@ -175,14 +175,13 @@ $balance = $balance_row['balance'] ?? 0;
             <tbody>
                 <?php while($row = $stmt->fetch(PDO::FETCH_ASSOC)): ?>
                 <tr>
-                    <td><?= date('M d, Y', strtotime($row['rdate'])) ?> <small><?= $row['rtime'] ?></small></td>
-                    <td style="font-weight:bold; color:<?= $row['activity']=='INFLOW'?'#27ae60':'#e67e22'?>"><?= $row['activity'] ?></td>
-                    <td><?= htmlspecialchars($row['received_from'] ?: '---') ?></td>
-                    <td><?= htmlspecialchars($row['rr_no'] ?: '---') ?></td>
-                    <td><?= htmlspecialchars($row['ws_no'] ?: '---') ?></td>
-                    <td><?= htmlspecialchars($row['from_tank_no'] ?: '---') ?></td>
-                    <td style="font-weight: bold;"><?= htmlspecialchars($row['deposited_to']) ?></td>
-                    <td style="font-weight:bold;"><?= number_format($row['qty'], 2) ?></td>
+                    <td><?= date('M d, Y', strtotime($row['rdate'])) ?></td>
+<td style="font-weight:bold; color:<?= $row['activity']=='INFLOW'?'#27ae60':'#e67e22'?>"><?= $row['activity'] ?></td>
+<td><?= htmlspecialchars($row['received_from'] ?: '---') ?></td>
+<td><?= htmlspecialchars($row['rr_no'] ?: '---') ?></td>
+<td><?= htmlspecialchars($row['ws_no'] ?: '---') ?></td>
+<td><?= htmlspecialchars($row['withdrawn_from'] ?: '---') ?></td> <td style="font-weight: bold;"><?= htmlspecialchars($row['deposited_to']) ?></td>
+<td style="font-weight:bold;"><?= number_format($row['qty'], 2) ?></td>
                     <td class="col-action">
                         <button class="btn-edit" onclick='editRecord(<?= json_encode($row) ?>)'>✏️</button>
                         <button class="btn-delete" onclick="deleteRecord(<?= $row['id'] ?>)">🗑️</button>
