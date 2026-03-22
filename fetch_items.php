@@ -34,7 +34,12 @@ try {
             $um    = htmlspecialchars($row['um'] ?? 'pcs');
             
             // Display department directly since your database uses text
-            $dept  = htmlspecialchars($row['department'] ?? '');
+            $dept = htmlspecialchars($row['department'] ?? '');
+
+echo "<tr>
+    ...
+    <td>$dept</td> ...
+</tr>";
             
             $purp  = htmlspecialchars($row['purpose'] ?? '');
             $price = $row['price'] ?? 0;
