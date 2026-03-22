@@ -85,11 +85,11 @@ try {
             }
 
             if ($role == 'Admin') {
-    // We add addslashes($dept) so the JavaScript function receives the department name correctly
-    echo "<button title='Edit' onclick='openEditModal($id, \"" . addslashes($name) . "\", \"" . addslashes($spec) . "\", $min, $max, \"" . addslashes($dept) . "\")' style='background:#3498db; color:white; border:none; padding:5px 8px; border-radius:4px; cursor:pointer; margin-right: 4px;'>✏️</button>";
+    // We pass $dept_raw (the actual database value) to the modal
+    echo "<button title='Edit' onclick='openEditModal($id, \"" . addslashes($name) . "\", \"" . addslashes($spec) . "\", $min, $max, \"" . addslashes($dept_raw) . "\")' style='background:#3498db; color:white; border:none; padding:5px 8px; border-radius:4px; cursor:pointer; margin-right: 4px;'>✏️</button>";
     
     echo "<a href='delete_log.php?type=inventory&id=$id' 
-         onclick='return confirm(\"Move this item to Trash? It will be hidden from the inventory.\")' 
+         onclick='return confirm(\"Move this item to Trash?\")' 
          style='background:#e74c3c; color:white; padding:6px 10px; border-radius:4px; text-decoration:none; font-size:14px; display: inline-block; vertical-align: middle;'>🗑️</a>";
 }
 
