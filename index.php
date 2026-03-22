@@ -550,8 +550,7 @@ html, body {
         document.getElementById('withdraw_stock_display').innerText = stock;
     }
 
-    // FIXED EDIT MODAL TRIGGER WITH DEPARTMENT
-function openEditModal(id, name, spec, min, max, dept) {
+  function openEditModal(id, name, spec, min, max, dept) {
     closeAllModals();
     document.getElementById('editItemModal').style.display = 'flex';
     document.getElementById('edit_item_id').value = id;
@@ -560,9 +559,10 @@ function openEditModal(id, name, spec, min, max, dept) {
     document.getElementById('edit_min_stock').value = min;
     document.getElementById('edit_max_stock').value = max;
     
-    // This ensures the dropdown selects the correct department
-    if(document.getElementById('edit_department')) {
-        document.getElementById('edit_department').value = dept;
+    // This finds the dropdown in your modal and sets it to the saved department
+    var deptField = document.getElementById('edit_department');
+    if (deptField) {
+        deptField.value = dept;
     }
 }
 
