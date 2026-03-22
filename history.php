@@ -18,7 +18,7 @@ if (session_status() === PHP_SESSION_NONE) {
         body {
             background-color: #f4f7f6;
             padding: 10px;
-            height: 50vh; /* Changed to 100vh for better layout */
+            height: 100vh; 
             overflow: hidden;
             box-sizing: border-box;
             display: flex;
@@ -219,16 +219,16 @@ if (session_status() === PHP_SESSION_NONE) {
     $um        = htmlspecialchars($row['um'] ?? '');
     $dept      = htmlspecialchars($row['department'] ?? '');
     $purpose   = htmlspecialchars($row['purpose'] ?? ''); 
-    $price     = number_format($row['price'] ?? 0, 2); // New: Price
+    $price     = number_format($row['price'] ?? 0, 2);
     $name      = htmlspecialchars($row['withdrawn_by'] ?? 'N/A'); 
-    $ws_no     = htmlspecialchars($row['ws_no'] ?? '---'); // New: WS No.
+    $ws_no     = htmlspecialchars($row['ws_no'] ?? '---');
     $id        = $row['id'] ?? 0;
 
     echo "<tr>
         <td style='font-weight: 600; color: #34495e; text-align: center;'>$formattedDate</td>
         <td style='font-weight: 600;'>$item_name</td>
         <td style='color: #7f8c8d;'>$spec</td>
-        <td style='color:#e67e22; font-weight: bold; text-align: center;'>- $qty</td>
+        <td style='color:#e67e22; font-weight: bold; text-align: center;'>$qty</td>
         <td>$um</td>
         <td><span style='background: #f1f2f6; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;'>$dept</span></td>
         <td style='font-style: italic; color: #7f8c8d;'>$purpose</td>
@@ -241,10 +241,10 @@ if (session_status() === PHP_SESSION_NONE) {
     </tr>";
 }
                     } else {
-                        echo "<tr><td colspan='8' style='text-align:center; padding: 40px; color: #95a5a6;'>No withdrawal records found.</td></tr>";
+                        echo "<tr><td colspan='11' style='text-align:center; padding: 40px; color: #95a5a6;'>No withdrawal records found.</td></tr>";
                     }
                 } catch (PDOException $e) {
-                    echo "<tr><td colspan='8' style='color:red; text-align:center;'>Database Error: " . htmlspecialchars($e->getMessage()) . "</td></tr>";
+                    echo "<tr><td colspan='11' style='color:red; text-align:center;'>Database Error: " . htmlspecialchars($e->getMessage()) . "</td></tr>";
                 }
                 ?>
             </tbody>
