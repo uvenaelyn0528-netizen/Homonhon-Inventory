@@ -16,10 +16,21 @@ if ($role == 'Project Manager' && isset($_POST['pm_action']) && isset($_POST['id
     if ($action === 'reject') $status = 'Rejected';
     if ($action === 'hold') $status = 'On Hold';
     
-    $stmt = $conn->prepare("UPDATE item_requests SET status = :status, qty = :qty, purpose = CONCAT(purpose, ' | PM: ', :note) WHERE request_id = :id");
-    $stmt->execute(['status' => $status, 'qty' => $qty, 'note' => $pm_note, 'id' => $id]);
+    // ADDED CASTING (::TEXT) to :note to fix Indeterminate Datatype error
+    $stmt = $conn->prepare("UPDATE item_requests 
+                            SET status = :status, 
+                                qty = :qty, 
+                                purpose = CONCAT(purpose, ' | PM: ', :note::TEXT) 
+                            WHERE request_id = :id");
+                            
+    $stmt->execute([
+        'status' => $status, 
+        'qty'    => $qty, 
+        'note'   => $pm_note, 
+        'id'     => $id
+    ]);
     
-    header("Location: view_requests.php?msg=" . $status);
+    header("Location: view_requests.php?msg=" . urlencode($status));
     exit();
 }
 
