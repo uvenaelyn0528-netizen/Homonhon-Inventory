@@ -10,8 +10,10 @@ $role = $_SESSION['role'] ?? 'Viewer';
 try {
     $search = $_GET['search'] ?? '';
 
+    // UPDATED SQL: Added subquery to pull SUM from the 'withdrawals' table
     $sql = "SELECT i.*, 
-            (SELECT SUM(qty) FROM received_history rh WHERE rh.item_name = i.item_name) as total_received
+            (SELECT COALESCE(SUM(qty), 0) FROM received_history rh WHERE rh.item_name = i.item_name AND rh.specification = i.specification) as total_received,
+            (SELECT COALESCE(SUM(qty_withdrawn), 0) FROM withdrawals w WHERE w.item_name = i.item_name AND w.specification = i.specification) as total_withdrawn
             FROM inventory i 
             WHERE (i.item_name ILIKE :search OR i.department ILIKE :search)
             AND i.is_deleted = FALSE 
@@ -27,24 +29,20 @@ try {
             $name  = htmlspecialchars($row['item_name'] ?? '');
             $spec  = htmlspecialchars($row['specification'] ?? '');
             
+            // The math now uses the calculated totals from your history tables
             $received  = $row['total_received'] ?? 0;
             $withdrawn = $row['total_withdrawn'] ?? 0;
             $stock     = $received - $withdrawn;
 
             $um    = htmlspecialchars($row['um'] ?? 'pcs');
             
-            // --- UPDATED DEPARTMENT LOGIC ---
-            // Pull the raw value from the database
+            // --- DEPARTMENT LOGIC ---
             $dept_raw = $row['department'] ?? ''; 
-
-            // If the value is accidentally numeric, it flags it as an error
-            // Otherwise, it forces it to Uppercase for consistent reporting
             if (is_numeric($dept_raw)) {
                 $dept = "<span style='color:red; font-weight:bold;'>Error: Numeric ($dept_raw)</span>";
             } else {
                 $dept = !empty($dept_raw) ? strtoupper(htmlspecialchars($dept_raw)) : "<span style='color:gray;'>UNASSIGNED</span>";
             }
-            // --------------------------------
             
             $purp  = htmlspecialchars($row['purpose'] ?? '');
             $price = $row['price'] ?? 0;
@@ -67,8 +65,8 @@ try {
                 <td style='padding:12px;'><strong>$name</strong></td>
                 <td>$spec</td>
                 <td>$um</td>
-                <td style='color:green;'>$received</td>
-                <td style='color:orange;'>$withdrawn</td>
+                <td style='color:green; font-weight:bold;'>$received</td>
+                <td style='color:orange; font-weight:bold;'>$withdrawn</td>
                 <td>
                     <span style='$stockStyle'><strong>$stock</strong></span>
                     $warningLabel
@@ -85,13 +83,12 @@ try {
             }
 
             if ($role == 'Admin') {
-    // We pass $dept_raw (the actual database value) to the modal using string concatenation
-    echo "<button onclick=\"openEditModal('" . $id . "', '" . addslashes($name) . "', '" . addslashes($spec) . "', '" . $min . "', '" . $max . "', '" . addslashes($dept_raw) . "')\" style='background:#3498db; color:white; border:none; padding:5px 8px; border-radius:4px; cursor:pointer; margin-right: 4px;'>✏️</button>";
-    
-    echo "<a href='delete_log.php?type=inventory&id=$id' 
-         onclick='return confirm(\"Move this item to Trash?\")' 
-         style='background:#e74c3c; color:white; padding:6px 10px; border-radius:4px; text-decoration:none; font-size:14px; display: inline-block; vertical-align: middle;'>🗑️</a>";
-}
+                echo "<button onclick=\"openEditModal('" . $id . "', '" . addslashes($name) . "', '" . addslashes($spec) . "', '" . $min . "', '" . $max . "', '" . addslashes($dept_raw) . "')\" style='background:#3498db; color:white; border:none; padding:5px 8px; border-radius:4px; cursor:pointer; margin-right: 4px;'>✏️</button>";
+                
+                echo "<a href='delete_log.php?type=inventory&id=$id' 
+                     onclick='return confirm(\"Move this item to Trash?\")' 
+                     style='background:#e74c3c; color:white; padding:6px 10px; border-radius:4px; text-decoration:none; font-size:14px; display: inline-block; vertical-align: middle;'>🗑️</a>";
+            }
 
             echo "</td></tr>";
         }
