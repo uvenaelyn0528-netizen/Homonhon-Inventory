@@ -8,24 +8,26 @@ $search = $_GET['search'] ?? '';
 $from_date = $_GET['from_date'] ?? '';
 $to_date = $_GET['to_date'] ?? '';
 
-$sql = "SELECT * FROM diesel_inventory WHERE 1=1 ORDER BY rdate DESC, recorded_at DESC";
+// Start with the base query
+$sql = "SELECT * FROM diesel_inventory WHERE 1=1";
 $params = [];
 
 if (!empty($search)) {
-    $query .= " AND (rr_no LIKE :search OR ws_no LIKE :search OR deposited_to LIKE :search OR received_from LIKE :search)";
+    $sql .= " AND (rr_no LIKE :search OR ws_no LIKE :search OR deposited_to LIKE :search OR received_from LIKE :search)";
     $params[':search'] = "%$search%";
 }
 
 if (!empty($from_date) && !empty($to_date)) {
-    $query .= " AND rdate BETWEEN :from_date AND :to_date";
+    $sql .= " AND rdate BETWEEN :from_date AND :to_date";
     $params[':from_date'] = $from_date;
     $params[':to_date'] = $to_date;
 }
 
-$query .= " ORDER BY rdate DESC, rtime DESC";
-$stmt = $conn->prepare($query);
-$stmt->execute($params);
+// Finalize ordering - removed 'rtime' and used 'recorded_at' per your schema
+$sql .= " ORDER BY rdate DESC, recorded_at DESC";
 
+$stmt = $conn->prepare($sql);
+$stmt->execute($params);
 // 2. Calculate Current Balance
 $bal_stmt = $conn->query("SELECT SUM(CASE WHEN activity = 'INFLOW' THEN qty ELSE -qty END) as balance FROM diesel_inventory");
 $balance_row = $bal_stmt->fetch(PDO::FETCH_ASSOC);
