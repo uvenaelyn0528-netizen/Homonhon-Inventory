@@ -27,11 +27,10 @@ $sql .= " ORDER BY rdate DESC, recorded_at DESC";
 $stmt = $conn->prepare($sql);
 $stmt->execute($params);
 
-// 2. UPDATED: Calculate Overall Balance excluding FD and PH
+// 2. UPDATED: Total Balance (Only Tanks and FTs)
 $bal_stmt = $conn->query("
     SELECT SUM(amount) as balance 
     FROM (
-        -- Sum inflows to legitimate storage tanks
         SELECT qty as amount FROM diesel_inventory 
         WHERE activity = 'INFLOW' 
         AND deposited_to NOT LIKE 'FD%' 
@@ -40,7 +39,6 @@ $bal_stmt = $conn->query("
 
         UNION ALL
 
-        -- Subtract outflows from legitimate storage tanks
         SELECT -qty as amount FROM diesel_inventory 
         WHERE activity = 'OUTFLOW' 
         AND withdrawn_from NOT LIKE 'FD%' 
@@ -49,21 +47,24 @@ $bal_stmt = $conn->query("
 ");
 $balance_row = $bal_stmt->fetch(PDO::FETCH_ASSOC);
 $balance = $balance_row['balance'] ?? 0;
-// 3. UPDATED: Calculate Breakdown including Transfers
+
+// 3. UPDATED: Unit Breakdown (Only Tanks and FTs)
 $breakdown_stmt = $conn->query("
     SELECT unit_name, SUM(amount) as unit_balance
     FROM (
-        -- Every 'Deposited To' entry adds to that unit's balance
         SELECT deposited_to as unit_name, qty as amount 
         FROM diesel_inventory 
-        WHERE deposited_to IS NOT NULL AND deposited_to NOT IN ('', '---', 'Direct to Unit')
+        WHERE deposited_to NOT LIKE 'FD%' 
+        AND deposited_to NOT LIKE 'PH%'
+        AND deposited_to NOT IN ('', '---', 'Direct to Unit')
         
         UNION ALL
         
-        -- Every 'Withdrawn From' entry subtracts from that unit's balance
         SELECT withdrawn_from as unit_name, -qty as amount 
         FROM diesel_inventory 
-        WHERE withdrawn_from IS NOT NULL AND withdrawn_from NOT IN ('', '---')
+        WHERE withdrawn_from NOT LIKE 'FD%' 
+        AND withdrawn_from NOT LIKE 'PH%'
+        AND withdrawn_from NOT IN ('', '---')
     ) AS combined_inventory
     GROUP BY unit_name
     ORDER BY unit_name ASC
