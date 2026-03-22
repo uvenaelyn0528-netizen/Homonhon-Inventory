@@ -33,8 +33,18 @@ try {
 
             $um    = htmlspecialchars($row['um'] ?? 'pcs');
             
-            // Display department directly since your database uses text
-            $dept  = htmlspecialchars($row['department'] ?? '');
+            // --- UPDATED DEPARTMENT LOGIC ---
+            // Pull the raw value from the database
+            $dept_raw = $row['department'] ?? ''; 
+
+            // If the value is accidentally numeric, it flags it as an error
+            // Otherwise, it forces it to Uppercase for consistent reporting
+            if (is_numeric($dept_raw)) {
+                $dept = "<span style='color:red; font-weight:bold;'>Error: Numeric ($dept_raw)</span>";
+            } else {
+                $dept = !empty($dept_raw) ? strtoupper(htmlspecialchars($dept_raw)) : "<span style='color:gray;'>UNASSIGNED</span>";
+            }
+            // --------------------------------
             
             $purp  = htmlspecialchars($row['purpose'] ?? '');
             $price = $row['price'] ?? 0;
@@ -63,20 +73,17 @@ try {
                     <span style='$stockStyle'><strong>$stock</strong></span>
                     $warningLabel
                 </td>
-                <td>$dept</td>
-                <td>$purp</td>
+                <td>$dept</td> <td>$purp</td>
                 <td>₱" . number_format($price, 2) . "</td>
                 <td>₱" . number_format($stock * $price, 2) . "</td>";
 
             // Sticky Action Column
             echo "<td class='action-cell' style='position: sticky; right: 0; background: white; border-left: 1px solid #ddd; z-index: 5; padding: 10px; white-space: nowrap; text-align: center;'>";
 
-            // Withdraw Button
             if ($role == 'Admin' || $role == 'Staff') {
                 echo "<button title='Withdraw' onclick='openWithdrawModal($id, \"" . addslashes($name) . "\", $stock)' style='background:#e67e22; color:white; border:none; padding:5px 8px; border-radius:4px; cursor:pointer; margin-right: 4px;'>📤</button>";
             }
 
-            // Edit & Delete buttons
             if ($role == 'Admin') {
                 echo "<button title='Edit' onclick='openEditModal($id, \"" . addslashes($name) . "\", \"" . addslashes($spec) . "\", $min, $max)' style='background:#3498db; color:white; border:none; padding:5px 8px; border-radius:4px; cursor:pointer; margin-right: 4px;'>✏️</button>";
                 
