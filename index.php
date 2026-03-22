@@ -488,14 +488,6 @@ html, body {
             <input type="text" name="withdrawn_by" required>
 
             <label>Purpose / Remarks</label>
-            <select name="purpose" required>
-                <option value="">-- Select Purpose --</option>
-                <option value="Maintenance">Maintenance</option>
-                <option value="Operation">Operation</option>
-                <option value="Repair">Repair</option>
-                <option value="Replacement">Replacement</option>
-                <option value="Others">Others</option>
-            </select>
             
             <button type="submit" class="submit-btn" style="background: #e67e22; margin-top: 10px;">Confirm Withdrawal</button>
         </form>
