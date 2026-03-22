@@ -503,10 +503,29 @@ html, body {
         <div class="modal-body">
             <form action="update_item.php" method="POST">
                 <input type="hidden" name="item_id" id="edit_item_id">
+                
                 <label>Item Description</label>
                 <input type="text" name="item_name" id="edit_item_name" required>
+                
                 <label>Technical Specifications</label>
                 <input type="text" name="specification" id="edit_specification" required>
+
+                <label>Department</label>
+                <select name="department" id="edit_department" required style="width:100%; padding:10px; margin-bottom:15px; border:1px solid #ddd; border-radius:6px;">
+                    <option value="Warehouse">Warehouse</option>
+                    <option value="Admin">Admin</option>
+                    <option value="Mechanical">Mechanical</option>
+                    <option value="Safety">Safety</option>
+                    <option value="TSG">TSG</option>
+                    <option value="Assay">Assay</option>
+                    <option value="Mine Operation">Mine Operation</option>
+                    <option value="Port Operation">Port Operation</option>
+                    <option value="Comrel">Comrel</option>
+                    <option value="Envi">Envi</option>
+                    <option value="Forestry">Forestry</option>
+                    <option value="Engineering">Engineering</option>
+                </select>
+
                 <div style="display:flex; gap:15px;">
                     <div style="flex:1;">
                         <label style="color: #e74c3c;">Min Stock</label>
@@ -559,10 +578,10 @@ html, body {
     document.getElementById('edit_min_stock').value = min;
     document.getElementById('edit_max_stock').value = max;
     
-    // This finds the dropdown in your modal and sets it to the saved department
+    // Select the correct department in the dropdown
     var deptField = document.getElementById('edit_department');
     if (deptField) {
-        deptField.value = dept;
+        deptField.value = dept; 
     }
 }
 
