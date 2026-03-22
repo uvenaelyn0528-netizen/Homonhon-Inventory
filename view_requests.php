@@ -4,15 +4,22 @@ if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
 $role = $_SESSION['role'] ?? 'Viewer'; 
 
-// PM Approval Logic - Now accepts Qty AND PM Remarks
-if ($role == 'Project Manager' && isset($_POST['pm_approve']) && isset($_POST['id'])) {
+// UPDATED: PM Action Logic (Approve, Reject, or Hold)
+if ($role == 'Project Manager' && isset($_POST['pm_action']) && isset($_POST['id'])) {
     $id = intval($_POST['id']);
     $qty = intval($_POST['qty']);
     $pm_note = $_POST['pm_remarks'] ?? ''; 
+    $action = $_POST['pm_action'];
+
+    // Determine status based on button clicked
+    $status = 'PM Approved';
+    if ($action === 'reject') $status = 'Rejected';
+    if ($action === 'hold') $status = 'On Hold';
     
-    $stmt = $conn->prepare("UPDATE item_requests SET status = 'PM Approved', qty = :qty, purpose = CONCAT(purpose, ' | PM: ', :note) WHERE request_id = :id");
-    $stmt->execute(['qty' => $qty, 'note' => $pm_note, 'id' => $id]);
-    header("Location: view_requests.php?msg=Approved");
+    $stmt = $conn->prepare("UPDATE item_requests SET status = :status, qty = :qty, purpose = CONCAT(purpose, ' | PM: ', :note) WHERE request_id = :id");
+    $stmt->execute(['status' => $status, 'qty' => $qty, 'note' => $pm_note, 'id' => $id]);
+    
+    header("Location: view_requests.php?msg=" . $status);
     exit();
 }
 
@@ -180,6 +187,8 @@ if ($role == 'Admin' && isset($_GET['delete_id'])) {
         
         .btn-yes { background: #2ecc71; color: white; border-radius: 4px; padding: 2px 8px; text-decoration: none; font-size: 10px; }
         .btn-no { background: #95a5a6; color: white; border-radius: 4px; padding: 2px 8px; text-decoration: none; font-size: 10px; }
+        .status-rejected { color: #ffffff; font-weight: bold; background: #e74c3c; padding: 4px 8px; border-radius: 4px; font-size: 11px; }
+.status-onhold { color: #ffffff; font-weight: bold; background: #f39c12; padding: 4px 8px; border-radius: 4px; font-size: 11px; }
     </style>
 </head>
 <body>
@@ -277,15 +286,21 @@ if ($rows && count($rows) > 0) {
                                   </div>";
                         }
 
-                        // PROJECT MANAGER
-                        if ($role == 'Project Manager' && $status == 'Pending') {
-                            echo "<form method='POST' style='background:#f4f7f6; padding:5px; border:1px solid #ddd; border-radius:5px;'>
-                                    <input type='number' name='qty' value='".$row['qty']."' style='width:100%; margin-bottom:3px;'>
-                                    <input type='text' name='pm_remarks' placeholder='PM Note' style='width:100%; font-size:10px;'>
-                                    <input type='hidden' name='id' value='$request_id'>
-                                    <button type='submit' name='pm_approve' class='approve-btn' style='width:100%; margin-top:3px;'>✅ Approve</button>
-                                  </form>";
-                        }
+                        // PROJECT MANAGER: Approve, Reject, or Hold
+if ($role == 'Project Manager' && ($status == 'Pending' || $status == 'On Hold')) {
+    echo "<form method='POST' style='background:#f4f7f6; padding:8px; border:1px solid #ddd; border-radius:5px; display:flex; flex-direction:column; gap:4px;'>
+            <input type='number' name='qty' value='".$row['qty']."' style='width:100%; padding:2px;'>
+            <input type='text' name='pm_remarks' placeholder='PM Note' style='width:100%; font-size:10px; padding:2px;'>
+            <input type='hidden' name='id' value='$request_id'>
+            
+            <button type='submit' name='pm_action' value='approve' class='approve-btn' style='width:100%; background:#27ae60; color:white; border:none; padding:4px; cursor:pointer;'>✅ Approve</button>
+            
+            <div style='display:flex; gap:2px;'>
+                <button type='submit' name='pm_action' value='hold' style='flex:1; background:#f39c12; color:white; border:none; padding:4px; font-size:9px; border-radius:4px; cursor:pointer;'>⏳ Hold</button>
+                <button type='submit' name='pm_action' value='reject' style='flex:1; background:#e74c3c; color:white; border:none; padding:4px; font-size:9px; border-radius:4px; cursor:pointer;' onclick='return confirm(\"Reject this request?\")'>✖ Reject</button>
+            </div>
+          </form>";
+}
 
                         // HO PURCHASING: PO UPLOAD + PROCESS
                         if ($role == 'Head Office Purchasing') {
