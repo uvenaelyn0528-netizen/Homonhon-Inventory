@@ -4,7 +4,7 @@ if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
 $role = $_SESSION['role'] ?? 'Viewer'; 
 
-// PM Action Logic
+// PM Action Logic - UPDATED with pm_action_date
 if ($role == 'Project Manager' && isset($_POST['pm_action']) && isset($_POST['id'])) {
     $id = intval($_POST['id']);
     $qty = intval($_POST['qty']);
@@ -15,10 +15,12 @@ if ($role == 'Project Manager' && isset($_POST['pm_action']) && isset($_POST['id
     if ($action === 'reject') $status = 'Rejected';
     if ($action === 'hold') $status = 'On Hold';
     
+    // Added pm_action_date = CURRENT_TIMESTAMP
     $stmt = $conn->prepare("UPDATE item_requests 
                             SET status = :status, 
                                 qty = :qty, 
-                                purpose = CONCAT(purpose, ' | PM: ', :note::TEXT) 
+                                purpose = CONCAT(purpose, ' | PM: ', :note::TEXT),
+                                pm_action_date = CURRENT_TIMESTAMP 
                             WHERE request_id = :id");
                             
     $stmt->execute([
@@ -32,7 +34,7 @@ if ($role == 'Project Manager' && isset($_POST['pm_action']) && isset($_POST['id
     exit();
 }
 
-// Head Office Purchasing Logic
+// Head Office Purchasing Logic - UPDATED with ho_action_date
 if ($role == 'Head Office Purchasing' && isset($_POST['ho_process']) && isset($_POST['id'])) {
     $id = intval($_POST['id']);
     $type = $_POST['set_type']; 
@@ -49,7 +51,14 @@ if ($role == 'Head Office Purchasing' && isset($_POST['ho_process']) && isset($_
         $new_purpose = $current_purpose;
     }
     
-    $stmt = $conn->prepare("UPDATE item_requests SET remarks = :type, qty = :qty, status = 'Processed', purpose = :purpose WHERE request_id = :id");
+    // Added ho_action_date = CURRENT_TIMESTAMP
+    $stmt = $conn->prepare("UPDATE item_requests 
+                            SET remarks = :type, 
+                                qty = :qty, 
+                                status = 'Processed', 
+                                purpose = :purpose,
+                                ho_action_date = CURRENT_TIMESTAMP 
+                            WHERE request_id = :id");
     $stmt->execute([
         'type' => $type, 
         'qty' => $qty, 
@@ -60,6 +69,8 @@ if ($role == 'Head Office Purchasing' && isset($_POST['ho_process']) && isset($_
     header("Location: view_requests.php?msg=Processed");
     exit();
 }
+
+// ... (Rest of your Received and Admin Delete logic remains the same) ...
 
 // Received Status Logic
 if (isset($_GET['received_action']) && isset($_GET['id'])) {
@@ -88,6 +99,7 @@ if ($role == 'Admin' && isset($_GET['delete_id'])) {
     <title>Request History Log | Goldrich</title>
     <link rel="stylesheet" href="style.css">
     <style>
+        /* ... Your existing styles ... */
         body { background-color: #f4f7f6; padding: 10px; height: 100vh; overflow: hidden; box-sizing: border-box; display: flex; flex-direction: column; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; }
         .history-card { background: white; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); padding: 25px; max-width: 1400px; margin: auto; width: 100%; max-height: 95vh; display: flex; flex-direction: column; }
         .header-section { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f8f9fa; padding-bottom: 5px; margin-bottom: 5px; width: 100%; }
@@ -189,7 +201,10 @@ if ($rows && count($rows) > 0) {
         $rec_status = $row['received_status'] ?? 'Pending';
         $rec_class = ($rec_status == 'Received') ? 'received-yes' : 'received-no';
         
-        // Split purpose to get original purpose vs administrative notes
+        // Date formatting for actions
+        $pm_date = !empty($row['pm_action_date']) ? date('M d, g:ia', strtotime($row['pm_action_date'])) : '';
+        $ho_date = !empty($row['ho_action_date']) ? date('M d, g:ia', strtotime($row['ho_action_date'])) : '';
+
         $full_purpose = $row['purpose'] ?? '';
         $parts = explode(' | ', $full_purpose);
         $original_purpose = $parts[0]; 
@@ -201,16 +216,21 @@ if ($rows && count($rows) > 0) {
             echo "<td style='text-align: center; font-weight: bold;'>".$row['qty']."</td>";
             echo "<td style='text-align: center;'><span style='background:".($remark_val=='PO'?'#3498db':'#9b59b6')."; color:white; padding:2px 6px; border-radius:10px; font-size:9px;'>$remark_val</span></td>";
             echo "<td>".$row['department']."</td>";
-            
-            // PURPOSE ONLY CELL
             echo "<td style='font-size: 11px; max-width:130px;'>".htmlspecialchars($original_purpose)."</td>";
-
             echo "<td>".$row['requested_by']."</td>";
             echo "<td style='text-align: center; font-weight: bold; color: #2980b9;'>$rf_display</td>";
             
-            // UPDATED STATUS COLUMN (ONLY PM/HO REMARKS BELOW BADGE)
+            // UPDATED STATUS COLUMN WITH ACTION DATES
             echo "<td style='text-align: center;'>
                     <span class='$status_class'>$status</span>";
+                    
+                    if ($pm_date) {
+                        echo "<div style='font-size: 9px; color: #27ae60; font-weight: bold; margin-top: 3px;'>PM: $pm_date</div>";
+                    }
+                    if ($ho_date) {
+                        echo "<div style='font-size: 9px; color: #2980b9; font-weight: bold; margin-top: 1px;'>HO: $ho_date</div>";
+                    }
+
                     if (!empty($admin_remarks)) {
                         echo "<div style='font-size: 9px; color: #7f8c8d; margin-top: 5px; line-height: 1.2; max-width: 150px; margin-left: auto; margin-right: auto; word-wrap: break-word;'>
                                 ".htmlspecialchars($admin_remarks)."
