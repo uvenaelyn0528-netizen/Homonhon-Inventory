@@ -165,6 +165,7 @@ if ($role == 'Admin' && isset($_GET['delete_id'])) {
                     <th>Qty</th>
                     <th>Type</th> 
                     <th>Dept</th>
+                    <th>Purpose</th>
                     <th>Requested By</th>
                     <th>RF #</th> 
                     <th>Status & Remarks</th>
@@ -188,22 +189,34 @@ if ($rows && count($rows) > 0) {
         $rec_status = $row['received_status'] ?? 'Pending';
         $rec_class = ($rec_status == 'Received') ? 'received-yes' : 'received-no';
         
+        // Split purpose to get original purpose vs administrative notes
+        $full_purpose = $row['purpose'] ?? '';
+        $parts = explode(' | ', $full_purpose);
+        $original_purpose = $parts[0]; 
+        $admin_remarks = (count($parts) > 1) ? implode(' | ', array_slice($parts, 1)) : ''; 
+
         echo "<tr>";
             echo "<td>" . date('M d, Y', strtotime($row['request_date'])) . "</td>";
             echo "<td><strong>".htmlspecialchars($row['item_name'])."</strong><br><small>".htmlspecialchars($row['specification'])."</small></td>";
             echo "<td style='text-align: center; font-weight: bold;'>".$row['qty']."</td>";
             echo "<td style='text-align: center;'><span style='background:".($remark_val=='PO'?'#3498db':'#9b59b6')."; color:white; padding:2px 6px; border-radius:10px; font-size:9px;'>$remark_val</span></td>";
             echo "<td>".$row['department']."</td>";
+            
+            // PURPOSE ONLY CELL
+            echo "<td style='font-size: 11px; max-width:130px;'>".htmlspecialchars($original_purpose)."</td>";
+
             echo "<td>".$row['requested_by']."</td>";
             echo "<td style='text-align: center; font-weight: bold; color: #2980b9;'>$rf_display</td>";
             
-            // UPDATED STATUS & REMARKS COLUMN
+            // UPDATED STATUS COLUMN (ONLY PM/HO REMARKS BELOW BADGE)
             echo "<td style='text-align: center;'>
-                    <span class='$status_class'>$status</span>
-                    <div style='font-size: 10px; color: #7f8c8d; margin-top: 5px; line-height: 1.2; max-width: 150px; margin-left: auto; margin-right: auto; word-wrap: break-word;'>
-                        ".htmlspecialchars($row['purpose'])."
-                    </div>
-                  </td>";
+                    <span class='$status_class'>$status</span>";
+                    if (!empty($admin_remarks)) {
+                        echo "<div style='font-size: 9px; color: #7f8c8d; margin-top: 5px; line-height: 1.2; max-width: 150px; margin-left: auto; margin-right: auto; word-wrap: break-word;'>
+                                ".htmlspecialchars($admin_remarks)."
+                              </div>";
+                    }
+            echo "</td>";
             
             echo "<td style='text-align: center;'>
                     <span class='$rec_class'>$rec_status</span>
