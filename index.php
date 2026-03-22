@@ -550,16 +550,21 @@ html, body {
         document.getElementById('withdraw_stock_display').innerText = stock;
     }
 
-    // FIXED EDIT MODAL TRIGGER
-    function openEditModal(id, name, spec, min, max) {
-        closeAllModals();
-        document.getElementById('editItemModal').style.display = 'flex';
-        document.getElementById('edit_item_id').value = id;
-        document.getElementById('edit_item_name').value = name;
-        document.getElementById('edit_specification').value = spec;
-        document.getElementById('edit_min_stock').value = min;
-        document.getElementById('edit_max_stock').value = max;
+    // FIXED EDIT MODAL TRIGGER WITH DEPARTMENT
+function openEditModal(id, name, spec, min, max, dept) {
+    closeAllModals();
+    document.getElementById('editItemModal').style.display = 'flex';
+    document.getElementById('edit_item_id').value = id;
+    document.getElementById('edit_item_name').value = name;
+    document.getElementById('edit_specification').value = spec;
+    document.getElementById('edit_min_stock').value = min;
+    document.getElementById('edit_max_stock').value = max;
+    
+    // This ensures the dropdown selects the correct department
+    if(document.getElementById('edit_department')) {
+        document.getElementById('edit_department').value = dept;
     }
+}
 
     window.onclick = function(event) {
         if (event.target.classList.contains('modal')) closeAllModals();
