@@ -1,19 +1,18 @@
 <?php 
 include 'db.php'; 
 
-if (session_status() === PHP_SESSION_NONE) { session_start(); } // Ensure session is active
+if (session_status() === PHP_SESSION_NONE) { session_start(); } 
 
-// 1. Handle Filters - Updated for PDO
+// 1. Handle Filters
 $search = $_GET['search'] ?? '';
 $from_date = $_GET['from_date'] ?? '';
 $to_date = $_GET['to_date'] ?? '';
 
-// Start with the base query
 $sql = "SELECT * FROM diesel_inventory WHERE 1=1";
 $params = [];
 
 if (!empty($search)) {
-    $sql .= " AND (rr_no LIKE :search OR ws_no LIKE :search OR deposited_to LIKE :search OR received_from LIKE :search)";
+    $sql .= " AND (rr_no LIKE :search OR ws_no LIKE :search OR deposited_to LIKE :search OR received_from LIKE :search OR withdrawn_from LIKE :search)";
     $params[':search'] = "%$search%";
 }
 
@@ -23,15 +22,26 @@ if (!empty($from_date) && !empty($to_date)) {
     $params[':to_date'] = $to_date;
 }
 
-// Finalize ordering - removed 'rtime' and used 'recorded_at' per your schema
 $sql .= " ORDER BY rdate DESC, recorded_at DESC";
 
 $stmt = $conn->prepare($sql);
 $stmt->execute($params);
-// 2. Calculate Current Balance
+
+// 2. Calculate Overall Balance
 $bal_stmt = $conn->query("SELECT SUM(CASE WHEN activity = 'INFLOW' THEN qty ELSE -qty END) as balance FROM diesel_inventory");
 $balance_row = $bal_stmt->fetch(PDO::FETCH_ASSOC);
 $balance = $balance_row['balance'] ?? 0;
+
+// 3. NEW: Calculate Breakdown per Tank/FT
+$breakdown_stmt = $conn->query("
+    SELECT deposited_to as unit_name, 
+    SUM(CASE WHEN activity = 'INFLOW' THEN qty ELSE -qty END) as unit_balance 
+    FROM diesel_inventory 
+    WHERE deposited_to IS NOT NULL AND deposited_to != 'Direct to Unit'
+    GROUP BY deposited_to 
+    ORDER BY deposited_to ASC
+");
+$unit_breakdown = $breakdown_stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!DOCTYPE html>
@@ -83,6 +93,19 @@ $balance = $balance_row['balance'] ?? 0;
             color: white; z-index: 90;
         }
 
+        /* Unit Breakdown Bar Styling */
+        .unit-summary-bar {
+            display: flex; gap: 10px; padding: 10px 30px; 
+            overflow-x: auto; background: #e9ecef; border-bottom: 1px solid #ddd;
+        }
+        .unit-card {
+            background: white; padding: 8px 12px; border-radius: 4px; 
+            border-left: 4px solid var(--navy); min-width: 110px; 
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.05); flex-shrink: 0;
+        }
+        .unit-card-label { font-size: 9px; font-weight: bold; color: #666; text-transform: uppercase; }
+        .unit-card-val { font-size: 13px; color: var(--dark-red); font-weight: 800; }
+
         .table-container { flex: 1; overflow: auto; padding: 0 20px 20px 20px; }
         table { width: 100%; border-collapse: separate; border-spacing: 0; background: white; min-width: 1200px; }
         
@@ -126,7 +149,7 @@ $balance = $balance_row['balance'] ?? 0;
 
         <div class="header-right">
             <div class="balance-card">
-                <div style="font-size: 8px; opacity: 0.8;">CURRENT STOCK</div>
+                <div style="font-size: 8px; opacity: 0.8;">TOTAL CURRENT STOCK</div>
                 <div style="font-size: 18px; font-weight: bold;"><?= number_format($balance, 2) ?> L</div>
             </div>
             <button class="btn" onclick="openFuelModal()" style="background:var(--gold); color:var(--navy);">+ NEW ENTRY</button>
@@ -135,7 +158,7 @@ $balance = $balance_row['balance'] ?? 0;
 
     <nav class="controls-bar">
         <form method="GET" style="display: flex; gap: 15px; align-items: center;">
-            <input type="text" name="search" value="<?= htmlspecialchars($search) ?>" placeholder="Search RR/WS..." style="padding: 6px; border-radius: 4px; border:none;">
+            <input type="text" name="search" value="<?= htmlspecialchars($search) ?>" placeholder="Search RR/WS/Tank..." style="padding: 6px; border-radius: 4px; border:none;">
             <input type="date" name="from_date" value="<?= $from_date ?>" style="padding: 5px; border-radius: 4px;">
             <input type="date" name="to_date" value="<?= $to_date ?>" style="padding: 5px; border-radius: 4px;">
             <button type="submit" class="btn" style="background: var(--gold); color: var(--navy);">FILTER</button>
@@ -146,7 +169,6 @@ $balance = $balance_row['balance'] ?? 0;
                 <button type="button" class="btn" onclick="document.getElementById('dieselFile').click()" style="background: #8e44ad; color: white;">
                     📥 IMPORT DIESEL EXCEL
                 </button>
-
                 <form id="dieselImportForm" action="import_diesel.php" method="POST" enctype="multipart/form-data" style="display:none;">
                     <input type="file" name="diesel_file" id="dieselFile" accept=".csv" onchange="this.form.submit()">
                 </form>
@@ -156,6 +178,15 @@ $balance = $balance_row['balance'] ?? 0;
             <button class="btn" onclick="window.print()" style="background:#3498db; color:white;">🖨️ PRINT REPORT</button>
         </div>
     </nav>
+
+    <div class="unit-summary-bar">
+        <?php foreach($unit_breakdown as $unit): ?>
+        <div class="unit-card">
+            <div class="unit-card-label"><?= htmlspecialchars($unit['unit_name']) ?></div>
+            <div class="unit-card-val"><?= number_format($unit['unit_balance'], 2) ?> L</div>
+        </div>
+        <?php endforeach; ?>
+    </div>
 
     <div class="table-container">
         <table>
@@ -176,12 +207,13 @@ $balance = $balance_row['balance'] ?? 0;
                 <?php while($row = $stmt->fetch(PDO::FETCH_ASSOC)): ?>
                 <tr>
                     <td><?= date('M d, Y', strtotime($row['rdate'])) ?></td>
-<td style="font-weight:bold; color:<?= $row['activity']=='INFLOW'?'#27ae60':'#e67e22'?>"><?= $row['activity'] ?></td>
-<td><?= htmlspecialchars($row['received_from'] ?: '---') ?></td>
-<td><?= htmlspecialchars($row['rr_no'] ?: '---') ?></td>
-<td><?= htmlspecialchars($row['ws_no'] ?: '---') ?></td>
-<td><?= htmlspecialchars($row['withdrawn_from'] ?: '---') ?></td> <td style="font-weight: bold;"><?= htmlspecialchars($row['deposited_to']) ?></td>
-<td style="font-weight:bold;"><?= number_format($row['qty'], 2) ?></td>
+                    <td style="font-weight:bold; color:<?= $row['activity']=='INFLOW'?'#27ae60':'#e67e22'?>"><?= $row['activity'] ?></td>
+                    <td><?= htmlspecialchars($row['received_from'] ?: '---') ?></td>
+                    <td><?= htmlspecialchars($row['rr_no'] ?: '---') ?></td>
+                    <td><?= htmlspecialchars($row['ws_no'] ?: '---') ?></td>
+                    <td><?= htmlspecialchars($row['withdrawn_from'] ?: '---') ?></td> 
+                    <td style="font-weight: bold;"><?= htmlspecialchars($row['deposited_to']) ?></td>
+                    <td style="font-weight:bold;"><?= number_format($row['qty'], 2) ?></td>
                     <td class="col-action">
                         <button class="btn-edit" onclick='editRecord(<?= json_encode($row) ?>)'>✏️</button>
                         <button class="btn-delete" onclick="deleteRecord(<?= $row['id'] ?>)">🗑️</button>
@@ -192,6 +224,7 @@ $balance = $balance_row['balance'] ?? 0;
         </table>
     </div>
 </div>
+
 <div id="fuelModal" class="modal">
     <div class="modal-content">
         <h2 id="modalTitle" style="margin-top:0; color: var(--navy); border-bottom: 2px solid #eee; padding-bottom:10px;">Fuel Entry</h2>
@@ -219,6 +252,8 @@ $balance = $balance_row['balance'] ?? 0;
                 <select name="from_tank_no" id="out_tank">
                     <option value="">-- Select Source Tank --</option>
                     <?php for($i=1; $i<=9; $i++) echo "<option value='Tank $i'>Tank $i</option>"; ?>
+                    <option value="FT 3">FT 3</option>
+                    <option value="FT 4">FT 4</option>
                 </select>
                 <label>WS No.</label>
                 <input type="text" name="ws_no" id="out_ws">
@@ -230,7 +265,7 @@ $balance = $balance_row['balance'] ?? 0;
                 <?php for($i=1; $i<=9; $i++) echo "<option value='Tank $i'>Tank $i</option>"; ?>
                 <option value="FT 3">FT 3</option>
                 <option value="FT 4">FT 4</option>
-                <option value="Direct to Unit">Direct to Unit (Equiptment)</option>
+                <option value="Direct to Unit">Direct to Unit (Equipment)</option>
             </select>
 
             <label>Quantity (Liters)</label>
@@ -248,7 +283,7 @@ $balance = $balance_row['balance'] ?? 0;
 function openFuelModal() {
     document.getElementById('fuelModal').style.display = 'flex';
     document.getElementById('formId').value = '';
-    document.querySelector('form').reset();
+    document.querySelector('#fuelModal form').reset();
     document.getElementById('formDate').value = "<?= date('Y-m-d') ?>";
     document.getElementById('formTime').value = "<?= date('H:i') ?>";
     toggleFields();
@@ -268,16 +303,12 @@ function editRecord(data) {
     document.getElementById('activityType').value = data.activity;
     document.getElementById('formDate').value = data.rdate;
     document.getElementById('formTime').value = data.rtime;
-    
-    // Set text fields
     document.getElementById('in_rec').value = data.received_from || '';
     document.getElementById('in_rr').value = data.rr_no || '';
     document.getElementById('out_ws').value = data.ws_no || '';
-    
-    // Set Dropdowns
-    document.getElementById('out_tank').value = data.from_tank_no || '';
+    // FIXED: Correct mapping for withdrawn_from in edit mode
+    document.getElementById('out_tank').value = data.withdrawn_from || ''; 
     document.getElementById('formDep').value = data.deposited_to || '';
-    
     document.getElementById('formQty').value = data.qty;
     toggleFields();
 }
