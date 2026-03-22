@@ -86,7 +86,7 @@ try {
 
             if ($role == 'Admin') {
     // We pass $dept_raw (the actual database value) to the modal
-    echo <button onclick="openEditModal('<?= $row['id'] ?>', '<?= addslashes($row['item_name']) ?>', '<?= addslashes($row['specification']) ?>', '<?= $row['min_stock'] ?>', '<?= $row['max_stock'] ?>', '<?= $row['department'] ?>')">✏️ Edit</button>
+    echo "<button onclick="openEditModal('<?= $row['id'] ?>', '<?= addslashes($row['item_name']) ?>', '<?= addslashes($row['specification']) ?>', '<?= $row['min_stock'] ?>', '<?= $row['max_stock'] ?>', '<?= $row['department'] ?>')">✏️ Edit</button>";
     
     echo "<a href='delete_log.php?type=inventory&id=$id' 
          onclick='return confirm(\"Move this item to Trash?\")' 
