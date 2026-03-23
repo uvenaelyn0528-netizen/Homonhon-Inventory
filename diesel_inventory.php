@@ -181,31 +181,32 @@ $tanks_ft = ["Tank 1", "Tank 2", "Tank 3", "Tank 4", "Tank 5", "Tank 6", "Tank 7
         <?php endforeach; ?>
     </div>
 
-    <nav class="controls-bar">
-        <form method="GET" style="display: flex; gap: 8px;">
-            <input type="text" name="search" value="<?= htmlspecialchars($search) ?>" placeholder="Search records..." style="padding: 6px; border: 1px solid #ccc; border-radius: 4px; width: 220px;">
-            <input type="date" name="from_date" value="<?= $from_date ?>" style="padding: 5px; border: 1px solid #ccc; border-radius: 4px;">
-            <input type="date" name="to_date" value="<?= $to_date ?>" style="padding: 5px; border: 1px solid #ccc; border-radius: 4px;">
-            <button type="submit" class="btn btn-utility" style="background: var(--navy);">FILTER</button>
-        </form>
+   <nav class="controls-bar">
+    <form method="GET" style="display: flex; gap: 8px;">
+        <input type="text" name="search" placeholder="Search records..." style="padding: 6px; border: 1px solid #ccc; border-radius: 4px; width: 220px;">
+        <input type="date" name="from_date" style="padding: 5px; border: 1px solid #ccc; border-radius: 4px;">
+        <input type="date" name="to_date" style="padding: 5px; border: 1px solid #ccc; border-radius: 4px;">
+        <button type="submit" class="btn" style="background: #112941; color: white;">FILTER</button>
+    </form>
 
-        <div style="display:flex; gap:10px; align-items: center;">
-            <a href="issuance.php" class="btn btn-action">📋 ISSUANCE</a>
-            <button class="btn btn-action" onclick="openFuelModal()">+ NEW ENTRY</button>
-            
-            <span style="border-left: 1px solid #ddd; height: 25px; margin: 0 5px;"></span>
+    <div style="display:flex; gap:12px; align-items: center;">
+        <a href="issuance.php" class="btn" style="background: #8e44ad; color: white; padding: 12px 24px; font-size: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
+            📋 ISSUANCE
+        </a>
 
-            <?php if (strtolower(trim($_SESSION['role'] ?? '')) === 'admin'): ?>
-                <button type="button" class="btn btn-utility" onclick="clearInventory()">🗑️ CLEAR</button>
-                <button type="button" class="btn btn-utility" onclick="document.getElementById('dieselFile').click()">📥 IMPORT</button>
-                <form id="dieselImportForm" action="import_diesel.php" method="POST" enctype="multipart/form-data" style="display:none;">
-                    <input type="file" name="diesel_file" id="dieselFile" accept=".csv" onchange="this.form.submit()">
-                </form>
-            <?php endif; ?>
-            <button class="btn btn-utility" onclick="window.print()">🖨️ PRINT</button>
-        </div>
-    </nav>
+        <button class="btn" onclick="openFuelModal()" style="background: #112941; color: white; padding: 8px 16px; font-size: 11px;">
+            + NEW ENTRY
+        </button>
+        
+        <button type="button" class="btn" onclick="clearInventory()" style="background: #112941; color: white; padding: 8px 16px; font-size: 11px;">
+            🗑️ WIPE
+        </button>
 
+        <button class="btn" onclick="window.print()" style="background: #112941; color: white; padding: 8px 16px; font-size: 11px;">
+            🖨️ PRINT
+        </button>
+    </div>
+</nav>
     <div class="table-container">
         <table>
             <thead>
