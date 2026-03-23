@@ -52,25 +52,40 @@ if (isset($_POST['login'])) {
         }
 
         body {
-    background-color: #f8fafc;
-    background-image: 
-        radial-gradient(at 0% 0%, rgba(17, 41, 65, 0.03) 0, transparent 50%), 
-        linear-gradient(rgba(226, 232, 240, 0.5) 1px, transparent 1px), 
-        linear-gradient(90deg, rgba(226, 232, 240, 0.5) 1px, transparent 1px);
-    background-size: 100% 100%, 40px 40px, 40px 40px;
-    background-attachment: fixed;
-}
+            /* 1. Add your project photo as the background image */
+            background-image: url('images/background.jpg'); 
+            
+            /* 2. Configure image to fill and fit the screen */
+            background-size: cover;          /* Cover the entire screen */
+            background-position: center;     /* Center the image */
+            background-repeat: no-repeat;    /* Do not tile the image */
+            background-attachment: fixed;    /* Keep the image fixed when scrolling */
+            
+            /* 3. Fallback and alignment */
+            background-color: var(--navy);   /* Fallback color if image fails */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+            
+            /* 4. Optional: Add a subtle blur to the background photo for better card contrast */
+            backdrop-filter: blur(3px);
+            -webkit-backdrop-filter: blur(3px); /* For Safari support */
+        }
 
         .login-card { 
             background: white; 
             padding: 40px; 
             border-radius: 16px; 
-            /* Softer, more professional shadow for depth */
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05); 
+            /* Enhanced shadow to pop from the photo background */
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2); 
             width: 100%;
             max-width: 400px; 
             text-align: center; 
             border: 1px solid var(--light-border);
+            z-index: 10; /* Ensure card is above background blur */
         }
 
         .brand-header {
@@ -85,8 +100,8 @@ if (isset($_POST['login'])) {
         .logo-small { 
             width: 60px; 
             height: auto; 
-            /* Subtle glow behind the logo */
-            filter: drop-shadow(0 4px 8px rgba(139, 0, 0, 0.1));
+            /* More visible glow against the photo */
+            filter: drop-shadow(0 4px 10px rgba(139, 0, 0, 0.2));
         }
 
         .header-text-group h1 { 
