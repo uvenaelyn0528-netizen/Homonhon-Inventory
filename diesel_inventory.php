@@ -27,52 +27,31 @@ $sql .= " ORDER BY rdate DESC, recorded_at DESC";
 $stmt = $conn->prepare($sql);
 $stmt->execute($params);
 
-// 2. UPDATED: Total Balance (Net System Stock)
-// Internal transfers are ignored here because +qty and -qty cancel out, 
-// leaving only external Inflows and Outflows.
+// 2. FIXED: Total Balance (Net System Stock)
+// Simple math: (All Inflows) - (All Outflows). Transfers are ignored here as they stay within the system.
 $bal_stmt = $conn->query("
-    SELECT SUM(amount) as balance 
-    FROM (
-        -- Total External Inflows
-        SELECT qty as amount FROM diesel_inventory 
-        WHERE activity = 'INFLOW' 
-        AND deposited_to NOT LIKE 'FD%' 
-        AND deposited_to NOT LIKE 'PH%'
-        AND deposited_to != 'Direct to Unit'
-
-        UNION ALL
-
-        -- Total External Outflows
-        SELECT -qty as amount FROM diesel_inventory 
-        WHERE activity = 'OUTFLOW' 
-        AND withdrawn_from NOT LIKE 'FD%' 
-        AND withdrawn_from NOT LIKE 'PH%'
-    ) as net_balance
+    SELECT (
+        SUM(CASE WHEN activity = 'INFLOW' THEN qty ELSE 0 END) - 
+        SUM(CASE WHEN activity = 'OUTFLOW' THEN qty ELSE 0 END)
+    ) as balance 
+    FROM diesel_inventory
 ");
 $balance_row = $bal_stmt->fetch(PDO::FETCH_ASSOC);
 $balance = $balance_row['balance'] ?? 0;
 
 // 3. UPDATED: Unit Breakdown (Handles TRANSFERRED Logic)
-// This query treats 'deposited_to' as (+) and 'withdrawn_from' as (-) 
-// so Transfers affect both tanks involved correctly.
 $breakdown_stmt = $conn->query("
     SELECT unit_name, SUM(amount) as unit_balance
     FROM (
-        -- All gains to a tank (Inflows and the 'To' side of Transfers)
         SELECT deposited_to as unit_name, qty as amount 
         FROM diesel_inventory 
-        WHERE deposited_to NOT LIKE 'FD%' 
-        AND deposited_to NOT LIKE 'PH%'
-        AND deposited_to NOT IN ('', '---', 'Direct to Unit')
+        WHERE deposited_to NOT IN ('', '---', 'Direct to Unit')
         
         UNION ALL
         
-        -- All losses from a tank (Outflows and the 'From' side of Transfers)
         SELECT withdrawn_from as unit_name, -qty as amount 
         FROM diesel_inventory 
-        WHERE withdrawn_from NOT LIKE 'FD%' 
-        AND withdrawn_from NOT LIKE 'PH%'
-        AND withdrawn_from NOT IN ('', '---')
+        WHERE withdrawn_from NOT IN ('', '---')
     ) AS combined_inventory
     GROUP BY unit_name
     ORDER BY unit_name ASC
@@ -90,13 +69,19 @@ $unit_breakdown = $breakdown_stmt->fetchAll(PDO::FETCH_ASSOC);
             --navy: #112941;
             --gold: #f1c40f;
             --dark-red: #8B0000;
-            --light-bg: #f4f7f6;
+            --slate-bg: #f1f5f9;
         }
 
         html, body { 
             height: 100%; margin: 0; padding: 0; 
             overflow: hidden; font-family: 'Segoe UI', sans-serif;
-            background: var(--light-bg);
+            /* Industrial Grid Background */
+            background-color: var(--slate-bg);
+            background-image: 
+                linear-gradient(rgba(203, 213, 225, 0.5) 1px, transparent 1px), 
+                linear-gradient(90deg, rgba(203, 213, 225, 0.4) 1px, transparent 1px);
+            background-size: 30px 30px;
+            background-attachment: fixed;
         }
 
         .page-wrapper { display: flex; flex-direction: column; height: 100vh; }
@@ -130,29 +115,38 @@ $unit_breakdown = $breakdown_stmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
         .unit-summary-bar {
-            display: flex; gap: 10px; padding: 10px 30px; 
-            overflow-x: auto; background: #e9ecef; border-bottom: 1px solid #ddd;
+            display: flex; gap: 10px; padding: 15px 30px; 
+            overflow-x: auto; background: transparent;
         }
+        
         .unit-card {
-            background: white; padding: 8px 12px; border-radius: 4px; 
-            border-left: 4px solid var(--navy); min-width: 110px; 
-            box-shadow: 2px 2px 5px rgba(0,0,0,0.05); flex-shrink: 0;
+            background: white; padding: 10px 15px; border-radius: 6px; 
+            border-top: 3px solid var(--gold); min-width: 120px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05); flex-shrink: 0;
         }
-        .unit-card-label { font-size: 9px; font-weight: bold; color: #666; text-transform: uppercase; }
-        .unit-card-val { font-size: 13px; color: var(--dark-red); font-weight: 800; }
+        .unit-card-label { font-size: 10px; font-weight: bold; color: #666; text-transform: uppercase; }
+        .unit-card-val { font-size: 14px; color: var(--dark-red); font-weight: 800; }
 
-        .table-container { flex: 1; overflow: auto; padding: 0 20px 20px 20px; }
-        table { width: 100%; border-collapse: separate; border-spacing: 0; background: white; min-width: 1200px; }
+        .table-container { 
+            flex: 1; overflow: auto; padding: 0 20px 20px 20px; 
+            background: rgba(255, 255, 255, 0.9); 
+            backdrop-filter: blur(5px);
+            margin: 0 20px 20px 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border: 1px solid #e2e8f0;
+        }
+        
+        table { width: 100%; border-collapse: separate; border-spacing: 0; background: transparent; min-width: 1200px; }
         
         thead th {
             position: sticky; top: 0; 
             background: #f8f9fa; color: var(--navy);
             padding: 15px 25px; font-size: 11px; text-transform: uppercase;
-            border-bottom: 3px solid var(--dark-red); z-index: 50;
-            white-space: nowrap;
+            border-bottom: 2px solid #ddd; z-index: 50;
         }
 
-        td { padding: 10px 25px; border-bottom: 1px solid #eee; font-size: 12px; white-space: nowrap; }
+        td { padding: 12px 25px; border-bottom: 1px solid #eee; font-size: 12px; white-space: nowrap; }
 
         .btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; text-decoration: none; font-size: 11px; display: inline-flex; align-items: center; gap: 8px; transition: 0.3s; }
         .btn-issuance { background: var(--dark-red); color: white; border: 1px solid var(--gold); }
@@ -333,11 +327,8 @@ function closeFuelModal() { document.getElementById('fuelModal').style.display =
 function toggleFields() {
     const type = document.getElementById('activityType').value;
     document.getElementById('inflowFields').style.display = type === 'INFLOW' ? 'block' : 'none';
-    
-    // Show withdrawal fields for both OUTFLOW and TRANSFERRED
     document.getElementById('outflowFields').style.display = (type === 'OUTFLOW' || type === 'TRANSFERRED') ? 'block' : 'none';
     
-    // UI Tweaks for Transfer mode
     if (type === 'TRANSFERRED') {
         document.getElementById('sourceLabel').innerText = "Transfer From (Source)";
         document.getElementById('wsLabel').innerText = "Transfer Reference No.";
