@@ -51,30 +51,29 @@ if (isset($_POST['login'])) {
             --light-border: #e2e8f0;
         }
 
-        body {
-            /* 1. Add your project photo as the background image */
-            background-image: url('images/background.jpg'); 
-            
-            /* 2. Configure image to fill and fit the screen */
-            background-size: cover;          /* Cover the entire screen */
-            background-position: center;     /* Center the image */
-            background-repeat: no-repeat;    /* Do not tile the image */
-            background-attachment: fixed;    /* Keep the image fixed when scrolling */
-            
-            /* 3. Fallback and alignment */
-            background-color: var(--navy);   /* Fallback color if image fails */
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            font-family: 'Segoe UI', sans-serif;
-            
-            /* 4. Optional: Add a subtle blur to the background photo for better card contrast */
-            backdrop-filter: blur(3px);
-            -webkit-backdrop-filter: blur(3px); /* For Safari support */
-        }
-
+       body {
+    /* 1. Add your project photo as the background image */
+    background-image: url('images/background.jpg'); 
+    
+    /* 2. Configure image to fill the screen WITHOUT zooming */
+    background-size: 100% 100%;     /* Stretch to fit exact screen width and height */
+    background-position: center;    /* Keeps the logic centered */
+    background-repeat: no-repeat;   /* Do not tile the image */
+    background-attachment: scroll;  /* Changed to scroll to prevent 'backdrop-filter' conflict */
+    
+    /* 3. Fallback and alignment */
+    background-color: var(--navy);  /* Fallback color if image fails to load */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    
+    /* 4. Keeps the background blur but helps stabilize the fixed image when attached to scroll */
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px); /* For Safari support */
+}
         .login-card { 
             background: white; 
             padding: 40px; 
