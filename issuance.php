@@ -11,6 +11,7 @@ $res = $conn->query($query);
 $total_year = 0;
 $total_month = 0;
 $total_day = 0;
+$unique_days = []; // Added to track unique dates for averaging
 $summary_type = [];
 $summary_unit = [];
 
@@ -24,24 +25,34 @@ $rows = $res->fetchAll(PDO::FETCH_ASSOC);
 foreach ($rows as $row) {
     $qty = (float)($row['qty'] ?? 0);
     $row_date = $row['rdate'];
-    $type = $row['equipment_type'] ?: 'Unknown';
-    $unit = $row['equipment_id'] ?: 'Unknown';
+    
+    // Safety check: only process if date is not null to prevent strpos errors
+    if ($row_date) {
+        $unique_days[$row_date] = true; // Mark this date as having activity
+        
+        $type = $row['equipment_type'] ?: 'Unknown';
+        $unit = $row['equipment_id'] ?: 'Unknown';
 
-    // Time-based totals
-    if (strpos($row_date, $current_year) === 0) {
-        $total_year += $qty;
-        if (substr($row_date, 5, 2) === $current_month) {
-            $total_month += $qty;
+        // Time-based totals
+        if (strpos($row_date, $current_year) === 0) {
+            $total_year += $qty;
+            if (substr($row_date, 5, 2) === $current_month) {
+                $total_month += $qty;
+            }
         }
-    }
-    if ($row_date === $current_day) {
-        $total_day += $qty;
-    }
+        if ($row_date === $current_day) {
+            $total_day += $qty;
+        }
 
-    // Category-based totals
-    $summary_type[$type] = ($summary_type[$type] ?? 0) + $qty;
-    $summary_unit[$unit] = ($summary_unit[$unit] ?? 0) + $qty;
+        // Category-based totals
+        $summary_type[$type] = ($summary_type[$type] ?? 0) + $qty;
+        $summary_unit[$unit] = ($summary_unit[$unit] ?? 0) + $qty;
+    }
 }
+
+// Calculate Daily Average based on active days in the database
+$day_count = count($unique_days);
+$daily_average = ($day_count > 0) ? ($total_year / $day_count) : 0;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -108,9 +119,9 @@ foreach ($rows as $row) {
 
     <div class="dashboard-container">
         <div class="stat-card" style="border-left: 5px solid var(--dark-red);">
-            <h4 style="margin:0; color: #666; font-size: 12px;">TOTAL CONSUMPTION (L)</h4>
+            <h4 style="margin:0; color: #666; font-size: 12px;">CONSUMPTION METRICS (L)</h4>
             <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 12px;">
-                <span><strong>Today:</strong> <?= number_format($total_day, 2) ?></span>
+                <span><strong>Daily Avg:</strong> <?= number_format($daily_average, 2) ?></span>
                 <span><strong>Month:</strong> <?= number_format($total_month, 2) ?></span>
                 <span><strong>Year:</strong> <?= number_format($total_year, 2) ?></span>
             </div>
