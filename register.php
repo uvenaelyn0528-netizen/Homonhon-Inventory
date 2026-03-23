@@ -1,44 +1,34 @@
-$message = ""; $message_type = "";
+<?php
+include 'db.php';
+$message = ""; 
+$message_type = "";
 
 if (isset($_POST['register'])) {
-    $username = trim($conn->real_escape_string($_POST['username']));
     // 1. Capture and trim inputs
     $username = trim($_POST['username']);
-$password = $_POST['password'];
-$confirm_password = $_POST['confirm_password'];
-    $role = $_POST['role']; // Bagong input para sa Role
+    $password = $_POST['password'];
+    $confirm_password = $_POST['confirm_password'];
     $role = $_POST['role']; 
 
     // 2. Validation
-if (empty($username) || empty($password)) {
-$message = "Please fill in all fields.";
-$message_type = "error";
-@@ -18,110 +20,37 @@
-$message = "Passwords do not match!";
-$message_type = "error";
-} else {
-        $check_user = $conn->query("SELECT id FROM users WHERE username = '$username'");
-        if ($check_user->num_rows > 0) {
-            $message = "Username already taken!";
-            $message_type = "error";
-        } else {
-            $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-            // Kasama na ang 'role' sa INSERT query
-            $sql = "INSERT INTO users (username, password, role) VALUES ('$username', '$hashed_password', '$role')";
+    if (empty($username) || empty($password)) {
+        $message = "Please fill in all fields.";
+        $message_type = "error";
+    } elseif (strlen($password) < 8) {
+        $message = "Password must be at least 8 characters long.";
+        $message_type = "error";
+    } elseif ($password !== $confirm_password) {
+        $message = "Passwords do not match!";
+        $message_type = "error";
+    } else {
         try {
             // 3. Check if username exists using PDO Prepared Statement
             $stmt = $conn->prepare("SELECT id FROM users WHERE username = :username");
             $stmt->execute([':username' => $username]);
-
-            if ($conn->query($sql)) {
-                $message = "Account created as $role! Redirecting...";
-                $message_type = "success";
-                header("refresh:2;url=login.php");
-            } else {
-                $message = "SQL Error: " . $conn->error;
+            
             if ($stmt->fetch()) {
                 $message = "Username already taken!";
-$message_type = "error";
+                $message_type = "error";
             } else {
                 // 4. Hash password and Insert
                 $hashed_password = password_hash($password, PASSWORD_DEFAULT);
@@ -57,12 +47,12 @@ $message_type = "error";
                     $message_type = "success";
                     header("refresh:2;url=login.php");
                 }
-}
+            }
         } catch (PDOException $e) {
             $message = "Database Error: " . $e->getMessage();
             $message_type = "error";
-}
-}
+        }
+    }
 }
 ?>
 
@@ -98,7 +88,7 @@ $message_type = "error";
         <img src="images/logo.png" style="width: 140px; margin-bottom: 10px;" alt="Logo">
         <h2>Account Registration</h2>
         
-        <?php if ($message): ?>
+        <?php if (!empty($message)): ?>
             <div class="<?php echo $message_type; ?>"><?php echo $message; ?></div>
         <?php endif; ?>
 
@@ -111,12 +101,12 @@ $message_type = "error";
             <div class="input-group">
                 <label>System Role</label>
                 <select name="role" required>
-    <option value="Staff">Staff</option>
-    <option value="Admin">Admin</option>
-    <option value="Project Manager">Project Manager</option>
-    <option value="Head Office Purchasing">Head Office Purchasing</option>
-    <option value="Viewer">Viewer</option>
-</select>
+                    <option value="Staff">Staff</option>
+                    <option value="Admin">Admin</option>
+                    <option value="Project Manager">Project Manager</option>
+                    <option value="Head Office Purchasing">Head Office Purchasing</option>
+                    <option value="Viewer">Viewer</option>
+                </select>
             </div>
 
             <div class="input-group">
