@@ -2,16 +2,20 @@
 include 'db.php';
 session_start();
 
-// Security: Only allow Admin to clear the inventory
-if ($_SESSION['role'] !== 'Admin') {
-    die("Unauthorized access.");
+// Security: Only allow Admin to erase history
+if (strtolower(trim($_SESSION['role'] ?? '')) !== 'admin') {
+    die("Access Denied: Only administrators can clear history.");
 }
 
 try {
+    // TRUNCATE is better than DELETE because it resets the ID counter to 1
     $sql = "TRUNCATE TABLE diesel_inventory";
     $conn->exec($sql);
-    header("Location: diesel_inventory.php?msg=cleared");
+    
+    // Redirect back with a success message
+    header("Location: diesel_inventory.php?msg=inventory_wiped");
+    exit();
 } catch (PDOException $e) {
-    echo "Error: " . $e->getMessage();
+    die("Database Error: " . $e->getMessage());
 }
 ?>
