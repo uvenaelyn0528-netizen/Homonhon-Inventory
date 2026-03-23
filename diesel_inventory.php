@@ -27,7 +27,8 @@ $sql .= " ORDER BY rdate DESC, recorded_at DESC";
 $stmt = $conn->prepare($sql);
 $stmt->execute($params);
 
-// 2. FIXED: Total Balance (Net System Stock)
+// 1. CORRECTED: Total System Stock (Physical Inventory Only)
+// Only INFLOW minus OUTFLOW. Transfers are internal and do not affect this total.
 $bal_stmt = $conn->query("
     SELECT (
         SUM(CASE WHEN activity = 'INFLOW' THEN qty ELSE 0 END) - 
@@ -37,19 +38,22 @@ $bal_stmt = $conn->query("
 ");
 $balance = $bal_stmt->fetch(PDO::FETCH_ASSOC)['balance'] ?? 0;
 
-// 3. UPDATED: Per Tank Inventory (Excluding FD/FT and Calculating Remaining Qty)
+// 2. CORRECTED: Per Tank Breakdown
+// This calculates the contents of each tank specifically.
 $tank_query = $conn->query("
     SELECT unit_name, SUM(amount) as unit_balance
     FROM (
+        -- Fuel coming INTO a tank (Delivery or received from another tank)
         SELECT deposited_to as unit_name, qty as amount 
         FROM diesel_inventory 
-        WHERE activity IN ('INFLOW', 'TRANSFERRED') AND (deposited_to LIKE 'TANK%' OR deposited_to LIKE 'Tank%')
+        WHERE (deposited_to LIKE 'TANK%' OR deposited_to LIKE 'Tank%')
         
         UNION ALL
         
+        -- Fuel leaving a tank (Issued to equipment or moved to another tank)
         SELECT withdrawn_from as unit_name, -qty as amount 
         FROM diesel_inventory 
-        WHERE activity IN ('OUTFLOW', 'TRANSFERRED') AND (withdrawn_from LIKE 'TANK%' OR withdrawn_from LIKE 'Tank%')
+        WHERE (withdrawn_from LIKE 'TANK%' OR withdrawn_from LIKE 'Tank%')
     ) AS combined_inventory
     GROUP BY unit_name
     HAVING unit_name IS NOT NULL AND unit_name NOT IN ('', '---', 'Direct to Unit')
