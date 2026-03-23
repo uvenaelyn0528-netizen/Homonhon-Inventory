@@ -28,7 +28,6 @@ $stmt = $conn->prepare($sql);
 $stmt->execute($params);
 
 // 2. FIXED: Total Balance (Net System Stock)
-// Simple math: (All Inflows) - (All Outflows). Transfers are ignored here as they stay within the system.
 $bal_stmt = $conn->query("
     SELECT (
         SUM(CASE WHEN activity = 'INFLOW' THEN qty ELSE 0 END) - 
@@ -38,24 +37,25 @@ $bal_stmt = $conn->query("
 ");
 $balance = $bal_stmt->fetch(PDO::FETCH_ASSOC)['balance'] ?? 0;
 
-// 3. UPDATED: Unit Breakdown (Handles TRANSFERRED Logic)
-$breakdown_stmt = $conn->query("
+// 3. UPDATED: Per Tank Inventory (Excluding FD/FT and Calculating Remaining Qty)
+$tank_query = $conn->query("
     SELECT unit_name, SUM(amount) as unit_balance
     FROM (
         SELECT deposited_to as unit_name, qty as amount 
         FROM diesel_inventory 
-        WHERE deposited_to NOT IN ('', '---', 'Direct to Unit')
+        WHERE activity IN ('INFLOW', 'TRANSFERRED') AND (deposited_to LIKE 'TANK%' OR deposited_to LIKE 'Tank%')
         
         UNION ALL
         
         SELECT withdrawn_from as unit_name, -qty as amount 
         FROM diesel_inventory 
-        WHERE withdrawn_from NOT IN ('', '---')
+        WHERE activity IN ('OUTFLOW', 'TRANSFERRED') AND (withdrawn_from LIKE 'TANK%' OR withdrawn_from LIKE 'Tank%')
     ) AS combined_inventory
     GROUP BY unit_name
+    HAVING unit_name IS NOT NULL AND unit_name NOT IN ('', '---', 'Direct to Unit')
     ORDER BY unit_name ASC
 ");
-$unit_breakdown = $breakdown_stmt->fetchAll(PDO::FETCH_ASSOC);
+$unit_breakdown = $tank_query->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!DOCTYPE html>
@@ -69,21 +69,31 @@ $unit_breakdown = $breakdown_stmt->fetchAll(PDO::FETCH_ASSOC);
             --gold: #f1c40f;
             --dark-red: #8B0000;
             --slate-bg: #f1f5f9;
+            --text-gray: #64748b;
         }
 
         html, body { 
             height: 100%; margin: 0; padding: 0; 
             overflow: hidden; font-family: 'Segoe UI', sans-serif;
-            /* Industrial Grid Background */
-            background-color: var(--slate-bg);
-            background-image: 
-                linear-gradient(rgba(203, 213, 225, 0.5) 1px, transparent 1px), 
-                linear-gradient(90deg, rgba(203, 213, 225, 0.4) 1px, transparent 1px);
-            background-size: 30px 30px;
-            background-attachment: fixed;
+            /* UPDATED: Background Image - 100% Stretch Fix */
+            background-image: url('images/background.jpg'); 
+            background-size: 100% 100%;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: scroll;
+            background-color: var(--navy);
         }
 
-        .page-wrapper { display: flex; flex-direction: column; height: 100vh; }
+        /* Adds a blur overlay to the background for readability */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            backdrop-filter: blur(2px);
+            z-index: -1;
+        }
+
+        .page-wrapper { display: flex; flex-direction: column; height: 100vh; position: relative; z-index: 1; }
 
         .main-header {
             background: #fff; padding: 10px 30px;
@@ -120,19 +130,18 @@ $unit_breakdown = $breakdown_stmt->fetchAll(PDO::FETCH_ASSOC);
         
         .unit-card {
             background: white; padding: 10px 15px; border-radius: 6px; 
-            border-top: 3px solid var(--gold); min-width: 120px; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05); flex-shrink: 0;
+            border-left: 5px solid var(--navy); min-width: 120px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); flex-shrink: 0;
         }
-        .unit-card-label { font-size: 10px; font-weight: bold; color: #666; text-transform: uppercase; }
+        .unit-card-label { font-size: 10px; font-weight: bold; color: var(--text-gray); text-transform: uppercase; }
         .unit-card-val { font-size: 14px; color: var(--dark-red); font-weight: 800; }
 
         .table-container { 
             flex: 1; overflow: auto; padding: 0 20px 20px 20px; 
-            background: rgba(255, 255, 255, 0.9); 
-            backdrop-filter: blur(5px);
+            background: rgba(255, 255, 255, 0.95); 
             margin: 0 20px 20px 20px;
             border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
             border: 1px solid #e2e8f0;
         }
         
@@ -194,9 +203,9 @@ $unit_breakdown = $breakdown_stmt->fetchAll(PDO::FETCH_ASSOC);
 
         <div class="controls-right" style="display:flex; gap:10px; align-items: center;">
             <?php if (strtolower(trim($_SESSION['role'] ?? '')) === 'admin'): ?>
-    <button type="button" class="btn" onclick="clearInventory()" style="background: #c0392b; color: white;">
-            🗑️ Clear History
-        </button>
+                <button type="button" class="btn" onclick="clearInventory()" style="background: #c0392b; color: white;">
+                    🗑️ Clear History
+                </button>
                 <button type="button" class="btn" onclick="document.getElementById('dieselFile').click()" style="background: #8e44ad; color: white;">
                     📥 IMPORT DIESEL EXCEL
                 </button>
@@ -360,7 +369,8 @@ function deleteRecord(id) {
         window.location.href = "delete_fuel.php?id=" + id;
     }
 }
-    function clearInventory() {
+
+function clearInventory() {
     const confirmation = confirm("WARNING: This will permanently delete ALL diesel inventory records and reset your stock to zero. This cannot be undone.\n\nAre you sure you want to proceed?");
     
     if (confirmation) {
