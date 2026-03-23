@@ -10,7 +10,7 @@ $role = $_SESSION['role'] ?? 'Viewer';
 try {
     $search = $_GET['search'] ?? '';
 
-    // This query pulls from inventory AND sums up history from received_history and withdrawals
+    // Query remains the same to keep data available for other logic
     $sql = "SELECT i.*, 
             (SELECT COALESCE(SUM(qty), 0) FROM received_history rh WHERE rh.item_name = i.item_name AND rh.specification = i.specification) as total_received,
             (SELECT COALESCE(SUM(qty_withdrawn), 0) FROM withdrawals w WHERE w.item_name = i.item_name AND w.specification = i.specification) as total_withdrawn
@@ -29,21 +29,14 @@ try {
             $name  = htmlspecialchars($row['item_name'] ?? '');
             $spec  = htmlspecialchars($row['specification'] ?? '');
             
-            // MATH: Received - Withdrawn = Current Stock
             $received  = $row['total_received'] ?? 0;
             $withdrawn = $row['total_withdrawn'] ?? 0;
             $stock     = $received - $withdrawn;
 
             $um    = htmlspecialchars($row['um'] ?? 'pcs');
             
-            // Department logic (per your requirement: treat as text, not numbers)
+            // Logic kept here so the variables can still be passed to the Edit Modal
             $dept_raw = $row['department'] ?? ''; 
-            if (is_numeric($dept_raw)) {
-                $dept = "<span style='color:red; font-weight:bold;'>Error: Numeric ($dept_raw)</span>";
-            } else {
-                $dept = !empty($dept_raw) ? strtoupper(htmlspecialchars($dept_raw)) : "<span style='color:gray;'>UNASSIGNED</span>";
-            }
-            
             $purp  = htmlspecialchars($row['purpose'] ?? '');
             $price = $row['price'] ?? 0;
             $min   = $row['min_stock'] ?? 0;
@@ -69,9 +62,11 @@ try {
                 <td>
                     <span style='$stockStyle'><strong>$stock</strong></span>
                     $warningLabel
-                </td>
-                <td>$dept</td> <td>$purp</td>
-                <td>₱" . number_format($price, 2) . "</td>
+                </td>";
+            
+            /* DEPT and PURPOSE <td> tags removed from here */
+
+            echo "<td>₱" . number_format($price, 2) . "</td>
                 <td>₱" . number_format($stock * $price, 2) . "</td>";
 
             // Action Buttons
@@ -89,9 +84,11 @@ try {
             echo "</td></tr>";
         }
     } else {
-        echo "<tr><td colspan='11' style='text-align:center; padding:20px;'>No items found.</td></tr>";
+        // Colspan adjusted from 11 to 9
+        echo "<tr><td colspan='9' style='text-align:center; padding:20px;'>No items found.</td></tr>";
     }
 } catch (PDOException $e) {
-    echo "<tr><td colspan='11' style='color:red; text-align:center;'>Error: " . htmlspecialchars($e->getMessage()) . "</td></tr>";
+    // Colspan adjusted from 11 to 9
+    echo "<tr><td colspan='9' style='color:red; text-align:center;'>Error: " . htmlspecialchars($e->getMessage()) . "</td></tr>";
 }
 ?>
