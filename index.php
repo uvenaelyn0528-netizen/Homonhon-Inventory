@@ -118,7 +118,7 @@ html, body {
 }
 /* 4. Ensure the table doesn't shrink, forcing the scrollbar */
 #inventoryTable {
-    min-width: 1200px;      /* Force side-scroll on smaller screens */
+    min-width: 1000px;      /* Force side-scroll on smaller screens */
     width: 100%;
     background: white;
     border-collapse: collapse;
