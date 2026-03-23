@@ -44,191 +44,184 @@ if (isset($_POST['login'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Warehouse Inventory</title>
     <style>
-        :root {
-            --navy: #112941;
-            --goldrich-red: #8b0000;
-            --text-gray: #64748b;
-            --light-border: #e2e8f0;
-        }
+    :root {
+        --navy: #112941;
+        --goldrich-red: #8b0000;
+        --text-gray: #64748b;
+        --light-border: #e2e8f0;
+    }
 
-       body {
-    /* 1. Add your project photo as the background image */
-    background-image: url('images/background.jpg'); 
-    
-    /* 2. Configure image to fill the screen WITHOUT zooming */
-    background-size: 100% 100%;     /* Stretch to fit exact screen width and height */
-    background-position: center;    /* Keeps the logic centered */
-    background-repeat: no-repeat;   /* Do not tile the image */
-    background-attachment: scroll;  /* Changed to scroll to prevent 'backdrop-filter' conflict */
-    
-    /* 3. Fallback and alignment */
-    background-color: var(--navy);  /* Fallback color if image fails to load */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100vh;
-    margin: 0;
-    font-family: 'Segoe UI', sans-serif;
-    
-    /* 4. Keeps the background blur but helps stabilize the fixed image when attached to scroll */
-    backdrop-filter: blur(2px);
-    -webkit-backdrop-filter: blur(2px); /* For Safari support */
-}
-        .login-card { 
-            background: white; 
-            padding: 40px; 
-            border-radius: 16px; 
-            /* Enhanced shadow to pop from the photo background */
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2); 
-            width: 100%;
-            max-width: 400px; 
-            text-align: center; 
-            border: 1px solid var(--light-border);
-            z-index: 10; /* Ensure card is above background blur */
-        }
+    body {
+        /* 1. Project Background Image */
+        background-image: url('images/background.jpg'); 
+        
+        /* 2. Fill the screen without zooming or tiling */
+        background-size: 100% 100%;     
+        background-position: center;    
+        background-repeat: no-repeat;   
+        background-attachment: fixed;  /* Keeps image stationary */
+        
+        /* 3. Fallback and alignment */
+        background-color: var(--navy);  
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        margin: 0;
+        font-family: 'Segoe UI', sans-serif;
+        
+        /* 4. BLUR REMOVED for a clear, sharp background */
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+    }
 
-        .brand-header {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 15px;
-            margin-bottom: 25px;
-            text-align: left;
-        }
+    .login-card { 
+        background: rgba(255, 255, 255, 0.98); /* Slight transparency to feel integrated */
+        padding: 40px; 
+        border-radius: 16px; 
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3); 
+        width: 100%;
+        max-width: 400px; 
+        text-align: center; 
+        border: 1px solid var(--light-border);
+        z-index: 10;
+    }
 
-        .logo-small { 
-            width: 60px; 
-            height: auto; 
-            /* More visible glow against the photo */
-            filter: drop-shadow(0 4px 10px rgba(139, 0, 0, 0.2));
-        }
+    .brand-header {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 15px;
+        margin-bottom: 25px;
+        text-align: left;
+    }
 
-        .header-text-group h1 { 
-            color: var(--goldrich-red); 
-            margin: 0; 
-            font-size: 16px; 
-            font-family: Broadway, 'Arial Black', sans-serif;
-            line-height: 1.2;
-            text-transform: uppercase;
-        }
+    .logo-small { 
+        width: 60px; 
+        height: auto; 
+        filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.2));
+    }
 
-        .header-text-group p {
-            color: var(--text-gray);
-            font-size: 9px;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            margin: 4px 0 0 0;
-            line-height: 1.3;
-            font-weight: 600;
-        }
+    .header-text-group h1 { 
+        color: var(--goldrich-red); 
+        margin: 0; 
+        font-size: 16px; 
+        font-family: Broadway, 'Arial Black', sans-serif;
+        line-height: 1.2;
+        text-transform: uppercase;
+    }
 
-        .system-title-container {
-            border-top: 1px solid #f1f5f9;
-            margin-top: 15px;
-            padding-top: 20px;
-            margin-bottom: 30px;
-        }
+    .header-text-group p {
+        color: var(--text-gray);
+        font-size: 9px;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        margin: 4px 0 0 0;
+        line-height: 1.3;
+        font-weight: 600;
+    }
 
-        .system-title-container h2 {
-            color: var(--navy);
-            font-size: 20px;
-            margin: 0;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            font-weight: 800;
-        }
+    .system-title-container {
+        border-top: 1px solid #f1f5f9;
+        margin-top: 15px;
+        padding-top: 20px;
+        margin-bottom: 30px;
+    }
 
-        /* Improved Input Styling */
-        input { 
-            width: 100%; 
-            padding: 12px 15px; 
-            margin-bottom: 18px; 
-            border: 1.5px solid #cbd5e1; 
-            border-radius: 10px; 
-            box-sizing: border-box; 
-            outline: none; 
-            transition: all 0.3s ease; 
-            font-size: 14px;
-            color: #1e293b;
-        }
+    .system-title-container h2 {
+        color: var(--navy);
+        font-size: 20px;
+        margin: 0;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        font-weight: 800;
+    }
 
-        /* Active state transitions to Navy */
-        input:focus { 
-            border-color: var(--navy); 
-            box-shadow: 0 0 0 4px rgba(17, 41, 65, 0.08);
-            background-color: #fff;
-        }
+    input { 
+        width: 100%; 
+        padding: 12px 15px; 
+        margin-bottom: 18px; 
+        border: 1.5px solid #cbd5e1; 
+        border-radius: 10px; 
+        box-sizing: border-box; 
+        outline: none; 
+        transition: all 0.3s ease; 
+        font-size: 14px;
+        color: #1e293b;
+    }
 
-        button { 
-            width: 100%; 
-            padding: 14px; 
-            background: var(--navy); 
-            color: white; 
-            border: none; 
-            border-radius: 10px; 
-            cursor: pointer; 
-            font-weight: 700; 
-            font-size: 15px; 
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            transition: all 0.3s ease; 
-            margin-top: 10px;
-        }
+    input:focus { 
+        border-color: var(--navy); 
+        box-shadow: 0 0 0 4px rgba(17, 41, 65, 0.08);
+        background-color: #fff;
+    }
 
-        button:hover { 
-            background: #1a3a5a; 
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(17, 41, 65, 0.2);
-        }
+    button { 
+        width: 100%; 
+        padding: 14px; 
+        background: var(--navy); 
+        color: white; 
+        border: none; 
+        border-radius: 10px; 
+        cursor: pointer; 
+        font-weight: 700; 
+        font-size: 15px; 
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        transition: all 0.3s ease; 
+        margin-top: 10px;
+    }
 
-        button:active {
-            transform: translateY(0);
-        }
+    button:hover { 
+        background: #1a3a5a; 
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(17, 41, 65, 0.2);
+    }
 
-        .error { 
-            color: #b91c1c; 
-            background: #fef2f2; 
-            padding: 12px; 
-            border-radius: 8px; 
-            margin-bottom: 20px; 
-            font-size: 13px; 
-            border: 1px solid #fee2e2;
-            font-weight: 500;
-        }
+    .error { 
+        color: #b91c1c; 
+        background: #fef2f2; 
+        padding: 12px; 
+        border-radius: 8px; 
+        margin-bottom: 20px; 
+        font-size: 13px; 
+        border: 1px solid #fee2e2;
+        font-weight: 500;
+    }
 
-        .footer-support {
-            margin-top: 30px; 
-            padding-top: 20px; 
-            border-top: 1px solid #f1f5f9;
-        }
+    .footer-support {
+        margin-top: 30px; 
+        padding-top: 20px; 
+        border-top: 1px solid #f1f5f9;
+    }
 
-        .footer-support p {
-            font-size: 11px;
-            color: var(--text-gray);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-        }
+    .footer-support p {
+        font-size: 11px;
+        color: var(--text-gray);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+    }
 
-        .footer-support a {
-            display: block; 
-            margin-top: 8px; 
-            font-size: 13px; 
-            color: var(--goldrich-red); 
-            text-decoration: none; 
-            font-weight: 700;
-            transition: opacity 0.2s;
-        }
+    .footer-support a {
+        display: block; 
+        margin-top: 8px; 
+        font-size: 13px; 
+        color: var(--goldrich-red); 
+        text-decoration: none; 
+        font-weight: 700;
+        transition: opacity 0.2s;
+    }
 
-        .footer-support a:hover {
-            opacity: 0.8;
-            text-decoration: underline;
-        }
-    </style>
+    .footer-support a:hover {
+        opacity: 0.8;
+        text-decoration: underline;
+    }
+</style>
 </head>
 <body>
     <div class="login-card">
