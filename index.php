@@ -273,8 +273,7 @@ html, body {
                     <th>Received</th>
                     <th>Withdrawn</th>
                     <th>Stock</th>
-                    <th>Dept.</th>
-                    <th>Purpose</th>
+                    
                     <th>Price</th>
                     <th>Total Amount</th>
                     <?php if ($role == 'Admin' || $role == 'Staff'): ?>
