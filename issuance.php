@@ -2,11 +2,46 @@
 include 'db.php'; 
 
 /**
- * FIXED: Query now uses correct column names from your Supabase 'diesel_history' table.
- * Added 'rtime' to ORDER BY after we added it to your DB.
+ * FIXED: Query uses your specific Supabase 'diesel_history' table columns.
  */
 $query = "SELECT * FROM diesel_history WHERE activity = 'OUTFLOW' ORDER BY rdate DESC, rtime DESC";
 $res = $conn->query($query);
+
+// Initialize variables for totals
+$total_year = 0;
+$total_month = 0;
+$total_day = 0;
+$summary_type = [];
+$summary_unit = [];
+
+$current_year = date('Y');
+$current_month = date('m');
+$current_day = date('Y-m-d');
+
+// Fetch all rows into an array to calculate totals before displaying
+$rows = $res->fetchAll(PDO::FETCH_ASSOC);
+
+foreach ($rows as $row) {
+    $qty = (float)($row['qty'] ?? 0);
+    $row_date = $row['rdate'];
+    $type = $row['equipment_type'] ?: 'Unknown';
+    $unit = $row['equipment_id'] ?: 'Unknown';
+
+    // Time-based totals
+    if (strpos($row_date, $current_year) === 0) {
+        $total_year += $qty;
+        if (substr($row_date, 5, 2) === $current_month) {
+            $total_month += $qty;
+        }
+    }
+    if ($row_date === $current_day) {
+        $total_day += $qty;
+    }
+
+    // Category-based totals
+    $summary_type[$type] = ($summary_type[$type] ?? 0) + $qty;
+    $summary_unit[$unit] = ($summary_unit[$unit] ?? 0) + $qty;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -14,7 +49,6 @@ $res = $conn->query($query);
     <meta charset="UTF-8">
     <title>Daily Issuance Record | Goldrich Construction</title>
     <style>
-        /* Your existing styles remain the same */
         :root { --navy: #112941; --gold: #f1c40f; --dark-red: #8B0000; --light-bg: #f4f7f6; --green: #27ae60; }
         html, body { height: 100%; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; background: var(--light-bg); overflow: hidden; }
         .page-wrapper { display: flex; flex-direction: column; height: 100vh; }
@@ -29,7 +63,7 @@ $res = $conn->query($query);
         .btn-import { background: var(--green); color: white; border: 1px solid #219150; }
         .btn-edit { color: #3498db; background: none; border: 1px solid #3498db; padding: 4px 6px; border-radius: 4px; cursor: pointer; }
         .btn-delete { color: #e74c3c; background: none; border: 1px solid #e74c3c; padding: 4px 6px; border-radius: 4px; cursor: pointer; }
-        .table-container { flex: 1; overflow: auto; padding: 20px; }
+        .table-container { flex: 1; overflow: auto; padding: 0 20px 20px 20px; }
         table { width: 100%; border-collapse: separate; border-spacing: 0; background: white; font-size: 11px; min-width: 1600px; }
         thead th { position: sticky; top: 0; background: var(--navy); color: white; padding: 12px; text-align: left; border-bottom: 2px solid var(--gold); z-index: 50; }
         td { padding: 10px; border-bottom: 1px solid #ddd; white-space: nowrap; }
@@ -38,6 +72,12 @@ $res = $conn->query($query);
         .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         label { font-size: 11px; font-weight: bold; color: var(--navy); display: block; margin-bottom: 5px; }
         input, select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        
+        /* Dashboard Stats Styling */
+        .dashboard-container { padding: 20px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; flex-shrink: 0; }
+        .stat-card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .stat-list { font-size: 11px; margin-top: 5px; max-height: 80px; overflow-y: auto; }
+        .stat-item { display:flex; justify-content:space-between; border-bottom: 1px solid #eee; padding: 2px 0; }
     </style>
 </head>
 <body>
@@ -66,6 +106,41 @@ $res = $conn->query($query);
         </div>
     </header>
 
+    <div class="dashboard-container">
+        <div class="stat-card" style="border-left: 5px solid var(--dark-red);">
+            <h4 style="margin:0; color: #666; font-size: 12px;">TOTAL CONSUMPTION (L)</h4>
+            <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 12px;">
+                <span><strong>Today:</strong> <?= number_format($total_day, 2) ?></span>
+                <span><strong>Month:</strong> <?= number_format($total_month, 2) ?></span>
+                <span><strong>Year:</strong> <?= number_format($total_year, 2) ?></span>
+            </div>
+        </div>
+
+        <div class="stat-card" style="border-left: 5px solid var(--gold);">
+            <h4 style="margin:0; color: #666; font-size: 12px;">BY EQUIPMENT TYPE</h4>
+            <div class="stat-list">
+                <?php foreach($summary_type as $type => $q): ?>
+                    <div class="stat-item">
+                        <span><?= htmlspecialchars($type) ?></span>
+                        <strong><?= number_format($q, 2) ?></strong>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+
+        <div class="stat-card" style="border-left: 5px solid var(--navy);">
+            <h4 style="margin:0; color: #666; font-size: 12px;">BY UNIT (EQPT ID)</h4>
+            <div class="stat-list">
+                <?php foreach($summary_unit as $unit => $q): ?>
+                    <div class="stat-item">
+                        <span><?= htmlspecialchars($unit) ?></span>
+                        <strong><?= number_format($q, 2) ?></strong>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </div>
+
     <div class="table-container">
         <table>
             <thead>
@@ -87,7 +162,7 @@ $res = $conn->query($query);
                 </tr>
             </thead>
             <tbody>
-                <?php while($row = $res->fetch(PDO::FETCH_ASSOC)): ?>
+                <?php foreach($rows as $row): ?>
                 <tr>
                     <td style="text-align: center;">
                         <button class="btn-edit" onclick='editIssuance(<?= json_encode($row) ?>)'>✏️</button>
@@ -107,7 +182,7 @@ $res = $conn->query($query);
                     <td><?= htmlspecialchars($row['is_no'] ?? '---') ?></td>
                     <td style="text-align:right; font-weight:bold;"><?= number_format($row['qty'] ?? 0, 2) ?></td>
                 </tr>
-                <?php endwhile; ?>
+                <?php endforeach; ?>
             </tbody>
         </table>
     </div>
