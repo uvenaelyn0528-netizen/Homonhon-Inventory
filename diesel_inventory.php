@@ -27,7 +27,7 @@ $sql .= " ORDER BY rdate DESC, recorded_at DESC";
 $stmt = $conn->prepare($sql);
 $stmt->execute($params);
 
-// 1. CORRECTED: Total System Stock (Physical Inventory Only)
+// 2. Total System Stock (Inflow - Outflow only)
 $bal_stmt = $conn->query("
     SELECT (
         SUM(CASE WHEN activity = 'INFLOW' THEN qty ELSE 0 END) - 
@@ -37,25 +37,31 @@ $bal_stmt = $conn->query("
 ");
 $balance = $bal_stmt->fetch(PDO::FETCH_ASSOC)['balance'] ?? 0;
 
-// 2. CORRECTED: Per Tank Breakdown
+// 3. ENHANCED PER TANK BREAKDOWN (Inflow + TransIn - Outflow - TransOut)
 $tank_query = $conn->query("
     SELECT unit_name, SUM(amount) as unit_balance
     FROM (
+        -- ADDITIONS (Inflow to Tank OR Transfer Received by Tank)
         SELECT deposited_to as unit_name, qty as amount 
         FROM diesel_inventory 
-        WHERE (deposited_to LIKE 'TANK%' OR deposited_to LIKE 'Tank%')
+        WHERE (deposited_to LIKE 'TANK%' OR deposited_to LIKE 'Tank%' OR deposited_to LIKE 'FT%')
+        AND (activity = 'INFLOW' OR activity = 'TRANSFERRED')
         
         UNION ALL
         
+        -- SUBTRACTIONS (Outflow from Tank OR Transfer Withdrawn from Tank)
         SELECT withdrawn_from as unit_name, -qty as amount 
         FROM diesel_inventory 
-        WHERE (withdrawn_from LIKE 'TANK%' OR withdrawn_from LIKE 'Tank%')
+        WHERE (withdrawn_from LIKE 'TANK%' OR withdrawn_from LIKE 'Tank%' OR withdrawn_from LIKE 'FT%')
+        AND (activity = 'OUTFLOW' OR activity = 'TRANSFERRED')
     ) AS combined_inventory
     GROUP BY unit_name
     HAVING unit_name IS NOT NULL AND unit_name NOT IN ('', '---', 'Direct to Unit')
     ORDER BY unit_name ASC
 ");
 $unit_breakdown = $tank_query->fetchAll(PDO::FETCH_ASSOC);
+
+$tanks_ft = ["Tank 1", "Tank 2", "Tank 3", "Tank 4", "Tank 5", "Tank 6", "Tank 7", "Tank 8", "Tank 9", "FT 3", "FT 4"];
 ?>
 
 <!DOCTYPE html>
@@ -76,10 +82,8 @@ $unit_breakdown = $tank_query->fetchAll(PDO::FETCH_ASSOC);
             height: 100%; margin: 0; padding: 0; 
             overflow: hidden; font-family: 'Segoe UI', sans-serif;
             background-image: url('images/background.jpg'); 
-            background-size: 100% 100%;
+            background-size: cover;
             background-position: center;
-            background-repeat: no-repeat;
-            background-attachment: scroll;
             background-color: var(--navy);
         }
 
@@ -93,6 +97,7 @@ $unit_breakdown = $tank_query->fetchAll(PDO::FETCH_ASSOC);
 
         .page-wrapper { display: flex; flex-direction: column; height: 100vh; position: relative; z-index: 1; }
 
+        /* HEADER */
         .main-header {
             background: #fff; padding: 10px 30px;
             border-bottom: 3px solid var(--dark-red);
@@ -100,76 +105,74 @@ $unit_breakdown = $tank_query->fetchAll(PDO::FETCH_ASSOC);
             box-shadow: 0 4px 10px rgba(0,0,0,0.1); z-index: 100;
         }
 
-        .header-center { 
-            flex: 2; display: flex; align-items: center; justify-content: center; 
-            gap: 15px; text-align: center; 
-        }
-
+        .header-center { flex: 2; display: flex; align-items: center; justify-content: center; gap: 15px; }
         .logo-img { width: 55px; height: auto; }
-        .company-name { color: var(--dark-red); margin: 0; font-size: 17px; font-family: Broadway, sans-serif; line-height: 1; }
+        .company-name { color: var(--dark-red); margin: 0; font-size: 17px; font-family: Broadway, sans-serif; }
         .page-title { margin: 2px 0 0 0; font-size: 19px; color: var(--navy); font-weight: 800; }
 
         .balance-card {
             background: var(--navy); color: var(--gold);
             padding: 8px 15px; border-radius: 8px; text-align: center;
-            border: 1px solid rgba(241, 196, 15, 0.4); min-width: 130px;
+            border: 1px solid rgba(241, 196, 15, 0.4); min-width: 140px;
         }
 
+        /* TANK DASHBOARD */
+        .unit-summary-container {
+            padding: 15px 30px;
+            background: rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+            gap: 12px;
+            max-height: 180px;
+            overflow-y: auto;
+        }
+
+        .tank-card {
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-left: 5px solid var(--navy);
+        }
+
+        .tank-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+        .tank-name { font-size: 11px; font-weight: 800; color: var(--text-gray); text-transform: uppercase; }
+        .tank-volume { font-size: 20px; font-weight: 900; color: var(--navy); font-family: 'Courier New', monospace; margin: 2px 0; }
+        .tank-unit { font-size: 10px; font-weight: bold; color: var(--dark-red); }
+
+        /* CONTROLS & TABLE */
         .controls-bar {
-            background: var(--navy); padding: 12px 30px;
+            background: var(--navy); padding: 10px 30px;
             display: flex; justify-content: space-between; align-items: center;
-            color: white; z-index: 90;
+            color: white;
         }
-
-        .unit-summary-bar {
-            display: flex; gap: 10px; padding: 15px 30px; 
-            overflow-x: auto; background: transparent;
-        }
-        
-        .unit-card {
-            background: white; padding: 10px 15px; border-radius: 6px; 
-            border-left: 5px solid var(--navy); min-width: 120px; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1); flex-shrink: 0;
-        }
-        .unit-card-label { font-size: 10px; font-weight: bold; color: var(--text-gray); text-transform: uppercase; }
-        .unit-card-val { font-size: 14px; color: var(--dark-red); font-weight: 800; }
 
         .table-container { 
-            flex: 1; overflow: auto; padding: 0 20px 20px 20px; 
+            flex: 1; overflow: auto; padding: 0; 
             background: rgba(255, 255, 255, 0.95); 
-            margin: 0 20px 20px 20px;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-            border: 1px solid #e2e8f0;
+            margin: 15px 20px 20px 20px;
+            border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);
         }
-        
-        table { width: 100%; border-collapse: separate; border-spacing: 0; background: transparent; min-width: 1200px; }
-        
-        /* UPDATED: THEAD STYLES */
+
+        table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 1200px; }
         thead th {
-            position: sticky; 
-            top: 0; 
-            background: var(--navy); 
-            color: white;
-            padding: 15px 25px; 
-            font-size: 11px; 
-            text-transform: uppercase;
-            border-bottom: 2px solid var(--gold);
-            z-index: 50;
+            position: sticky; top: 0; background: var(--navy); color: white;
+            padding: 15px 20px; font-size: 11px; text-transform: uppercase;
+            border-bottom: 2px solid var(--gold); z-index: 50;
         }
+        td { padding: 12px 20px; border-bottom: 1px solid #eee; font-size: 12px; }
 
-        td { padding: 12px 25px; border-bottom: 1px solid #eee; font-size: 12px; white-space: nowrap; }
-
-        .btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; text-decoration: none; font-size: 11px; display: inline-flex; align-items: center; gap: 8px; transition: 0.3s; }
-        .btn-issuance { background: var(--dark-red); color: white; border: 1px solid var(--gold); }
+        .btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px; display: inline-flex; align-items: center; gap: 8px; transition: 0.3s; text-decoration: none; }
         
+        /* MODAL */
         .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:1000; justify-content:center; align-items:center; }
-        .modal-content { background:white; padding:25px; border-radius:10px; width:450px; max-height: 90vh; overflow-y: auto; }
+        .modal-content { background:white; padding:25px; border-radius:10px; width:450px; }
         .modal-content label { display: block; font-size: 11px; font-weight: bold; margin-bottom: 5px; color: var(--navy); }
-        .modal-content input, .modal-content select { width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-
-        .btn-edit { color: #3498db; background: none; border: 1px solid #3498db; padding: 4px 8px; border-radius: 4px; cursor: pointer; }
-        .btn-delete { color: #e74c3c; background: none; border: 1px solid #e74c3c; padding: 4px 8px; border-radius: 4px; cursor: pointer; }
+        .modal-content input, .modal-content select { width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; }
     </style>
 </head>
 <body>
@@ -188,49 +191,56 @@ $unit_breakdown = $tank_query->fetchAll(PDO::FETCH_ASSOC);
             </div>
         </div>
 
-        <div class="header-right">
+        <div class="header-right" style="display:flex; gap:15px; align-items:center;">
             <div class="balance-card">
-                <div style="font-size: 8px; opacity: 0.8;">TOTAL CURRENT STOCK</div>
+                <div style="font-size: 8px; opacity: 0.8;">TOTAL SYSTEM STOCK</div>
                 <div style="font-size: 18px; font-weight: bold;"><?= number_format($balance, 2) ?> L</div>
             </div>
             <button class="btn" onclick="openFuelModal()" style="background:var(--gold); color:var(--navy);">+ NEW ENTRY</button>
         </div>
     </header>
 
+    <div class="unit-summary-container">
+        <div style="margin-bottom: 10px; color: white; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">
+            📍 Tank Stock Positions
+        </div>
+        <div class="summary-grid">
+            <?php foreach($unit_breakdown as $unit): ?>
+            <div class="tank-card">
+                <div class="tank-header">
+                    <span class="tank-name"><?= htmlspecialchars($unit['unit_name']) ?></span>
+                    <span style="font-size:14px;">⛽</span>
+                </div>
+                <div class="tank-volume"><?= number_format($unit['unit_balance'], 0) ?></div>
+                <div class="tank-unit">LITERS</div>
+                <div style="height:4px; width:100%; background:#eee; margin-top:8px; border-radius:2px; overflow:hidden;">
+                    <div style="width:100%; height:100%; background:<?= $unit['unit_balance'] < 5000 ? '#e74c3c' : '#27ae60' ?>;"></div>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+
     <nav class="controls-bar">
-        <form method="GET" style="display: flex; gap: 15px; align-items: center;">
-            <input type="text" name="search" value="<?= htmlspecialchars($search) ?>" placeholder="Search RR/WS/Tank..." style="padding: 6px; border-radius: 4px; border:none;">
-            <input type="date" name="from_date" value="<?= $from_date ?>" style="padding: 5px; border-radius: 4px;">
-            <input type="date" name="to_date" value="<?= $to_date ?>" style="padding: 5px; border-radius: 4px;">
+        <form method="GET" style="display: flex; gap: 10px;">
+            <input type="text" name="search" value="<?= htmlspecialchars($search) ?>" placeholder="Search RR/WS/Tank..." style="padding: 6px; border-radius: 4px; border:none; width: 200px;">
+            <input type="date" name="from_date" value="<?= $from_date ?>" style="padding: 5px; border-radius: 4px; border:none;">
+            <input type="date" name="to_date" value="<?= $to_date ?>" style="padding: 5px; border-radius: 4px; border:none;">
             <button type="submit" class="btn" style="background: var(--gold); color: var(--navy);">FILTER</button>
         </form>
 
-        <div class="controls-right" style="display:flex; gap:10px; align-items: center;">
+        <div class="controls-right" style="display:flex; gap:10px;">
             <?php if (strtolower(trim($_SESSION['role'] ?? '')) === 'admin'): ?>
-                <button type="button" class="btn" onclick="clearInventory()" style="background: #c0392b; color: white;">
-                    🗑️ Clear History
-                </button>
-                <button type="button" class="btn" onclick="document.getElementById('dieselFile').click()" style="background: #8e44ad; color: white;">
-                    📥 IMPORT DIESEL EXCEL
-                </button>
+                <button type="button" class="btn" onclick="clearInventory()" style="background: #c0392b; color: white;">🗑️ CLEAR</button>
+                <button type="button" class="btn" onclick="document.getElementById('dieselFile').click()" style="background: #8e44ad; color: white;">📥 IMPORT</button>
                 <form id="dieselImportForm" action="import_diesel.php" method="POST" enctype="multipart/form-data" style="display:none;">
                     <input type="file" name="diesel_file" id="dieselFile" accept=".csv" onchange="this.form.submit()">
                 </form>
             <?php endif; ?>
-            
-            <a href="issuance.php" class="btn btn-issuance" style="background:white; color:var(--navy);">📋 DAILY ISSUANCE RECORD</a>
-            <button class="btn" onclick="window.print()" style="background:#3498db; color:white;">🖨️ PRINT REPORT</button>
+            <a href="issuance.php" class="btn" style="background:white; color:var(--navy);">📋 ISSUANCE</a>
+            <button class="btn" onclick="window.print()" style="background:#3498db; color:white;">🖨️ PRINT</button>
         </div>
     </nav>
-
-    <div class="unit-summary-bar">
-        <?php foreach($unit_breakdown as $unit): ?>
-        <div class="unit-card">
-            <div class="unit-card-label"><?= htmlspecialchars($unit['unit_name']) ?></div>
-            <div class="unit-card-val"><?= number_format($unit['unit_balance'], 2) ?> L</div>
-        </div>
-        <?php endforeach; ?>
-    </div>
 
     <div class="table-container">
         <table>
@@ -238,31 +248,29 @@ $unit_breakdown = $tank_query->fetchAll(PDO::FETCH_ASSOC);
                 <tr>
                     <th>DATE</th>
                     <th>ACTIVITY</th>
-                    <th>RECEIVED FROM</th>
+                    <th>SUPPLIER / SOURCE</th>
                     <th>RR NO.</th>
                     <th>WS NO.</th>
-                    <th>WITHDRAWN FROM</th>
-                    <th>DEPOSITED TO</th>
+                    <th>FROM</th>
+                    <th>TO</th>
                     <th>QTY (L)</th>
-                    <th class="col-action">ACTION</th>
+                    <th>ACTION</th>
                 </tr>
             </thead>
             <tbody>
                 <?php while($row = $stmt->fetch(PDO::FETCH_ASSOC)): ?>
                 <tr>
                     <td><?= date('M d, Y', strtotime($row['rdate'])) ?></td>
-                    <td style="font-weight:bold; color:<?= 
-                        $row['activity']=='INFLOW'?'#27ae60':($row['activity']=='TRANSFERRED'?'#3498db':'#e67e22')
-                    ?>"><?= $row['activity'] ?></td>
+                    <td style="font-weight:bold; color:<?= $row['activity']=='INFLOW'?'#27ae60':($row['activity']=='TRANSFERRED'?'#3498db':'#e67e22') ?>"><?= $row['activity'] ?></td>
                     <td><?= htmlspecialchars($row['received_from'] ?: '---') ?></td>
                     <td><?= htmlspecialchars($row['rr_no'] ?: '---') ?></td>
                     <td><?= htmlspecialchars($row['ws_no'] ?: '---') ?></td>
                     <td><?= htmlspecialchars($row['withdrawn_from'] ?: '---') ?></td> 
                     <td style="font-weight: bold;"><?= htmlspecialchars($row['deposited_to']) ?></td>
                     <td style="font-weight:bold;"><?= number_format($row['qty'], 2) ?></td>
-                    <td class="col-action">
-                        <button class="btn-edit" onclick='editRecord(<?= json_encode($row) ?>)'>✏️</button>
-                        <button class="btn-delete" onclick="deleteRecord(<?= $row['id'] ?>)">🗑️</button>
+                    <td>
+                        <button class="btn-edit" onclick='editRecord(<?= json_encode($row) ?>)' style="border:1px solid #3498db; color:#3498db; background:none; padding:3px 7px; border-radius:4px; cursor:pointer;">✏️</button>
+                        <button class="btn-delete" onclick="deleteRecord(<?= $row['id'] ?>)" style="border:1px solid #e74c3c; color:#e74c3c; background:none; padding:3px 7px; border-radius:4px; cursor:pointer;">🗑️</button>
                     </td>
                 </tr>
                 <?php endwhile; ?>
@@ -273,54 +281,41 @@ $unit_breakdown = $tank_query->fetchAll(PDO::FETCH_ASSOC);
 
 <div id="fuelModal" class="modal">
     <div class="modal-content">
-        <h2 id="modalTitle" style="margin-top:0; color: var(--navy); border-bottom: 2px solid #eee; padding-bottom:10px;">Fuel Entry</h2>
+        <h2 style="margin-top:0; color: var(--navy);">Fuel Entry</h2>
         <form action="diesel_process.php" method="POST">
             <input type="hidden" name="id" id="formId">
-            
-            <label>Transaction Type</label>
+            <label>Activity</label>
             <select name="activity" id="activityType" onchange="toggleFields()" required>
-                <option value="INFLOW">📥 STOCK INFLOW (Delivery)</option>
-                <option value="OUTFLOW">📤 STOCK OUTFLOW (Issuance)</option>
+                <option value="INFLOW">📥 INFLOW (Delivery)</option>
+                <option value="OUTFLOW">📤 OUTFLOW (Issuance)</option>
                 <option value="TRANSFERRED">🔄 TRANSFER (Tank to Tank)</option>
             </select>
-
-            <label>Date</label><input type="date" name="rdate" id="formDate" required>
-            <label>Time</label><input type="time" name="rtime" id="formTime" required>
-
+            <div style="display:flex; gap:10px;">
+                <div style="flex:1;"><label>Date</label><input type="date" name="rdate" id="formDate" required></div>
+                <div style="flex:1;"><label>Time</label><input type="time" name="rtime" id="formTime" required></div>
+            </div>
             <div id="inflowFields">
-                <label>Received From (Supplier)</label>
-                <input type="text" name="received_from" id="in_rec">
-                <label>RR No.</label>
-                <input type="text" name="rr_no" id="in_rr">
+                <label>Received From</label><input type="text" name="received_from" id="in_rec">
+                <label>RR No.</label><input type="text" name="rr_no" id="in_rr">
             </div>
-
             <div id="outflowFields" style="display:none;">
-                <label id="sourceLabel">Withdrawn From</label>
+                <label id="sourceLabel">From</label>
                 <select name="from_tank_no" id="out_tank">
-                    <option value="">-- Select Source Tank --</option>
-                    <?php 
-                        $tanks_ft = ["Tank 1", "Tank 2", "Tank 3", "Tank 4", "Tank 5", "Tank 6", "Tank 7", "Tank 8", "Tank 9", "FT 3", "FT 4"];
-                        foreach($tanks_ft as $t) echo "<option value='$t'>$t</option>";
-                    ?>
+                    <option value="">-- Select --</option>
+                    <?php foreach($tanks_ft as $t) echo "<option value='$t'>$t</option>"; ?>
                 </select>
-                <label id="wsLabel">WS No.</label>
-                <input type="text" name="ws_no" id="out_ws">
+                <label id="wsLabel">WS No.</label><input type="text" name="ws_no" id="out_ws">
             </div>
-
             <label>Deposited To</label>
             <select name="deposited_to" id="formDep" required>
-                <option value="">-- Select Destination --</option>
-                <?php 
-                    foreach($tanks_ft as $t) echo "<option value='$t'>$t</option>";
-                ?>
-                <option value="Direct to Unit">Direct to Unit (Equipment)</option>
+                <option value="">-- Select --</option>
+                <?php foreach($tanks_ft as $t) echo "<option value='$t'>$t</option>"; ?>
+                <option value="Direct to Unit">Direct to Unit</option>
             </select>
-
-            <label>Quantity (Liters)</label>
+            <label>Quantity (L)</label>
             <input type="number" step="0.01" name="qty" id="formQty" required>
-
-            <div style="margin-top:20px; display: flex; gap: 10px;">
-                <button type="submit" class="btn" style="flex:1; background:var(--navy); color:white;">SAVE ENTRY</button>
+            <div style="margin-top:15px; display: flex; gap: 10px;">
+                <button type="submit" class="btn" style="flex:1; background:var(--navy); color:white;">SAVE</button>
                 <button type="button" onclick="closeFuelModal()" class="btn" style="flex:1; background:#ccc;">CANCEL</button>
             </div>
         </form>
@@ -336,21 +331,13 @@ function openFuelModal() {
     document.getElementById('formTime').value = "<?= date('H:i') ?>";
     toggleFields();
 }
-
 function closeFuelModal() { document.getElementById('fuelModal').style.display = 'none'; }
 
 function toggleFields() {
     const type = document.getElementById('activityType').value;
     document.getElementById('inflowFields').style.display = type === 'INFLOW' ? 'block' : 'none';
     document.getElementById('outflowFields').style.display = (type === 'OUTFLOW' || type === 'TRANSFERRED') ? 'block' : 'none';
-    
-    if (type === 'TRANSFERRED') {
-        document.getElementById('sourceLabel').innerText = "Transfer From (Source)";
-        document.getElementById('wsLabel').innerText = "Transfer Reference No.";
-    } else {
-        document.getElementById('sourceLabel').innerText = "Withdrawn From";
-        document.getElementById('wsLabel').innerText = "WS No.";
-    }
+    document.getElementById('sourceLabel').innerText = (type === 'TRANSFERRED') ? "Transfer From" : "Withdrawn From";
 }
 
 function editRecord(data) {
@@ -368,22 +355,8 @@ function editRecord(data) {
     toggleFields();
 }
 
-function deleteRecord(id) {
-    if(confirm("Are you sure you want to delete this fuel record?")) {
-        window.location.href = "delete_fuel.php?id=" + id;
-    }
-}
-
-function clearInventory() {
-    const confirmation = confirm("WARNING: This will permanently delete ALL diesel inventory records and reset your stock to zero. This cannot be undone.\n\nAre you sure you want to proceed?");
-    
-    if (confirmation) {
-        const finalCheck = confirm("FINAL CONFIRMATION: Click OK to completely wipe the Diesel Ledger.");
-        if (finalCheck) {
-            window.location.href = "clear_inventory.php";
-        }
-    }
-}
+function deleteRecord(id) { if(confirm("Delete this record?")) window.location.href = "delete_fuel.php?id=" + id; }
+function clearInventory() { if(confirm("WIPE ALL DATA?")) window.location.href = "clear_inventory.php"; }
 </script>
 </body>
 </html>
