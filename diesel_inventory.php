@@ -27,10 +27,13 @@ $sql .= " ORDER BY rdate DESC, recorded_at DESC";
 $stmt = $conn->prepare($sql);
 $stmt->execute($params);
 
-// 2. UPDATED: Total Balance (Only Tanks and FTs)
+// 2. UPDATED: Total Balance (Net System Stock)
+// Internal transfers are ignored here because +qty and -qty cancel out, 
+// leaving only external Inflows and Outflows.
 $bal_stmt = $conn->query("
     SELECT SUM(amount) as balance 
     FROM (
+        -- Total External Inflows
         SELECT qty as amount FROM diesel_inventory 
         WHERE activity = 'INFLOW' 
         AND deposited_to NOT LIKE 'FD%' 
@@ -39,6 +42,7 @@ $bal_stmt = $conn->query("
 
         UNION ALL
 
+        -- Total External Outflows
         SELECT -qty as amount FROM diesel_inventory 
         WHERE activity = 'OUTFLOW' 
         AND withdrawn_from NOT LIKE 'FD%' 
@@ -48,10 +52,13 @@ $bal_stmt = $conn->query("
 $balance_row = $bal_stmt->fetch(PDO::FETCH_ASSOC);
 $balance = $balance_row['balance'] ?? 0;
 
-// 3. UPDATED: Unit Breakdown (Only Tanks and FTs)
+// 3. UPDATED: Unit Breakdown (Handles TRANSFERRED Logic)
+// This query treats 'deposited_to' as (+) and 'withdrawn_from' as (-) 
+// so Transfers affect both tanks involved correctly.
 $breakdown_stmt = $conn->query("
     SELECT unit_name, SUM(amount) as unit_balance
     FROM (
+        -- All gains to a tank (Inflows and the 'To' side of Transfers)
         SELECT deposited_to as unit_name, qty as amount 
         FROM diesel_inventory 
         WHERE deposited_to NOT LIKE 'FD%' 
@@ -60,6 +67,7 @@ $breakdown_stmt = $conn->query("
         
         UNION ALL
         
+        -- All losses from a tank (Outflows and the 'From' side of Transfers)
         SELECT withdrawn_from as unit_name, -qty as amount 
         FROM diesel_inventory 
         WHERE withdrawn_from NOT LIKE 'FD%' 
@@ -121,7 +129,6 @@ $unit_breakdown = $breakdown_stmt->fetchAll(PDO::FETCH_ASSOC);
             color: white; z-index: 90;
         }
 
-        /* Unit Breakdown Bar Styling */
         .unit-summary-bar {
             display: flex; gap: 10px; padding: 10px 30px; 
             overflow-x: auto; background: #e9ecef; border-bottom: 1px solid #ddd;
@@ -235,7 +242,9 @@ $unit_breakdown = $breakdown_stmt->fetchAll(PDO::FETCH_ASSOC);
                 <?php while($row = $stmt->fetch(PDO::FETCH_ASSOC)): ?>
                 <tr>
                     <td><?= date('M d, Y', strtotime($row['rdate'])) ?></td>
-                    <td style="font-weight:bold; color:<?= $row['activity']=='INFLOW'?'#27ae60':'#e67e22'?>"><?= $row['activity'] ?></td>
+                    <td style="font-weight:bold; color:<?= 
+                        $row['activity']=='INFLOW'?'#27ae60':($row['activity']=='TRANSFERRED'?'#3498db':'#e67e22')
+                    ?>"><?= $row['activity'] ?></td>
                     <td><?= htmlspecialchars($row['received_from'] ?: '---') ?></td>
                     <td><?= htmlspecialchars($row['rr_no'] ?: '---') ?></td>
                     <td><?= htmlspecialchars($row['ws_no'] ?: '---') ?></td>
@@ -263,6 +272,7 @@ $unit_breakdown = $breakdown_stmt->fetchAll(PDO::FETCH_ASSOC);
             <select name="activity" id="activityType" onchange="toggleFields()" required>
                 <option value="INFLOW">📥 STOCK INFLOW (Delivery)</option>
                 <option value="OUTFLOW">📤 STOCK OUTFLOW (Issuance)</option>
+                <option value="TRANSFERRED">🔄 TRANSFER (Tank to Tank)</option>
             </select>
 
             <label>Date</label><input type="date" name="rdate" id="formDate" required>
@@ -276,23 +286,24 @@ $unit_breakdown = $breakdown_stmt->fetchAll(PDO::FETCH_ASSOC);
             </div>
 
             <div id="outflowFields" style="display:none;">
-                <label>Withdrawn From</label>
+                <label id="sourceLabel">Withdrawn From</label>
                 <select name="from_tank_no" id="out_tank">
                     <option value="">-- Select Source Tank --</option>
-                    <?php for($i=1; $i<=9; $i++) echo "<option value='Tank $i'>Tank $i</option>"; ?>
-                    <option value="FT 3">FT 3</option>
-                    <option value="FT 4">FT 4</option>
+                    <?php 
+                        $tanks_ft = ["Tank 1", "Tank 2", "Tank 3", "Tank 4", "Tank 5", "Tank 6", "Tank 7", "Tank 8", "Tank 9", "FT 3", "FT 4"];
+                        foreach($tanks_ft as $t) echo "<option value='$t'>$t</option>";
+                    ?>
                 </select>
-                <label>WS No.</label>
+                <label id="wsLabel">WS No.</label>
                 <input type="text" name="ws_no" id="out_ws">
             </div>
 
             <label>Deposited To</label>
             <select name="deposited_to" id="formDep" required>
                 <option value="">-- Select Destination --</option>
-                <?php for($i=1; $i<=9; $i++) echo "<option value='Tank $i'>Tank $i</option>"; ?>
-                <option value="FT 3">FT 3</option>
-                <option value="FT 4">FT 4</option>
+                <?php 
+                    foreach($tanks_ft as $t) echo "<option value='$t'>$t</option>";
+                ?>
                 <option value="Direct to Unit">Direct to Unit (Equipment)</option>
             </select>
 
@@ -322,7 +333,18 @@ function closeFuelModal() { document.getElementById('fuelModal').style.display =
 function toggleFields() {
     const type = document.getElementById('activityType').value;
     document.getElementById('inflowFields').style.display = type === 'INFLOW' ? 'block' : 'none';
-    document.getElementById('outflowFields').style.display = type === 'OUTFLOW' ? 'block' : 'none';
+    
+    // Show withdrawal fields for both OUTFLOW and TRANSFERRED
+    document.getElementById('outflowFields').style.display = (type === 'OUTFLOW' || type === 'TRANSFERRED') ? 'block' : 'none';
+    
+    // UI Tweaks for Transfer mode
+    if (type === 'TRANSFERRED') {
+        document.getElementById('sourceLabel').innerText = "Transfer From (Source)";
+        document.getElementById('wsLabel').innerText = "Transfer Reference No.";
+    } else {
+        document.getElementById('sourceLabel').innerText = "Withdrawn From";
+        document.getElementById('wsLabel').innerText = "WS No.";
+    }
 }
 
 function editRecord(data) {
@@ -334,7 +356,6 @@ function editRecord(data) {
     document.getElementById('in_rec').value = data.received_from || '';
     document.getElementById('in_rr').value = data.rr_no || '';
     document.getElementById('out_ws').value = data.ws_no || '';
-    // FIXED: Correct mapping for withdrawn_from in edit mode
     document.getElementById('out_tank').value = data.withdrawn_from || ''; 
     document.getElementById('formDep').value = data.deposited_to || '';
     document.getElementById('formQty').value = data.qty;
