@@ -27,7 +27,7 @@ $sql .= " ORDER BY rdate DESC, recorded_at DESC";
 $stmt = $conn->prepare($sql);
 $stmt->execute($params);
 
-// 2. Total System Stock (Highlighted)
+// 2. Total System Stock
 $bal_stmt = $conn->query("
     SELECT (
         SUM(CASE WHEN activity = 'INFLOW' THEN qty ELSE 0 END) - 
@@ -70,7 +70,7 @@ $tanks_ft = ["Tank 1", "Tank 2", "Tank 3", "Tank 4", "Tank 5", "Tank 6", "Tank 7
             --navy: #112941;
             --gold: #f1c40f;
             --dark-red: #8B0000;
-            --slate-bg: #f1f5f9;
+            --print-blue: #3498db;
         }
 
         html, body { 
@@ -82,7 +82,7 @@ $tanks_ft = ["Tank 1", "Tank 2", "Tank 3", "Tank 4", "Tank 5", "Tank 6", "Tank 7
 
         .page-wrapper { display: flex; flex-direction: column; height: 100vh; position: relative; z-index: 1; }
 
-        /* HERO HEADER - Emphasizing Total Stock */
+        /* HEADER */
         .main-header {
             background: #fff; padding: 8px 30px;
             border-bottom: 4px solid var(--gold);
@@ -96,28 +96,23 @@ $tanks_ft = ["Tank 1", "Tank 2", "Tank 3", "Tank 4", "Tank 5", "Tank 6", "Tank 7
         .page-title { margin: 0; font-size: 22px; color: var(--navy); font-weight: 900; }
 
         .total-stock-position {
-            background: var(--navy);
-            color: var(--gold);
-            padding: 10px 25px;
-            border-radius: 6px;
-            text-align: center;
-            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+            background: var(--navy); color: var(--gold);
+            padding: 10px 25px; border-radius: 6px; text-align: center;
             border: 1px solid var(--gold);
         }
 
-        /* COMPACT TANK STRIP */
+        /* TANK STRIP */
         .tank-strip {
-            display: flex; gap: 8px; padding: 10px 20px;
+            display: flex; gap: 8px; padding: 8px 20px;
             background: rgba(17, 41, 65, 0.8);
             overflow-x: auto; white-space: nowrap;
-            scrollbar-width: thin;
         }
         .tank-mini-card {
             background: rgba(255,255,255,0.9);
-            padding: 5px 12px; border-radius: 4px;
-            min-width: 110px; border-left: 3px solid var(--gold);
+            padding: 4px 12px; border-radius: 4px;
+            min-width: 100px; border-left: 3px solid var(--gold);
         }
-        .mini-name { font-size: 9px; font-weight: 800; color: #64748b; text-transform: uppercase; }
+        .mini-name { font-size: 9px; font-weight: 800; color: #64748b; }
         .mini-vol { font-size: 13px; font-weight: 800; color: var(--navy); }
 
         /* CONTROLS */
@@ -127,9 +122,9 @@ $tanks_ft = ["Tank 1", "Tank 2", "Tank 3", "Tank 4", "Tank 5", "Tank 6", "Tank 7
             border-bottom: 1px solid #ddd;
         }
 
-        /* MAXIMIZED TABLE AREA */
+        /* TABLE */
         .table-container { 
-            flex: 1; overflow: auto; padding: 0; 
+            flex: 1; overflow: auto; 
             background: rgba(255, 255, 255, 0.98); 
             margin: 0 15px 15px 15px;
             border-radius: 4px; box-shadow: 0 5px 20px rgba(0,0,0,0.3);
@@ -142,12 +137,13 @@ $tanks_ft = ["Tank 1", "Tank 2", "Tank 3", "Tank 4", "Tank 5", "Tank 6", "Tank 7
             z-index: 50; text-align: left;
         }
         td { padding: 10px 15px; border-bottom: 1px solid #eee; font-size: 12px; }
-        tr:hover { background: #f9fafb; }
 
-        .btn { padding: 7px 14px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 10px; display: inline-flex; align-items: center; gap: 6px; transition: 0.2s; text-decoration: none; }
-        .btn-gold { background: var(--gold); color: var(--navy); }
-        .btn-navy { background: var(--navy); color: white; }
-        
+        /* BUTTON STYLES */
+        .btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; transition: 0.2s; }
+        .btn-action { background: var(--gold); color: var(--navy); }
+        .btn-utility { background: var(--print-blue); color: white; }
+        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
         .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:1000; justify-content:center; align-items:center; }
         .modal-content { background:white; padding:20px; border-radius:8px; width:400px; }
     </style>
@@ -170,8 +166,8 @@ $tanks_ft = ["Tank 1", "Tank 2", "Tank 3", "Tank 4", "Tank 5", "Tank 6", "Tank 7
 
         <div class="header-right">
             <div class="total-stock-position">
-                <div style="font-size: 10px; font-weight: bold; letter-spacing: 1px;">TOTAL SYSTEM STOCK</div>
-                <div style="font-size: 26px; font-weight: 900;"><?= number_format($balance, 2) ?> <span style="font-size: 14px;">L</span></div>
+                <div style="font-size: 9px; font-weight: bold;">TOTAL SYSTEM STOCK</div>
+                <div style="font-size: 24px; font-weight: 900;"><?= number_format($balance, 2) ?> L</div>
             </div>
         </div>
     </header>
@@ -190,16 +186,23 @@ $tanks_ft = ["Tank 1", "Tank 2", "Tank 3", "Tank 4", "Tank 5", "Tank 6", "Tank 7
             <input type="text" name="search" value="<?= htmlspecialchars($search) ?>" placeholder="Search records..." style="padding: 6px; border: 1px solid #ccc; border-radius: 4px; width: 220px;">
             <input type="date" name="from_date" value="<?= $from_date ?>" style="padding: 5px; border: 1px solid #ccc; border-radius: 4px;">
             <input type="date" name="to_date" value="<?= $to_date ?>" style="padding: 5px; border: 1px solid #ccc; border-radius: 4px;">
-            <button type="submit" class="btn btn-navy">FILTER</button>
+            <button type="submit" class="btn btn-utility" style="background: var(--navy);">FILTER</button>
         </form>
 
-        <div style="display:flex; gap:8px;">
-            <button class="btn btn-gold" onclick="openFuelModal()">+ NEW ENTRY</button>
+        <div style="display:flex; gap:10px; align-items: center;">
+            <a href="issuance.php" class="btn btn-action">📋 ISSUANCE</a>
+            <button class="btn btn-action" onclick="openFuelModal()">+ NEW ENTRY</button>
+            
+            <span style="border-left: 1px solid #ddd; height: 25px; margin: 0 5px;"></span>
+
             <?php if (strtolower(trim($_SESSION['role'] ?? '')) === 'admin'): ?>
-                <button type="button" class="btn" onclick="clearInventory()" style="background: #e74c3c; color: white;">🗑️ WIPE</button>
+                <button type="button" class="btn btn-utility" onclick="clearInventory()">🗑️ CLEAR</button>
+                <button type="button" class="btn btn-utility" onclick="document.getElementById('dieselFile').click()">📥 IMPORT</button>
+                <form id="dieselImportForm" action="import_diesel.php" method="POST" enctype="multipart/form-data" style="display:none;">
+                    <input type="file" name="diesel_file" id="dieselFile" accept=".csv" onchange="this.form.submit()">
+                </form>
             <?php endif; ?>
-            <a href="issuance.php" class="btn btn-navy">📋 ISSUANCE</a>
-            <button class="btn btn-navy" onclick="window.print()">🖨️ PRINT</button>
+            <button class="btn btn-utility" onclick="window.print()">🖨️ PRINT</button>
         </div>
     </nav>
 
@@ -212,9 +215,9 @@ $tanks_ft = ["Tank 1", "Tank 2", "Tank 3", "Tank 4", "Tank 5", "Tank 6", "Tank 7
                     <th>SUPPLIER / SOURCE</th>
                     <th>RR NO.</th>
                     <th>WS NO.</th>
-                    <th>WITHDRAWN FROM</th>
-                    <th>DEPOSITED TO</th>
-                    <th>QUANTITY (L)</th>
+                    <th>FROM</th>
+                    <th>TO</th>
+                    <th>QTY (L)</th>
                     <th>ACTION</th>
                 </tr>
             </thead>
@@ -231,11 +234,11 @@ $tanks_ft = ["Tank 1", "Tank 2", "Tank 3", "Tank 4", "Tank 5", "Tank 6", "Tank 7
                     <td><?= htmlspecialchars($row['rr_no'] ?: '---') ?></td>
                     <td><?= htmlspecialchars($row['ws_no'] ?: '---') ?></td>
                     <td><?= htmlspecialchars($row['withdrawn_from'] ?: '---') ?></td> 
-                    <td style="font-weight: bold; color: var(--navy);"><?= htmlspecialchars($row['deposited_to']) ?></td>
+                    <td style="font-weight: bold;"><?= htmlspecialchars($row['deposited_to']) ?></td>
                     <td style="font-weight: 900; color: var(--dark-red);"><?= number_format($row['qty'], 2) ?></td>
                     <td>
-                        <button onclick='editRecord(<?= json_encode($row) ?>)' style="border:none; background:none; cursor:pointer; font-size: 14px;">✏️</button>
-                        <button onclick="deleteRecord(<?= $row['id'] ?>)" style="border:none; background:none; cursor:pointer; font-size: 14px;">🗑️</button>
+                        <button onclick='editRecord(<?= json_encode($row) ?>)' style="border:none; background:none; cursor:pointer;">✏️</button>
+                        <button onclick="deleteRecord(<?= $row['id'] ?>)" style="border:none; background:none; cursor:pointer;">🗑️</button>
                     </td>
                 </tr>
                 <?php endwhile; ?>
@@ -246,40 +249,40 @@ $tanks_ft = ["Tank 1", "Tank 2", "Tank 3", "Tank 4", "Tank 5", "Tank 6", "Tank 7
 
 <div id="fuelModal" class="modal">
     <div class="modal-content">
-        <h3 style="margin: 0 0 15px 0; color: var(--navy); border-bottom: 2px solid var(--gold); padding-bottom: 5px;">Fuel Transaction</h3>
+        <h3 style="margin-top:0; color: var(--navy);">Fuel Entry</h3>
         <form action="diesel_process.php" method="POST">
             <input type="hidden" name="id" id="formId">
-            <label style="font-size: 11px; font-weight: bold;">Activity</label>
+            <label style="font-size:11px; font-weight:bold;">Activity</label>
             <select name="activity" id="activityType" onchange="toggleFields()" required style="width:100%; padding:8px; margin-bottom:10px;">
                 <option value="INFLOW">📥 INFLOW (Delivery)</option>
                 <option value="OUTFLOW">📤 OUTFLOW (Issuance)</option>
                 <option value="TRANSFERRED">🔄 TRANSFER (Tank to Tank)</option>
             </select>
-            <div style="display:flex; gap:10px; margin-bottom: 10px;">
+            <div style="display:flex; gap:10px;">
                 <div style="flex:1;"><label style="font-size:11px;">Date</label><input type="date" name="rdate" id="formDate" required style="width:100%; padding:5px;"></div>
                 <div style="flex:1;"><label style="font-size:11px;">Time</label><input type="time" name="rtime" id="formTime" required style="width:100%; padding:5px;"></div>
             </div>
             <div id="inflowFields">
-                <input type="text" name="received_from" id="in_rec" placeholder="Supplier" style="width:100%; padding:8px; margin-bottom:10px;">
-                <input type="text" name="rr_no" id="in_rr" placeholder="RR Number" style="width:100%; padding:8px; margin-bottom:10px;">
+                <input type="text" name="received_from" id="in_rec" placeholder="Supplier" style="width:100%; padding:8px; margin-top:10px;">
+                <input type="text" name="rr_no" id="in_rr" placeholder="RR No." style="width:100%; padding:8px; margin-top:10px;">
             </div>
             <div id="outflowFields" style="display:none;">
-                <select name="from_tank_no" id="out_tank" style="width:100%; padding:8px; margin-bottom:10px;">
-                    <option value="">-- From Tank --</option>
+                <select name="from_tank_no" id="out_tank" style="width:100%; padding:8px; margin-top:10px;">
+                    <option value="">-- From --</option>
                     <?php foreach($tanks_ft as $t) echo "<option value='$t'>$t</option>"; ?>
                 </select>
-                <input type="text" name="ws_no" id="out_ws" placeholder="WS / Ref No." style="width:100%; padding:8px; margin-bottom:10px;">
+                <input type="text" name="ws_no" id="out_ws" placeholder="WS No." style="width:100%; padding:8px; margin-top:10px;">
             </div>
-            <label style="font-size: 11px; font-weight: bold;">Destination</label>
-            <select name="deposited_to" id="formDep" required style="width:100%; padding:8px; margin-bottom:10px;">
-                <option value="">-- To Tank/Unit --</option>
+            <label style="font-size:11px; font-weight:bold; display:block; margin-top:10px;">Deposited To</label>
+            <select name="deposited_to" id="formDep" required style="width:100%; padding:8px;">
+                <option value="">-- Select --</option>
                 <?php foreach($tanks_ft as $t) echo "<option value='$t'>$t</option>"; ?>
                 <option value="Direct to Unit">Direct to Unit</option>
             </select>
-            <input type="number" step="0.01" name="qty" id="formQty" placeholder="Quantity (Liters)" required style="width:100%; padding:8px; margin-bottom:15px;">
-            <div style="display: flex; gap: 10px;">
-                <button type="submit" class="btn btn-navy" style="flex:1; justify-content:center;">SAVE ENTRY</button>
-                <button type="button" onclick="closeFuelModal()" class="btn" style="flex:1; justify-content:center; background:#ccc;">CANCEL</button>
+            <input type="number" step="0.01" name="qty" id="formQty" placeholder="Quantity (L)" required style="width:100%; padding:8px; margin-top:10px;">
+            <div style="margin-top:15px; display: flex; gap: 10px;">
+                <button type="submit" class="btn btn-utility" style="flex:1; background:var(--navy); justify-content:center;">SAVE</button>
+                <button type="button" onclick="closeFuelModal()" class="btn" style="flex:1; background:#ccc; justify-content:center;">CANCEL</button>
             </div>
         </form>
     </div>
