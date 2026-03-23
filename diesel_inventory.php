@@ -236,9 +236,9 @@ $unit_breakdown = $tank_query->fetchAll(PDO::FETCH_ASSOC);
         <table>
             <thead>
                 <tr>
-                    <th>DATE / TIME</th>
+                    <th>DATE</th>
                     <th>ACTIVITY</th>
-                    <th>RECEIVED FROM / OPERATOR</th>
+                    <th>RECEIVED FROM</th>
                     <th>RR NO.</th>
                     <th>WS NO.</th>
                     <th>WITHDRAWN FROM</th>
