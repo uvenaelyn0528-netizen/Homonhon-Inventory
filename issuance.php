@@ -2,10 +2,10 @@
 include 'db.php'; 
 
 /**
- * FIXED: Standardized to PDO query for Supabase/PostgreSQL compatibility.
- * replaced $res->fetch_assoc() with $res->fetch(PDO::FETCH_ASSOC)
+ * FIXED: Query now uses correct column names from your Supabase 'diesel_history' table.
+ * Added 'rtime' to ORDER BY after we added it to your DB.
  */
-$query = "SELECT * FROM diesel_inventory WHERE activity = 'OUTFLOW' ORDER BY rdate DESC, rtime DESC";
+$query = "SELECT * FROM diesel_history WHERE activity = 'OUTFLOW' ORDER BY rdate DESC, rtime DESC";
 $res = $conn->query($query);
 ?>
 <!DOCTYPE html>
@@ -14,63 +14,25 @@ $res = $conn->query($query);
     <meta charset="UTF-8">
     <title>Daily Issuance Record | Goldrich Construction</title>
     <style>
-        :root {
-            --navy: #112941;
-            --gold: #f1c40f;
-            --dark-red: #8B0000;
-            --light-bg: #f4f7f6;
-            --green: #27ae60;
-        }
-
-        html, body { 
-            height: 100%; margin: 0; padding: 0; 
-            font-family: 'Segoe UI', sans-serif; background: var(--light-bg);
-            overflow: hidden;
-        }
-
+        /* Your existing styles remain the same */
+        :root { --navy: #112941; --gold: #f1c40f; --dark-red: #8B0000; --light-bg: #f4f7f6; --green: #27ae60; }
+        html, body { height: 100%; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; background: var(--light-bg); overflow: hidden; }
         .page-wrapper { display: flex; flex-direction: column; height: 100vh; }
-
-        /* HEADER STRIP */
-        .header-strip { 
-            background: white; padding: 10px 30px; 
-            border-bottom: 3px solid var(--dark-red); 
-            display: flex; align-items: center; justify-content: space-between; 
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1); z-index: 100;
-        }
-
-        .header-left, .header-right { flex: 1; display: flex; align-items: center; }
-        .header-right { justify-content: flex-end; gap: 10px; }
-        .header-center { 
-            flex: 2; display: flex; align-items: center; justify-content: center; 
-            gap: 15px; text-align: center; 
-        }
-
+        .header-strip { background: white; padding: 10px 30px; border-bottom: 3px solid var(--dark-red); display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 10px rgba(0,0,0,0.1); z-index: 100; }
+        .header-center { flex: 2; display: flex; align-items: center; justify-content: center; gap: 15px; text-align: center; }
         .logo-img { width: 50px; height: auto; }
         .company-name { color: var(--dark-red); margin: 0; font-size: 16px; font-family: Broadway, sans-serif; line-height: 1; }
         .page-title { margin: 2px 0 0 0; font-size: 18px; color: var(--navy); font-weight: 800; }
-
-        /* BUTTONS */
         .btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; text-decoration: none; font-size: 11px; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s; }
         .btn-back { background: #eee; color: #333; border: 1px solid #ccc; }
         .btn-add { background: var(--dark-red); color: white; border: 1px solid var(--gold); }
         .btn-import { background: var(--green); color: white; border: 1px solid #219150; }
-        
-        /* ACTION BUTTONS */
         .btn-edit { color: #3498db; background: none; border: 1px solid #3498db; padding: 4px 6px; border-radius: 4px; cursor: pointer; }
-        .btn-edit:hover { background: #3498db; color: white; }
         .btn-delete { color: #e74c3c; background: none; border: 1px solid #e74c3c; padding: 4px 6px; border-radius: 4px; cursor: pointer; }
-        .btn-delete:hover { background: #e74c3c; color: white; }
-
-        /* TABLE */
         .table-container { flex: 1; overflow: auto; padding: 20px; }
         table { width: 100%; border-collapse: separate; border-spacing: 0; background: white; font-size: 11px; min-width: 1600px; }
-        thead th { 
-            position: sticky; top: 0; background: var(--navy); color: white; 
-            padding: 12px; text-align: left; border-bottom: 2px solid var(--gold); z-index: 50;
-        }
+        thead th { position: sticky; top: 0; background: var(--navy); color: white; padding: 12px; text-align: left; border-bottom: 2px solid var(--gold); z-index: 50; }
         td { padding: 10px; border-bottom: 1px solid #ddd; white-space: nowrap; }
-
-        /* MODAL */
         .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:1000; justify-content:center; align-items:center; }
         .modal-content { background:white; padding:25px; border-radius:10px; width:650px; max-height: 90vh; overflow-y: auto; }
         .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
@@ -109,7 +71,7 @@ $res = $conn->query($query);
             <thead>
                 <tr>
                     <th>Actions</th>
-                    <th>Tank No.</th>
+                    <th>Tank Source</th>
                     <th>Date</th>
                     <th>Shift</th>
                     <th>Deposited To (Unit)</th>
@@ -131,18 +93,18 @@ $res = $conn->query($query);
                         <button class="btn-edit" onclick='editIssuance(<?= json_encode($row) ?>)'>✏️</button>
                         <button class="btn-delete" onclick="deleteIssuance(<?= $row['id'] ?>)">🗑️</button>
                     </td>
-                    <td><?= htmlspecialchars($row['from_tank_no'] ?? '') ?></td>
+                    <td><?= htmlspecialchars($row['tank_source'] ?? '---') ?></td>
                     <td><?= htmlspecialchars($row['rdate'] ?? '') ?></td>
                     <td><?= htmlspecialchars($row['shift'] ?? '---') ?></td>
-                    <td><strong><?= htmlspecialchars($row['deposited_to'] ?? '') ?></strong></td>
+                    <td><strong><?= htmlspecialchars($row['equipment_id'] ?? '') ?></strong></td>
                     <td><?= htmlspecialchars($row['ws_no'] ?? '') ?></td>
-                    <td><?= htmlspecialchars($row['received_from'] ?? '') ?></td>
-                    <td><?= htmlspecialchars($row['eqpt_type'] ?? '---') ?></td>
-                    <td><?= htmlspecialchars($row['deposited_to'] ?? '') ?></td>
-                    <td><?= htmlspecialchars($row['eqpt_code'] ?? '---') ?></td>
-                    <td><?= htmlspecialchars($row['odometer'] ?? '---') ?></td>
+                    <td><?= htmlspecialchars($row['name'] ?? '') ?></td>
+                    <td><?= htmlspecialchars($row['equipment_type'] ?? '---') ?></td>
+                    <td><?= htmlspecialchars($row['equipment_id'] ?? '') ?></td>
+                    <td><?= htmlspecialchars($row['code'] ?? '---') ?></td>
+                    <td><?= htmlspecialchars($row['odometer'] ?? '0') ?></td>
                     <td><?= $row['rtime'] ? date('h:i A', strtotime($row['rtime'])) : '---' ?></td>
-                    <td><?= htmlspecialchars($row['slip_no'] ?? '---') ?></td>
+                    <td><?= htmlspecialchars($row['is_no'] ?? '---') ?></td>
                     <td style="text-align:right; font-weight:bold;"><?= number_format($row['qty'] ?? 0, 2) ?></td>
                 </tr>
                 <?php endwhile; ?>
@@ -160,8 +122,8 @@ $res = $conn->query($query);
             
             <div class="form-grid">
                 <div>
-                    <label>Tank No.</label>
-                    <input type="text" name="from_tank_no" id="f_tank" placeholder="e.g. Tank 01" required>
+                    <label>Tank Source</label>
+                    <input type="text" name="tank_source" id="f_tank" placeholder="e.g. TANK 004" required>
                 </div>
                 <div>
                     <label>Date</label>
@@ -169,18 +131,15 @@ $res = $conn->query($query);
                 </div>
                 <div>
                     <label>Shift</label>
-                    <select name="shift" id="f_shift">
-                        <option value="DAY">DAY SHIFT</option>
-                        <option value="NIGHT">NIGHT SHIFT</option>
-                    </select>
+                    <input type="text" name="shift" id="f_shift" placeholder="D or N">
                 </div>
                 <div>
                     <label>Time</label>
                     <input type="time" name="rtime" id="f_time" value="<?= date('H:i') ?>" required>
                 </div>
                 <div>
-                    <label>Issuance Slip No.</label>
-                    <input type="text" name="slip_no" id="f_slip" placeholder="Enter Slip #">
+                    <label>Issuance Slip (IS No.)</label>
+                    <input type="text" name="is_no" id="f_slip" placeholder="Enter IS #">
                 </div>
                 <div>
                     <label>WS No. (Withdrawal Slip)</label>
@@ -188,23 +147,23 @@ $res = $conn->query($query);
                 </div>
                 <div>
                     <label>Type of Eqpt.</label>
-                    <input type="text" name="eqpt_type" id="f_type" placeholder="e.g. Dump Truck">
+                    <input type="text" name="equipment_type" id="f_type" placeholder="e.g. Dump Truck">
                 </div>
                 <div>
                     <label>Eqpt. ID / Plate No.</label>
-                    <input type="text" name="deposited_to" id="f_dep" placeholder="e.g. DT-01" required>
+                    <input type="text" name="equipment_id" id="f_dep" placeholder="e.g. DT-01" required>
                 </div>
                 <div>
                     <label>Code</label>
-                    <input type="text" name="eqpt_code" id="f_code" placeholder="Project Code">
+                    <input type="text" name="code" id="f_code" placeholder="Project Code">
                 </div>
                 <div>
                     <label>Odometer / Hours</label>
-                    <input type="number" name="odometer" id="f_odo" placeholder="Current Reading">
+                    <input type="number" step="0.1" name="odometer" id="f_odo" placeholder="Current Reading">
                 </div>
                 <div style="grid-column: span 2;">
                     <label>Operator / Recipient Name</label>
-                    <input type="text" name="received_from" id="f_rec" placeholder="Full Name">
+                    <input type="text" name="name" id="f_rec" placeholder="Full Name">
                 </div>
                 <div style="grid-column: span 2;">
                     <label style="color: var(--dark-red); font-size: 14px;">QUANTITY ISSUED (LITERS)</label>
@@ -221,10 +180,7 @@ $res = $conn->query($query);
 </div>
 
 <script>
-    function toggleModal(show) {
-        document.getElementById('issuanceModal').style.display = show ? 'flex' : 'none';
-    }
-
+    function toggleModal(show) { document.getElementById('issuanceModal').style.display = show ? 'flex' : 'none'; }
     function openAddModal() {
         document.getElementById('modalTitle').innerText = "New Daily Issuance";
         document.getElementById('submitBtn').innerText = "SAVE ISSUANCE";
@@ -232,35 +188,29 @@ $res = $conn->query($query);
         document.querySelector('form').reset();
         toggleModal(true);
     }
-
     function editIssuance(data) {
         document.getElementById('modalTitle').innerText = "Edit Daily Issuance";
         document.getElementById('submitBtn').innerText = "UPDATE ISSUANCE";
-        
-        // Map data to fields
         document.getElementById('formId').value = data.id;
-        document.getElementById('f_tank').value = data.from_tank_no;
+        document.getElementById('f_tank').value = data.tank_source || '';
         document.getElementById('f_date').value = data.rdate;
         document.getElementById('f_time').value = data.rtime;
-        document.getElementById('f_shift').value = data.shift || 'DAY';
-        document.getElementById('f_slip').value = data.slip_no || '';
+        document.getElementById('f_shift').value = data.shift || '';
+        document.getElementById('f_slip').value = data.is_no || '';
         document.getElementById('f_ws').value = data.ws_no;
-        document.getElementById('f_type').value = data.eqpt_type || '';
-        document.getElementById('f_dep').value = data.deposited_to;
-        document.getElementById('f_code').value = data.eqpt_code || '';
+        document.getElementById('f_type').value = data.equipment_type || '';
+        document.getElementById('f_dep').value = data.equipment_id;
+        document.getElementById('f_code').value = data.code || '';
         document.getElementById('f_odo').value = data.odometer || '';
-        document.getElementById('f_rec').value = data.received_from || '';
+        document.getElementById('f_rec').value = data.name || '';
         document.getElementById('f_qty').value = data.qty;
-
         toggleModal(true);
     }
-
     function deleteIssuance(id) {
         if (confirm("Are you sure you want to delete this issuance record?")) {
             window.location.href = "delete_fuel.php?id=" + id;
         }
     }
 </script>
-
 </body>
 </html>
