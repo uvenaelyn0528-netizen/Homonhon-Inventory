@@ -1,9 +1,8 @@
 <?php
 session_start();
 $role = $_SESSION['role'] ?? 'Viewer';
-include 'db.php'; // This provides the $pdo connection
+include 'db.php'; 
 
-// Redirect if already logged in
 if (isset($_SESSION['user_id'])) {
     header("Location: index.php");
     exit();
@@ -14,17 +13,12 @@ if (isset($_POST['login'])) {
     $password = $_POST['password'];
 
     try {
-        // In PDO, we use prepare() to prevent SQL injection (no need for real_escape_string)
-       // The SQL uses :username
-$stmt = $conn->prepare("SELECT * FROM users WHERE username = :username");
-
-// The execute must use 'username' as the key
-$stmt->execute(['username' => $_POST['username']]);
-        $user = $stmt->fetch(); // Fetches as an associative array automatically
+        $stmt = $conn->prepare("SELECT * FROM users WHERE username = :username");
+        $stmt->execute(['username' => $username]);
+        $user = $stmt->fetch(); 
 
         if ($user) {
             if (password_verify($password, $user['password'])) {
-                // SETTING THE SESSION
                 $_SESSION['user_id'] = $user['id'];
                 $_SESSION['username'] = $user['username'];
                 $_SESSION['role'] = $user['role']; 
@@ -43,7 +37,6 @@ $stmt->execute(['username' => $_POST['username']]);
 }
 ?>
 
-<?php if(isset($error)) echo "<p style='color:red;'>$error</p>"; ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -52,29 +45,33 @@ $stmt->execute(['username' => $_POST['username']]);
     <title>Login - Warehouse Inventory</title>
     <style>
         :root {
-            --primary-dark: #2c3e50;
+            --navy: #112941;
             --goldrich-red: #8b0000;
-            --text-gray: #7f8c8d;
-            --bg-color: #f4f7f6;
+            --text-gray: #64748b;
+            --light-border: #e2e8f0;
         }
 
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            background: var(--bg-color); 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            height: 100vh; 
-            margin: 0; 
+        body {
+            /* Subtle gradient background to make the white login card pop */
+            background: radial-gradient(circle at center, #ffffff 0%, #f1f5f9 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         }
 
         .login-card { 
             background: white; 
-            padding: 35px; 
-            border-radius: 15px; 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
-            width: 380px; 
+            padding: 40px; 
+            border-radius: 16px; 
+            /* Softer, more professional shadow for depth */
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05); 
+            width: 100%;
+            max-width: 400px; 
             text-align: center; 
+            border: 1px solid var(--light-border);
         }
 
         .brand-header {
@@ -82,13 +79,15 @@ $stmt->execute(['username' => $_POST['username']]);
             align-items: center;
             justify-content: center;
             gap: 15px;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
             text-align: left;
         }
 
         .logo-small { 
-            width: 65px; 
+            width: 60px; 
             height: auto; 
+            /* Subtle glow behind the logo */
+            filter: drop-shadow(0 4px 8px rgba(139, 0, 0, 0.1));
         }
 
         .header-text-group h1 { 
@@ -104,70 +103,117 @@ $stmt->execute(['username' => $_POST['username']]);
             color: var(--text-gray);
             font-size: 9px;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.8px;
             margin: 4px 0 0 0;
             line-height: 1.3;
+            font-weight: 600;
         }
 
         .system-title-container {
-            border-top: 1px solid #eee;
+            border-top: 1px solid #f1f5f9;
             margin-top: 15px;
-            padding-top: 15px;
-            margin-bottom: 25px;
+            padding-top: 20px;
+            margin-bottom: 30px;
         }
 
         .system-title-container h2 {
-            color: var(--primary-dark);
-            font-size: 18px;
+            color: var(--navy);
+            font-size: 20px;
             margin: 0;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 1.5px;
             font-weight: 800;
         }
 
+        /* Improved Input Styling */
         input { 
             width: 100%; 
-            padding: 12px; 
-            margin-bottom: 15px; 
-            border: 1px solid #ddd; 
-            border-radius: 8px; 
+            padding: 12px 15px; 
+            margin-bottom: 18px; 
+            border: 1.5px solid #cbd5e1; 
+            border-radius: 10px; 
             box-sizing: border-box; 
             outline: none; 
-            transition: 0.3s; 
+            transition: all 0.3s ease; 
             font-size: 14px;
+            color: #1e293b;
         }
 
+        /* Active state transitions to Navy */
         input:focus { 
-            border-color: var(--goldrich-red); 
-            box-shadow: 0 0 5px rgba(139, 0, 0, 0.1);
+            border-color: var(--navy); 
+            box-shadow: 0 0 0 4px rgba(17, 41, 65, 0.08);
+            background-color: #fff;
         }
 
         button { 
             width: 100%; 
-            padding: 12px; 
-            background: var(--primary-dark); 
+            padding: 14px; 
+            background: var(--navy); 
             color: white; 
             border: none; 
-            border-radius: 8px; 
+            border-radius: 10px; 
             cursor: pointer; 
-            font-weight: bold; 
-            font-size: 16px; 
-            transition: 0.3s; 
+            font-weight: 700; 
+            font-size: 15px; 
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease; 
+            margin-top: 10px;
         }
 
         button:hover { 
-            background: #1a252f; 
-            transform: translateY(-1px);
+            background: #1a3a5a; 
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(17, 41, 65, 0.2);
+        }
+
+        button:active {
+            transform: translateY(0);
         }
 
         .error { 
-            color: #e74c3c; 
-            background: #fdedec; 
-            padding: 10px; 
-            border-radius: 5px; 
-            margin-bottom: 15px; 
+            color: #b91c1c; 
+            background: #fef2f2; 
+            padding: 12px; 
+            border-radius: 8px; 
+            margin-bottom: 20px; 
             font-size: 13px; 
-            border: 1px solid #fadbd8;
+            border: 1px solid #fee2e2;
+            font-weight: 500;
+        }
+
+        .footer-support {
+            margin-top: 30px; 
+            padding-top: 20px; 
+            border-top: 1px solid #f1f5f9;
+        }
+
+        .footer-support p {
+            font-size: 11px;
+            color: var(--text-gray);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .footer-support a {
+            display: block; 
+            margin-top: 8px; 
+            font-size: 13px; 
+            color: var(--goldrich-red); 
+            text-decoration: none; 
+            font-weight: 700;
+            transition: opacity 0.2s;
+        }
+
+        .footer-support a:hover {
+            opacity: 0.8;
+            text-decoration: underline;
         }
     </style>
 </head>
@@ -193,16 +239,12 @@ $stmt->execute(['username' => $_POST['username']]);
             <button type="submit" name="login">Sign In</button>
         </form>
 
-        <div style="margin-top: 25px; padding-top: 15px; border-top: 1px dashed #ddd;">
-            <div style="display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--text-gray);">
-                <span style="font-size: 14px;">🔑</span>
-                <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">
-                    Access Issue? Contact System Admin
-                </span>
-            </div>
-            <a href="mailto:admin@goldrich.com" style="display: block; margin-top: 5px; font-size: 12px; color: var(--goldrich-red); text-decoration: none; font-weight: bold;">
+        <div class="footer-support">
+            <p><span>🔑</span> Access Issue? Contact Admin</p>
+            <a href="mailto:support.warehouse@goldrich.com">
                 support.warehouse@goldrich.com
             </a>
         </div>
-        </div> </body>
+    </div>
+</body>
 </html>
