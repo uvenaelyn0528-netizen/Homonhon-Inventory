@@ -52,15 +52,14 @@ if (isset($_POST['login'])) {
         }
 
         body {
-            /* Subtle gradient background to make the white login card pop */
-            background: radial-gradient(circle at center, #ffffff 0%, #f1f5f9 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        }
+    background-color: #f8fafc;
+    background-image: 
+        radial-gradient(at 0% 0%, rgba(17, 41, 65, 0.03) 0, transparent 50%), 
+        linear-gradient(rgba(226, 232, 240, 0.5) 1px, transparent 1px), 
+        linear-gradient(90deg, rgba(226, 232, 240, 0.5) 1px, transparent 1px);
+    background-size: 100% 100%, 40px 40px, 40px 40px;
+    background-attachment: fixed;
+}
 
         .login-card { 
             background: white; 
