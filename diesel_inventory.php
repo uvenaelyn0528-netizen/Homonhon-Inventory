@@ -195,6 +195,9 @@ $unit_breakdown = $breakdown_stmt->fetchAll(PDO::FETCH_ASSOC);
 
         <div class="controls-right" style="display:flex; gap:10px; align-items: center;">
             <?php if (strtolower(trim($_SESSION['role'] ?? '')) === 'admin'): ?>
+    <button type="button" class="btn" onclick="clearInventory()" style="background: #c0392b; color: white;">
+            🗑️ Clear History
+        </button>
                 <button type="button" class="btn" onclick="document.getElementById('dieselFile').click()" style="background: #8e44ad; color: white;">
                     📥 IMPORT DIESEL EXCEL
                 </button>
@@ -356,6 +359,16 @@ function editRecord(data) {
 function deleteRecord(id) {
     if(confirm("Are you sure you want to delete this fuel record?")) {
         window.location.href = "delete_fuel.php?id=" + id;
+    }
+}
+    function clearInventory() {
+    const confirmation = confirm("WARNING: This will permanently delete ALL diesel inventory records and reset your stock to zero. This cannot be undone.\n\nAre you sure you want to proceed?");
+    
+    if (confirmation) {
+        const finalCheck = confirm("FINAL CONFIRMATION: Click OK to completely wipe the Diesel Ledger.");
+        if (finalCheck) {
+            window.location.href = "clear_inventory.php";
+        }
     }
 }
 </script>
