@@ -443,11 +443,19 @@ html, body {
                         <label>Requesting Department</label>
                         <select name="department" required>
                             <option value="" disabled selected>Select Department</option>
-                            <option value="Warehouse">Warehouse</option>
+                             <option value="Warehouse">Warehouse</option>
                             <option value="Admin">Admin</option>
                             <option value="Mechanical">Mechanical</option>
                             <option value="Safety">Safety</option>
-                            <option value="Engineering">Engineering</option>
+                            <option value="Mechanical">TSG</option>
+                            <option value="Safety">Assay</option>
+                            <option value="Mechanical">Mine Operation</option>
+                            <option value="Safety">Port Operation</option>
+                            <option value="Mechanical">Comrel</option>
+                            <option value="Safety">Envi</option>
+                            <option value="Mechanical">Mechanical</option>
+                            <option value="Safety">Forestry</option>
+                            <option value="Mechanical">Engineering</option>
                         </select>
                     </div>
                 </div>
