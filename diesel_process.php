@@ -3,52 +3,70 @@ include 'db.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id = $_POST['id'] ?? '';
-    $activity = $_POST['activity'] ?? 'OUTFLOW'; // Default to OUTFLOW
+    $activity = $_POST['activity']; // INFLOW, OUTFLOW, or TRANSFERRED
+    $rdate = $_POST['rdate'];
+    $rtime = $_POST['rtime'];
+    $qty = $_POST['qty'];
+    $deposited_to = $_POST['deposited_to'];
     
-    // Mapping POST data to your new table columns
-    $data = [
-        'tank_source'    => $_POST['tank_source'] ?? '',
-        'rdate'          => $_POST['rdate'] ?? null,
-        'deposited'      => $_POST['deposited'] ?? 0,
-        'ws_no'          => $_POST['ws_no'] ?? '',
-        'name'           => $_POST['name'] ?? '',
-        'equipment_type' => $_POST['equipment_type'] ?? '',
-        'equipment_id'   => $_POST['equipment_id'] ?? '',
-        'code'           => $_POST['code'] ?? '',
-        'odometer'       => $_POST['odometer'] ?? 0,
-        'rtime'          => $_POST['rtime'] ?? null,
-        'is_no'          => $_POST['is_no'] ?? '',
-        'qty'            => $_POST['qty'] ?? 0,
-        'shift'          => $_POST['shift'] ?? ''
-    ];
+    // logic to determine which fields to clear based on activity
+    $received_from = ($activity === 'INFLOW') ? $_POST['received_from'] : '---';
+    $rr_no = ($activity === 'INFLOW') ? $_POST['rr_no'] : '---';
+    
+    // Outflow and Transfer both use these fields
+    $withdrawn_from = ($activity === 'OUTFLOW' || $activity === 'TRANSFERRED') ? $_POST['from_tank_no'] : '---';
+    $ws_no = ($activity === 'OUTFLOW' || $activity === 'TRANSFERRED') ? $_POST['ws_no'] : '---';
 
     try {
         if (!empty($id)) {
-            // UPDATE EXISTING RECORD
-            $sql = "UPDATE diesel_history SET 
-                    tank_source = :tank_source, rdate = :rdate, deposited = :deposited, 
-                    ws_no = :ws_no, name = :name, equipment_type = :equipment_type, 
-                    equipment_id = :equipment_id, code = :code, odometer = :odometer, 
-                    rtime = :rtime, is_no = :is_no, qty = :qty, shift = :shift 
+            // UPDATE existing record
+            $sql = "UPDATE diesel_inventory SET 
+                    activity = :activity, 
+                    rdate = :rdate, 
+                    rtime = :rtime, 
+                    received_from = :rec, 
+                    rr_no = :rr, 
+                    ws_no = :ws, 
+                    withdrawn_from = :withdrawn, 
+                    deposited_to = :dep, 
+                    qty = :qty 
                     WHERE id = :id";
-            $data['id'] = $id;
+            $stmt = $conn->prepare($sql);
+            $stmt->execute([
+                ':activity' => $activity,
+                ':rdate' => $rdate,
+                ':rtime' => $rtime,
+                ':rec' => $received_from,
+                ':rr' => $rr_no,
+                ':ws' => $ws_no,
+                ':withdrawn' => $withdrawn_from,
+                ':dep' => $deposited_to,
+                ':qty' => $qty,
+                ':id' => $id
+            ]);
         } else {
-            // INSERT NEW RECORD
-            $sql = "INSERT INTO diesel_history 
-                    (tank_source, rdate, deposited, ws_no, name, equipment_type, equipment_id, code, odometer, rtime, is_no, qty, shift) 
-                    VALUES 
-                    (:tank_source, :rdate, :deposited, :ws_no, :name, :equipment_type, :equipment_id, :code, :odometer, :rtime, :is_no, :qty, :shift)";
+            // INSERT new record
+            $sql = "INSERT INTO diesel_inventory (activity, rdate, rtime, received_from, rr_no, ws_no, withdrawn_from, deposited_to, qty) 
+                    VALUES (:activity, :rdate, :rtime, :rec, :rr, :ws, :withdrawn, :dep, :qty)";
+            $stmt = $conn->prepare($sql);
+            $stmt->execute([
+                ':activity' => $activity,
+                ':rdate' => $rdate,
+                ':rtime' => $rtime,
+                ':rec' => $received_from,
+                ':rr' => $rr_no,
+                ':ws' => $ws_no,
+                ':withdrawn' => $withdrawn_from,
+                ':dep' => $deposited_to,
+                ':qty' => $qty
+            ]);
         }
 
-        $stmt = $conn->prepare($sql);
-        $stmt->execute($data);
-
-        // Redirect back to the issuance log with success
-        header("Location: issuance.php?status=success");
+        header("Location: diesel_inventory.php?msg=success");
         exit();
 
     } catch (PDOException $e) {
-        die("Database Error: " . $e->getMessage());
+        die("Error saving record: " . $e->getMessage());
     }
 }
 ?>
