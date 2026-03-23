@@ -36,8 +36,7 @@ $bal_stmt = $conn->query("
     ) as balance 
     FROM diesel_inventory
 ");
-$balance_row = $bal_stmt->fetch(PDO::FETCH_ASSOC);
-$balance = $balance_row['balance'] ?? 0;
+$balance = $bal_stmt->fetch(PDO::FETCH_ASSOC)['balance'] ?? 0;
 
 // 3. UPDATED: Unit Breakdown (Handles TRANSFERRED Logic)
 $breakdown_stmt = $conn->query("
