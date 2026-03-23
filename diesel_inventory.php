@@ -28,7 +28,6 @@ $stmt = $conn->prepare($sql);
 $stmt->execute($params);
 
 // 1. CORRECTED: Total System Stock (Physical Inventory Only)
-// Only INFLOW minus OUTFLOW. Transfers are internal and do not affect this total.
 $bal_stmt = $conn->query("
     SELECT (
         SUM(CASE WHEN activity = 'INFLOW' THEN qty ELSE 0 END) - 
@@ -39,18 +38,15 @@ $bal_stmt = $conn->query("
 $balance = $bal_stmt->fetch(PDO::FETCH_ASSOC)['balance'] ?? 0;
 
 // 2. CORRECTED: Per Tank Breakdown
-// This calculates the contents of each tank specifically.
 $tank_query = $conn->query("
     SELECT unit_name, SUM(amount) as unit_balance
     FROM (
-        -- Fuel coming INTO a tank (Delivery or received from another tank)
         SELECT deposited_to as unit_name, qty as amount 
         FROM diesel_inventory 
         WHERE (deposited_to LIKE 'TANK%' OR deposited_to LIKE 'Tank%')
         
         UNION ALL
         
-        -- Fuel leaving a tank (Issued to equipment or moved to another tank)
         SELECT withdrawn_from as unit_name, -qty as amount 
         FROM diesel_inventory 
         WHERE (withdrawn_from LIKE 'TANK%' OR withdrawn_from LIKE 'Tank%')
@@ -79,7 +75,6 @@ $unit_breakdown = $tank_query->fetchAll(PDO::FETCH_ASSOC);
         html, body { 
             height: 100%; margin: 0; padding: 0; 
             overflow: hidden; font-family: 'Segoe UI', sans-serif;
-            /* UPDATED: Background Image - 100% Stretch Fix */
             background-image: url('images/background.jpg'); 
             background-size: 100% 100%;
             background-position: center;
@@ -88,7 +83,6 @@ $unit_breakdown = $tank_query->fetchAll(PDO::FETCH_ASSOC);
             background-color: var(--navy);
         }
 
-        /* Adds a blur overlay to the background for readability */
         body::before {
             content: "";
             position: fixed;
@@ -151,11 +145,17 @@ $unit_breakdown = $tank_query->fetchAll(PDO::FETCH_ASSOC);
         
         table { width: 100%; border-collapse: separate; border-spacing: 0; background: transparent; min-width: 1200px; }
         
+        /* UPDATED: THEAD STYLES */
         thead th {
-            position: sticky; top: 0; 
-            background: #f8f9fa; color: var(--navy);
-            padding: 15px 25px; font-size: 11px; text-transform: uppercase;
-            border-bottom: 2px solid #ddd; z-index: 50;
+            position: sticky; 
+            top: 0; 
+            background: var(--navy); 
+            color: white;
+            padding: 15px 25px; 
+            font-size: 11px; 
+            text-transform: uppercase;
+            border-bottom: 2px solid var(--gold);
+            z-index: 50;
         }
 
         td { padding: 12px 25px; border-bottom: 1px solid #eee; font-size: 12px; white-space: nowrap; }
