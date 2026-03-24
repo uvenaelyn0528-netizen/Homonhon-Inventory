@@ -200,16 +200,20 @@ include 'db.php';
         </div>
     </div>
 
-    <div class="table-wrapper">
+ <div class="table-wrapper">
     <?php
     $grand_total = 0;
     
-    // Grouping by department and purpose to get a project-level summary
+    // Updated SQL to:
+    // 1. Exclude departments that are purely numeric (using Regex)
+    // 2. Exclude 'GENERAL OPERATIONS' purpose
     $sql = "SELECT department, purpose, 
                    SUM(qty) as total_qty, 
                    SUM(qty * price) as project_total 
             FROM inventory 
             WHERE department IS NOT NULL AND department != ''
+              AND department ~ '[a-zA-Z]' 
+              AND UPPER(purpose) != 'GENERAL OPERATIONS'
             GROUP BY department, purpose
             ORDER BY department ASC, project_total DESC";
     
@@ -221,7 +225,6 @@ include 'db.php';
 
     if (count($rows) > 0):
         foreach($rows as $row):
-            // Check if we have moved to a new Department
             if ($current_dept != $row['department']):
                 if ($current_dept != "") echo "</tbody></table></div>"; 
                 
@@ -244,7 +247,7 @@ include 'db.php';
     ?>
             <tr class="item-row">
                 <td style="font-weight: 600; color: #2c3e50;">
-                    📌 <?php echo htmlspecialchars($row['purpose'] ?: 'GENERAL OPERATIONS'); ?>
+                    📌 <?php echo htmlspecialchars($row['purpose'] ?: 'SPECIFIED PROJECT'); ?>
                 </td>
                 <td style="text-align:center;">
                     <?php echo number_format((float)$row['total_qty'], 2); ?>
@@ -255,11 +258,11 @@ include 'db.php';
             </tr>
     <?php 
         endforeach; 
-        echo "</tbody></table></div>"; // Close final department table
+        echo "</tbody></table></div>"; 
     else: 
     ?>
         <div style="text-align: center; padding: 100px; color: #7f8c8d;">
-            <h3>No departmental data found.</h3>
+            <h3>No valid departmental data found.</h3>
         </div>
     <?php endif; ?>
 </div>
