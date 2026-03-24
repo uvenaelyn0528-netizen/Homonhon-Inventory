@@ -152,11 +152,9 @@ $tanks_ft = ["Tank 1", "Tank 2", "Tank 3", "Tank 4", "Tank 5", "Tank 6", "Tank 7
         .btn-action { background: var(--gold); color: var(--navy); }
         .btn:hover { opacity: 0.9; transform: translateY(-1px); }
 
-        /* General Modal styling */
         .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:1000; justify-content:center; align-items:center; }
         .modal-content { background:white; border-radius:8px; width:400px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         
-        /* Upload Specific Modal Design */
         .modal-header-upload {
             background: var(--navy); color: white;
             padding: 15px 20px; display: flex;
@@ -254,7 +252,7 @@ $tanks_ft = ["Tank 1", "Tank 2", "Tank 3", "Tank 4", "Tank 5", "Tank 6", "Tank 7
                 <tr>
                     <td style="font-weight: bold;"><?= date('M d, Y', strtotime($row['rdate'])) ?></td>
                     <td>
-                        <span style="padding: 3px 8px; border-radius: 12px; font-size: 10px; font-weight: bold; background: <?= $row['activity']=='INFLOW'?'#dcfce7':($row['activity']=='TRANSFERRED'?'#dbeafe':'#ffedd5') ?>; color: <?= $row['activity']=='INFLOW'?'#166534':($row['activity']=='TRANSFERRED'?'#1e40af':'#9a3412') ?>;">
+                        <span style="padding: 3px 8px; border-radius: 12px; font-size: 10px; font-weight: bold; background: <?= strtoupper($row['activity'])=='INFLOW'?'#dcfce7':(strtoupper($row['activity'])=='TRANSFERRED'?'#dbeafe':'#ffedd5') ?>; color: <?= strtoupper($row['activity'])=='INFLOW'?'#166534':(strtoupper($row['activity'])=='TRANSFERRED'?'#1e40af':'#9a3412') ?>;">
                             <?= $row['activity'] ?>
                         </span>
                     </td>
@@ -272,7 +270,7 @@ $tanks_ft = ["Tank 1", "Tank 2", "Tank 3", "Tank 4", "Tank 5", "Tank 6", "Tank 7
                     <td>
                         <button onclick='editRecord(<?= json_encode($row) ?>)' style="border:none; background:none; cursor:pointer;" title="Edit">✏️</button>
                         
-                        <?php if ($isAuthorized && $row['activity'] === 'INFLOW'): ?>
+                        <?php if (strtoupper($row['activity']) === 'INFLOW'): ?>
                             <button onclick="openUploadModal(<?= $row['id'] ?>)" style="border:none; background:none; cursor:pointer;" title="Upload Scan">📤</button>
                         <?php endif; ?>
 
@@ -312,7 +310,7 @@ $tanks_ft = ["Tank 1", "Tank 2", "Tank 3", "Tank 4", "Tank 5", "Tank 6", "Tank 7
 <div id="fuelModal" class="modal">
     <div class="modal-content" style="padding: 20px;">
         <h3 style="margin-top:0; color: var(--navy);">Fuel Entry</h3>
-        <form action="diesel_process.php" method="POST" enctype="multipart/form-data">
+        <form action="diesel_process.php" method="POST">
             <input type="hidden" name="id" id="formId">
             <label style="font-size:11px; font-weight:bold;">Activity</label>
             <select name="activity" id="activityType" onchange="toggleFields()" required style="width:100%; padding:8px; margin-bottom:10px;">
@@ -355,14 +353,12 @@ $tanks_ft = ["Tank 1", "Tank 2", "Tank 3", "Tank 4", "Tank 5", "Tank 6", "Tank 7
 </div>
 
 <script>
-// Logic for Standalone Upload Modal
 function openUploadModal(id) {
     document.getElementById('upload_record_id').value = id;
     document.getElementById('uploadModal').style.display = 'flex';
 }
 function closeUploadModal() { document.getElementById('uploadModal').style.display = 'none'; }
 
-// Logic for Main Fuel Modal
 function openFuelModal() {
     document.getElementById('fuelModal').style.display = 'flex';
     document.getElementById('formId').value = '';
@@ -397,7 +393,6 @@ function editRecord(data) {
 function deleteRecord(id) { if(confirm("Delete this record?")) window.location.href = "delete_fuel.php?id=" + id; }
 function clearInventory() { if(confirm("PERMANENTLY WIPE ALL DATA?")) window.location.href = "clear_inventory.php"; }
 
-// Handle clicks outside modals
 window.onclick = function(event) {
     if (event.target == document.getElementById('uploadModal')) closeUploadModal();
     if (event.target == document.getElementById('fuelModal')) closeFuelModal();
