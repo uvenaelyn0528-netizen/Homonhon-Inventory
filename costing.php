@@ -3,13 +3,18 @@ session_start();
 if (!isset($_SESSION['user_id'])) { header("Location: login.php"); exit(); }
 include 'db.php'; 
 
-function getCostingData($conn, $table) {
+/**
+ * Updated function to handle specific activity types (Inflow vs Outflow)
+ *
+ */
+function getCostingData($conn, $table, $extraCondition = "1=1") {
     // Excludes numeric departments and 'GENERAL OPERATIONS' purpose
     $sql = "SELECT department, purpose, 
                    SUM(qty) as total_qty, 
                    SUM(qty * price) as project_total 
             FROM $table 
-            WHERE department IS NOT NULL AND department != ''
+            WHERE $extraCondition
+              AND department IS NOT NULL AND department != ''
               AND department ~ '[a-zA-Z]' 
               AND UPPER(purpose) != 'GENERAL OPERATIONS'
             GROUP BY department, purpose
@@ -20,8 +25,11 @@ function getCostingData($conn, $table) {
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
+// 1. Fetch Received History (All records in this table are Inflow)
 $received_rows = getCostingData($conn, 'received_history');
-$withdrawn_rows = getCostingData($conn, 'inventory'); 
+
+// 2. Fetch Withdrawals (Only records marked as 'OUTFLOW' in inventory)
+$withdrawn_rows = getCostingData($conn, 'inventory', "activity = 'OUTFLOW'"); 
 
 // Calculate Grand Totals for the footer
 $grand_received = array_sum(array_column($received_rows, 'project_total'));
@@ -36,20 +44,16 @@ $grand_withdrawn = array_sum(array_column($withdrawn_rows, 'project_total'));
     <style>
         :root { --dark-red: #8b0000; --gold: #f1c40f; --bg-gray: #f4f7f6; }
         
-        /* Fixed height container to ensure footer visibility */
         html, body { height: 100%; margin: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; background: var(--bg-gray); }
         .report-container { display: flex; flex-direction: column; height: 100vh; max-width: 100%; background: white; }
 
-        /* Header section */
         .header-section { flex-shrink: 0; border-bottom: 4px solid var(--dark-red); padding: 10px 30px; display: flex; justify-content: space-between; align-items: center; }
         
-        /* Scrollable area for tables */
         .split-view { display: flex; flex: 1; overflow: hidden; gap: 2px; background: #ddd; }
         .costing-column { flex: 1; display: flex; flex-direction: column; background: white; overflow-y: auto; }
         
         .col-header { position: sticky; top: 0; z-index: 1100; background: #112941; color: white; padding: 12px; text-align: center; font-weight: bold; border-bottom: 2px solid var(--gold); }
         
-        /* Sticky Department Header with Flexbox for right-aligned total */
         .dept-header { 
             position: sticky; top: 43px; z-index: 1000; 
             background: #2c3e50; color: white; padding: 8px 20px; 
@@ -62,7 +66,6 @@ $grand_withdrawn = array_sum(array_column($withdrawn_rows, 'project_total'));
         th { position: sticky; top: 76px; z-index: 900; background: #f8f9fa; padding: 10px; font-size: 10px; text-transform: uppercase; border-bottom: 1px solid #eee; text-align: left; }
         td { padding: 10px; font-size: 12px; border-bottom: 1px solid #f0f0f0; }
 
-        /* Fixed Footer at the bottom */
         .grand-total-bar { 
             flex-shrink: 0; background: var(--dark-red); color: white; 
             padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; 
@@ -112,7 +115,6 @@ function renderCostingTable($rows) {
         return;
     }
 
-    // Pre-calculate departmental totals for the headers
     $dept_totals = [];
     foreach ($rows as $row) {
         $dept_totals[$row['department']] = ($dept_totals[$row['department']] ?? 0) + $row['project_total'];
@@ -127,7 +129,7 @@ function renderCostingTable($rows) {
             
             echo "<div class='dept-header'>";
             echo "<span>" . strtoupper($current_dept) . "</span>";
-            echo "<span class='dept-total'>₱$total_for_this_dept</span>"; // Added departmental total on the right
+            echo "<span class='dept-total'>₱$total_for_this_dept</span>";
             echo "</div>";
             
             echo "<table><thead><tr><th>Purpose / Project</th><th style='text-align:right;'>Costing</th></tr></thead><tbody>";
@@ -140,6 +142,5 @@ function renderCostingTable($rows) {
     echo "</tbody></table>";
 }
 ?>
-
 </body>
 </html>
