@@ -222,7 +222,7 @@ $tanks_ft = ["Tank 1", "Tank 2", "Tank 3", "Tank 4", "Tank 5", "Tank 6", "Tank 7
                     <td>
                         <?= htmlspecialchars($row['rr_no'] ?: '---') ?>
                         <?php if (!empty($row['attachment_path'])): ?>
-                            <a href="<?= htmlspecialchars($row['attachment_path']) ?>" download class="attachment-link" title="Download File">📎</a>
+                            <a href="<?= htmlspecialchars($row['attachment_path']) ?>" download class="attachment-link" title="Download File">📎 attached File</a>
                         <?php endif; ?>
                     </td>
                     <td><?= htmlspecialchars($row['ws_no'] ?: '---') ?></td>
