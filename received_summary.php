@@ -99,7 +99,7 @@ if ($rows) {
                     <th>DATE</th><th>RR NUMBER</th><th>SUPPLIER</th><th>ITEM DESCRIPTION</th><th>UM</th><th>QTY</th><th>PRICE</th><th>AMOUNT</th><th>DEPT</th><th>PURPOSE</th><th class="action-col">ACTION</th>
                 </tr>
             </thead>
-          <tbody>
+         <tbody>
     <?php if ($rows): foreach ($rows as $row): 
         $p = floatval($row['price'] ?? 0); 
         $q = floatval($row['qty'] ?? 0);
@@ -113,9 +113,7 @@ if ($rows) {
             <strong><?= htmlspecialchars($row['item_name'] ?? '') ?></strong><br>
             <small><?= htmlspecialchars($row['specification'] ?? '') ?></small>
         </td>
-        
         <td style="font-weight:bold; color:#7f8c8d;"><?= htmlspecialchars($row['um'] ?? 'PC/S') ?></td>
-        
         <td style="color:green; font-weight:bold;">+ <?= number_format($q, 2) ?></td>
         <td>₱<?= number_format($p, 2) ?></td>
         <td>₱<?= number_format($amount, 2) ?></td>
@@ -123,14 +121,17 @@ if ($rows) {
         <td><?= htmlspecialchars($row['purpose'] ?? '') ?></td>
         
         <td class="action-col">
-            <?php if ($role === 'admin'): ?>
-                <div style="display: flex; gap: 10px; justify-content: center;">
-                    <a href="edit_received.php?id=<?= $row['id'] ?>" title="Edit Record" style="text-decoration:none;">✏️</a>
-                    <a href="delete_received_row.php?id=<?= $row['id'] ?>" onclick="return confirm('Delete this row?')" title="Delete Record" style="text-decoration:none;">🗑️</a>
-                </div>
-            <?php else: ?>
-                <span title="Read Only">🔒</span>
-            <?php endif; ?>
+            <div style="display: flex; gap: 12px; justify-content: center; align-items: center;">
+                <?php if ($role === 'admin' || $role === 'staff'): ?>
+                    <a href="edit_received.php?id=<?= $row['id'] ?>" title="Edit" style="text-decoration:none; font-size: 16px;">✏️</a>
+                    
+                    <?php if ($role === 'admin'): ?>
+                        <a href="delete_received_row.php?id=<?= $row['id'] ?>" onclick="return confirm('Delete this row?')" title="Delete" style="text-decoration:none; font-size: 16px;">🗑️</a>
+                    <?php endif; ?>
+                <?php else: ?>
+                    <span title="Read Only View">🔒</span>
+                <?php endif; ?>
+            </div>
         </td>
     </tr>
     <?php endforeach; else: ?>
