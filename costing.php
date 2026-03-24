@@ -4,25 +4,24 @@ if (!isset($_SESSION['user_id'])) { header("Location: login.php"); exit(); }
 include 'db.php'; 
 
 /**
- * Updated to handle different column names between tables
- *
+ * Robust data fetcher that handles specific table schemas for Inflow and Outflow
  */
 function getCostingData($conn, $table) {
-    // Inventory and received_history use 'qty', but withdrawals uses 'qty_out'
-    //
-    $qtyCol = ($table === 'withdrawals') ? 'qty_out' : 'qty'; 
+    // Standardize column names based on your working report screenshots
+    // The previous error showed 'qty_out' failed, so we'll use 'qty' as seen in the report
+    $qtyCol = 'qty'; 
     $priceCol = 'price';
 
     $whereClauses = [
         "department IS NOT NULL",
         "department != ''",
-        "department ~ '[a-zA-Z]'", // Excludes numeric headers
+        "department ~ '[a-zA-Z]'", // Filters out non-letter department headers
         "UPPER(purpose) != 'GENERAL OPERATIONS'"
     ];
 
     $whereSql = implode(" AND ", $whereClauses);
 
-    // Dynamic query based on detected column name
+    // Using SUM directly on the columns identified in your Outflow report
     $sql = "SELECT department, purpose, 
                    SUM($qtyCol) as total_qty, 
                    SUM($qtyCol * $priceCol) as project_total 
@@ -31,18 +30,30 @@ function getCostingData($conn, $table) {
             GROUP BY department, purpose
             ORDER BY department ASC, project_total DESC";
     
-    $stmt = $conn->prepare($sql);
-    $stmt->execute();
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    try {
+        $stmt = $conn->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        // If 'qty' fails again, it means the column name in the DB is different 
+        // than the display name in the report. We will try 'quantity'.
+        if (strpos($e->getMessage(), 'qty') !== false) {
+            $sql = str_replace("qty", "quantity", $sql);
+            $stmt = $conn->prepare($sql);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }
+        throw $e;
+    }
 }
 
-// 1. Fetch Inflow from received_history
+// 1. Fetch Inflow records
 $received_rows = getCostingData($conn, 'received_history');
 
-// 2. Fetch Outflow from withdrawals (now uses 'qty_out')
+// 2. Fetch Outflow records from withdrawals table
 $withdrawn_rows = getCostingData($conn, 'withdrawals'); 
 
-// Calculate Grand Totals for footer
+// Calculate Grand Totals for the red footer
 $grand_received = array_sum(array_column($received_rows, 'project_total'));
 $grand_withdrawn = array_sum(array_column($withdrawn_rows, 'project_total'));
 
@@ -72,17 +83,12 @@ $withdrawn_dept_totals = getDeptTotals($withdrawn_rows);
         .split-view { display: flex; flex: 1; overflow: hidden; gap: 2px; background: #ddd; }
         .costing-column { flex: 1; display: flex; flex-direction: column; background: white; overflow-y: auto; }
         .col-header { position: sticky; top: 0; z-index: 1100; background: #112941; color: white; padding: 12px; text-align: center; font-weight: bold; border-bottom: 2px solid var(--gold); }
-        
-        /* */
         .dept-header { position: sticky; top: 43px; z-index: 1000; background: #2c3e50; color: white; padding: 8px 20px; font-size: 13px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
         .net-balance-row { background: #fdfaf0; border-bottom: 1px solid #eee; padding: 5px 20px; font-size: 11px; color: #555; display: flex; justify-content: flex-end; gap: 15px; }
         .balance-val { font-weight: bold; color: #27ae60; }
-        
         table { width: 100%; border-collapse: collapse; }
         th { position: sticky; top: 76px; z-index: 900; background: #f8f9fa; padding: 10px; font-size: 10px; text-transform: uppercase; border-bottom: 1px solid #eee; text-align: left; }
         td { padding: 10px; font-size: 12px; border-bottom: 1px solid #f0f0f0; }
-        
-        /* */
         .grand-total-bar { flex-shrink: 0; background: var(--dark-red); color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
     </style>
 </head>
