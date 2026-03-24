@@ -4,26 +4,25 @@ if (!isset($_SESSION['user_id'])) { header("Location: login.php"); exit(); }
 include 'db.php'; 
 
 /**
- * Updated to handle different column names for withdrawals
+ * Updated to handle different column names between tables
  *
  */
 function getCostingData($conn, $table) {
-    // Detect the correct quantity column for each table
-    // If 'withdrawals' fails with 'qty', it likely uses 'qty_out' or similar from your schema
-    $qtyCol = ($table === 'withdrawals') ? 'qty' : 'qty'; 
-    
-    // Check if we need to adjust for the specific Supabase withdrawal schema
+    // Inventory and received_history use 'qty', but withdrawals uses 'qty_out'
+    //
+    $qtyCol = ($table === 'withdrawals') ? 'qty_out' : 'qty'; 
     $priceCol = 'price';
 
     $whereClauses = [
         "department IS NOT NULL",
         "department != ''",
-        "department ~ '[a-zA-Z]'", //
+        "department ~ '[a-zA-Z]'", // Excludes numeric headers
         "UPPER(purpose) != 'GENERAL OPERATIONS'"
     ];
 
     $whereSql = implode(" AND ", $whereClauses);
 
+    // Dynamic query based on detected column name
     $sql = "SELECT department, purpose, 
                    SUM($qtyCol) as total_qty, 
                    SUM($qtyCol * $priceCol) as project_total 
@@ -32,26 +31,18 @@ function getCostingData($conn, $table) {
             GROUP BY department, purpose
             ORDER BY department ASC, project_total DESC";
     
-    try {
-        $stmt = $conn->prepare($sql);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    } catch (PDOException $e) {
-        // Fallback: If 'qty' doesn't exist in withdrawals, try 'qty_out'
-        if ($table === 'withdrawals' && strpos($e->getMessage(), 'qty') !== false) {
-            $sql = str_replace("SUM(qty)", "SUM(qty)", $sql); // Double check your DB column name here
-            $stmt = $conn->prepare($sql);
-            $stmt->execute();
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        }
-        throw $e;
-    }
+    $stmt = $conn->prepare($sql);
+    $stmt->execute();
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
+// 1. Fetch Inflow from received_history
 $received_rows = getCostingData($conn, 'received_history');
+
+// 2. Fetch Outflow from withdrawals (now uses 'qty_out')
 $withdrawn_rows = getCostingData($conn, 'withdrawals'); 
 
-// Calculate Grand Totals
+// Calculate Grand Totals for footer
 $grand_received = array_sum(array_column($received_rows, 'project_total'));
 $grand_withdrawn = array_sum(array_column($withdrawn_rows, 'project_total'));
 
@@ -81,12 +72,17 @@ $withdrawn_dept_totals = getDeptTotals($withdrawn_rows);
         .split-view { display: flex; flex: 1; overflow: hidden; gap: 2px; background: #ddd; }
         .costing-column { flex: 1; display: flex; flex-direction: column; background: white; overflow-y: auto; }
         .col-header { position: sticky; top: 0; z-index: 1100; background: #112941; color: white; padding: 12px; text-align: center; font-weight: bold; border-bottom: 2px solid var(--gold); }
+        
+        /* */
         .dept-header { position: sticky; top: 43px; z-index: 1000; background: #2c3e50; color: white; padding: 8px 20px; font-size: 13px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
         .net-balance-row { background: #fdfaf0; border-bottom: 1px solid #eee; padding: 5px 20px; font-size: 11px; color: #555; display: flex; justify-content: flex-end; gap: 15px; }
         .balance-val { font-weight: bold; color: #27ae60; }
+        
         table { width: 100%; border-collapse: collapse; }
         th { position: sticky; top: 76px; z-index: 900; background: #f8f9fa; padding: 10px; font-size: 10px; text-transform: uppercase; border-bottom: 1px solid #eee; text-align: left; }
         td { padding: 10px; font-size: 12px; border-bottom: 1px solid #f0f0f0; }
+        
+        /* */
         .grand-total-bar { flex-shrink: 0; background: var(--dark-red); color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
     </style>
 </head>
@@ -115,7 +111,7 @@ $withdrawn_dept_totals = getDeptTotals($withdrawn_rows);
 
     <div class="grand-total-bar">
         <div><span style="font-size: 10px; opacity: 0.8;">NET RECEIVED:</span><span style="font-size: 18px; font-weight: bold; color: var(--gold); margin-left: 10px;">₱<?= number_format($grand_received, 2) ?></span></div>
-        <div style="text-align:center;"><span style="font-size: 10px; opacity: 0.8;">TOTAL STOCK VALUE:</span><span style="font-size: 18px; font-weight: bold; color: #fff; margin-left: 10px;">₱<?= number_format($grand_received - $grand_withdrawn, 2) ?></span></div>
+        <div style="text-align:center;"><span style="font-size: 10px; opacity: 0.8;">STOCK VALUE:</span><span style="font-size: 18px; font-weight: bold; color: #fff; margin-left: 10px;">₱<?= number_format($grand_received - $grand_withdrawn, 2) ?></span></div>
         <div><span style="font-size: 10px; opacity: 0.8;">NET WITHDRAWN:</span><span style="font-size: 18px; font-weight: bold; color: white; margin-left: 10px;">₱<?= number_format($grand_withdrawn, 2) ?></span></div>
     </div>
 </div>
