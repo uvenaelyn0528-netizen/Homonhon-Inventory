@@ -27,7 +27,7 @@ $sql .= " ORDER BY rdate DESC, recorded_at DESC";
 $stmt = $conn->prepare($sql);
 $stmt->execute($params);
 
-// 2. Total System Stock
+// 2. Total System Stock (Existing code)
 $bal_stmt = $conn->query("
     SELECT (
         SUM(CASE WHEN activity = 'INFLOW' THEN qty ELSE 0 END) - 
@@ -36,6 +36,18 @@ $bal_stmt = $conn->query("
     FROM diesel_inventory
 ");
 $balance = $bal_stmt->fetch(PDO::FETCH_ASSOC)['balance'] ?? 0;
+
+// NEW: Calculate "As of" Date (Latest record date + 1 day)
+$date_stmt = $conn->query("SELECT MAX(rdate) as latest_date FROM diesel_inventory");
+$latest_raw = $date_stmt->fetch(PDO::FETCH_ASSOC)['latest_date'];
+
+if ($latest_raw) {
+    // Convert to timestamp, add 1 day (86400 seconds), and format
+    $as_of_date = date('F d, Y', strtotime($latest_raw . ' +1 day'));
+} else {
+    // Fallback if table is empty
+    $as_of_date = date('F d, Y', strtotime('+1 day'));
+}
 
 // 3. Compact Tank Breakdown
 $tank_query = $conn->query("
@@ -164,12 +176,14 @@ $tanks_ft = ["Tank 1", "Tank 2", "Tank 3", "Tank 4", "Tank 5", "Tank 6", "Tank 7
             </div>
         </div>
 
-        <div class="header-right">
-            <div class="total-stock-position">
-                <div style="font-size: 9px; font-weight: bold;">TOTAL SYSTEM STOCK</div>
-                <div style="font-size: 24px; font-weight: 900;"><?= number_format($balance, 2) ?> L</div>
-            </div>
+       <div class="header-right">
+    <div class="total-stock-position">
+        <div style="font-size: 10px; font-weight: bold; text-transform: uppercase; color: #fff; margin-bottom: 2px;">
+            STOCK POSITION AS OF: <?= $as_of_date ?>
         </div>
+        <div style="font-size: 24px; font-weight: 900;"><?= number_format($balance, 2) ?> L</div>
+    </div>
+</div>
     </header>
 
     <div class="tank-strip">
