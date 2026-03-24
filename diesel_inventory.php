@@ -50,7 +50,7 @@ if ($latest_raw) {
     $as_of_date = date('F d, Y', strtotime('+1 day'));
 }
 
-// 3. Compact Tank Breakdown
+// 3. Tank Breakdown
 $tank_query = $conn->query("
     SELECT unit_name, SUM(amount) as unit_balance
     FROM (
@@ -84,6 +84,7 @@ $tanks_ft = ["Tank 1", "Tank 2", "Tank 3", "Tank 4", "Tank 5", "Tank 6", "Tank 7
             --gold: #f1c40f;
             --dark-red: #8B0000;
             --print-blue: #3498db;
+            --success-green: #2ecc71;
         }
 
         html, body { 
@@ -149,17 +150,34 @@ $tanks_ft = ["Tank 1", "Tank 2", "Tank 3", "Tank 4", "Tank 5", "Tank 6", "Tank 7
 
         .btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; transition: 0.2s; }
         .btn-action { background: var(--gold); color: var(--navy); }
-        .btn-utility { background: var(--print-blue); color: white; }
         .btn:hover { opacity: 0.9; transform: translateY(-1px); }
 
+        /* General Modal styling */
         .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:1000; justify-content:center; align-items:center; }
-        .modal-content { background:white; padding:20px; border-radius:8px; width:400px; }
+        .modal-content { background:white; border-radius:8px; width:400px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         
+        /* Upload Specific Modal Design */
+        .modal-header-upload {
+            background: var(--navy); color: white;
+            padding: 15px 20px; display: flex;
+            justify-content: space-between; align-items: center;
+        }
+        .modal-header-upload h3 { margin: 0; font-size: 18px; letter-spacing: 0.5px; }
+        .modal-body-upload { padding: 25px 20px; }
+        .modal-body-upload p { font-size: 10px; font-weight: bold; color: #555; margin: 0 0 8px 0; text-transform: uppercase; }
+        
+        .btn-start-upload {
+            background: var(--success-green); color: white;
+            width: 100%; padding: 14px; border: none;
+            border-radius: 6px; font-weight: 900; cursor: pointer;
+            display: flex; justify-content: center; align-items: center;
+            gap: 10px; font-size: 14px; transition: 0.3s;
+        }
+        .btn-start-upload:hover { filter: brightness(1.1); }
+
         .attachment-link { 
-            text-decoration: none; 
-            margin-left: 8px; 
-            font-size: 14px; 
-            cursor: pointer;
+            text-decoration: none; margin-left: 8px; 
+            font-size: 14px; cursor: pointer; color: var(--print-blue);
         }
     </style>
 </head>
@@ -210,18 +228,9 @@ $tanks_ft = ["Tank 1", "Tank 2", "Tank 3", "Tank 4", "Tank 5", "Tank 6", "Tank 7
         <a href="issuance.php" class="btn" style="background: #8e44ad; color: white; padding: 12px 24px; font-size: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
             📋 ISSUANCE
         </a>
-
-        <button class="btn" onclick="openFuelModal()" style="background: #112941; color: white; padding: 8px 16px; font-size: 11px;">
-            + NEW ENTRY
-        </button>
-        
-        <button type="button" class="btn" onclick="clearInventory()" style="background: #112941; color: white; padding: 8px 16px; font-size: 11px;">
-            🗑️ WIPE
-        </button>
-
-        <button class="btn" onclick="window.print()" style="background: #112941; color: white; padding: 8px 16px; font-size: 11px;">
-            🖨️ PRINT
-        </button>
+        <button class="btn" onclick="openFuelModal()" style="background: #112941; color: white;">+ NEW ENTRY</button>
+        <button class="btn" onclick="clearInventory()" style="background: #112941; color: white;">🗑️ WIPE</button>
+        <button class="btn" onclick="window.print()" style="background: #112941; color: white;">🖨️ PRINT</button>
     </div>
 </nav>
 
@@ -252,7 +261,7 @@ $tanks_ft = ["Tank 1", "Tank 2", "Tank 3", "Tank 4", "Tank 5", "Tank 6", "Tank 7
                     <td><?= htmlspecialchars($row['received_from'] ?: '---') ?></td>
                     <td>
                         <?= htmlspecialchars($row['rr_no'] ?: '---') ?>
-                        <?php if ($isAuthorized && !empty($row['attachment_path'])): ?>
+                        <?php if (!empty($row['attachment_path'])): ?>
                             <a href="<?= htmlspecialchars($row['attachment_path']) ?>" target="_blank" class="attachment-link" title="View Attachment">📎</a>
                         <?php endif; ?>
                     </td>
@@ -261,8 +270,13 @@ $tanks_ft = ["Tank 1", "Tank 2", "Tank 3", "Tank 4", "Tank 5", "Tank 6", "Tank 7
                     <td style="font-weight: bold;"><?= htmlspecialchars($row['deposited_to']) ?></td>
                     <td style="font-weight: 900; color: var(--dark-red);"><?= number_format($row['qty'], 2) ?></td>
                     <td>
-                        <button onclick='editRecord(<?= json_encode($row) ?>)' style="border:none; background:none; cursor:pointer;">✏️</button>
-                        <button onclick="deleteRecord(<?= $row['id'] ?>)" style="border:none; background:none; cursor:pointer;">🗑️</button>
+                        <button onclick='editRecord(<?= json_encode($row) ?>)' style="border:none; background:none; cursor:pointer;" title="Edit">✏️</button>
+                        
+                        <?php if ($isAuthorized && $row['activity'] === 'INFLOW'): ?>
+                            <button onclick="openUploadModal(<?= $row['id'] ?>)" style="border:none; background:none; cursor:pointer;" title="Upload Scan">📤</button>
+                        <?php endif; ?>
+
+                        <button onclick="deleteRecord(<?= $row['id'] ?>)" style="border:none; background:none; cursor:pointer;" title="Delete">🗑️</button>
                     </td>
                 </tr>
                 <?php endwhile; ?>
@@ -271,8 +285,32 @@ $tanks_ft = ["Tank 1", "Tank 2", "Tank 3", "Tank 4", "Tank 5", "Tank 6", "Tank 7
     </div>
 </div>
 
+<div id="uploadModal" class="modal">
+    <div class="modal-content" style="width: 450px;">
+        <div class="modal-header-upload">
+            <h3>Upload RR Scan</h3>
+            <span style="cursor:pointer; font-size:24px;" onclick="closeUploadModal()">&times;</span>
+        </div>
+        <form action="diesel_process.php" method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="id" id="upload_record_id">
+            <input type="hidden" name="upload_only" value="1">
+            
+            <div class="modal-body-upload">
+                <p>SELECT IMAGE OR PDF:</p>
+                <input type="file" name="attachment" accept="image/*,.pdf" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;">
+            </div>
+            
+            <div style="padding: 0 20px 20px 20px;">
+                <button type="submit" class="btn-start-upload">
+                    🕹️ START UPLOAD
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <div id="fuelModal" class="modal">
-    <div class="modal-content">
+    <div class="modal-content" style="padding: 20px;">
         <h3 style="margin-top:0; color: var(--navy);">Fuel Entry</h3>
         <form action="diesel_process.php" method="POST" enctype="multipart/form-data">
             <input type="hidden" name="id" id="formId">
@@ -290,13 +328,6 @@ $tanks_ft = ["Tank 1", "Tank 2", "Tank 3", "Tank 4", "Tank 5", "Tank 6", "Tank 7
             <div id="inflowFields">
                 <input type="text" name="received_from" id="in_rec" placeholder="Supplier" style="width:100%; padding:8px; margin-top:10px;">
                 <input type="text" name="rr_no" id="in_rr" placeholder="RR No." style="width:100%; padding:8px; margin-top:10px;">
-                
-                <?php if ($isAuthorized): ?>
-                <div style="margin-top:10px; border: 1px dashed #ccc; padding: 10px; border-radius: 4px;">
-                    <label style="font-size:10px; font-weight:bold; color: var(--navy); display: block; margin-bottom: 5px;">ATTACH RR/INVOICE (ADMIN/STAFF ONLY)</label>
-                    <input type="file" name="attachment" id="formFile" style="font-size: 10px; width: 100%;">
-                </div>
-                <?php endif; ?>
             </div>
 
             <div id="outflowFields" style="display:none;">
@@ -316,7 +347,7 @@ $tanks_ft = ["Tank 1", "Tank 2", "Tank 3", "Tank 4", "Tank 5", "Tank 6", "Tank 7
             <input type="number" step="0.01" name="qty" id="formQty" placeholder="Quantity (L)" required style="width:100%; padding:8px; margin-top:10px;">
             
             <div style="margin-top:15px; display: flex; gap: 10px;">
-                <button type="submit" class="btn btn-utility" style="flex:1; background:var(--navy); justify-content:center;">SAVE</button>
+                <button type="submit" class="btn" style="flex:1; background:var(--navy); color: white; justify-content:center;">SAVE</button>
                 <button type="button" onclick="closeFuelModal()" class="btn" style="flex:1; background:#ccc; justify-content:center;">CANCEL</button>
             </div>
         </form>
@@ -324,6 +355,14 @@ $tanks_ft = ["Tank 1", "Tank 2", "Tank 3", "Tank 4", "Tank 5", "Tank 6", "Tank 7
 </div>
 
 <script>
+// Logic for Standalone Upload Modal
+function openUploadModal(id) {
+    document.getElementById('upload_record_id').value = id;
+    document.getElementById('uploadModal').style.display = 'flex';
+}
+function closeUploadModal() { document.getElementById('uploadModal').style.display = 'none'; }
+
+// Logic for Main Fuel Modal
 function openFuelModal() {
     document.getElementById('fuelModal').style.display = 'flex';
     document.getElementById('formId').value = '';
@@ -333,11 +372,13 @@ function openFuelModal() {
     toggleFields();
 }
 function closeFuelModal() { document.getElementById('fuelModal').style.display = 'none'; }
+
 function toggleFields() {
     const type = document.getElementById('activityType').value;
     document.getElementById('inflowFields').style.display = type === 'INFLOW' ? 'block' : 'none';
     document.getElementById('outflowFields').style.display = (type === 'OUTFLOW' || type === 'TRANSFERRED') ? 'block' : 'none';
 }
+
 function editRecord(data) {
     openFuelModal();
     document.getElementById('formId').value = data.id;
@@ -352,8 +393,15 @@ function editRecord(data) {
     document.getElementById('formQty').value = data.qty;
     toggleFields();
 }
+
 function deleteRecord(id) { if(confirm("Delete this record?")) window.location.href = "delete_fuel.php?id=" + id; }
 function clearInventory() { if(confirm("PERMANENTLY WIPE ALL DATA?")) window.location.href = "clear_inventory.php"; }
+
+// Handle clicks outside modals
+window.onclick = function(event) {
+    if (event.target == document.getElementById('uploadModal')) closeUploadModal();
+    if (event.target == document.getElementById('fuelModal')) closeFuelModal();
+}
 </script>
 </body>
 </html>
