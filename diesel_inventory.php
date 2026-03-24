@@ -3,7 +3,7 @@ include 'db.php';
 
 if (session_status() === PHP_SESSION_NONE) { session_start(); } 
 
-// Check if user is Admin or Staff for upload permissions
+// Authorization Check
 $isAuthorized = isset($_SESSION['role']) && in_array(strtolower($_SESSION['role']), ['admin', 'staff']);
 
 // 1. Handle Filters
@@ -26,7 +26,6 @@ if (!empty($from_date) && !empty($to_date)) {
 }
 
 $sql .= " ORDER BY rdate DESC, recorded_at DESC";
-
 $stmt = $conn->prepare($sql);
 $stmt->execute($params);
 
@@ -43,14 +42,9 @@ $balance = $bal_stmt->fetch(PDO::FETCH_ASSOC)['balance'] ?? 0;
 // Calculate "As of" Date
 $date_stmt = $conn->query("SELECT MAX(rdate) as latest_date FROM diesel_inventory");
 $latest_raw = $date_stmt->fetch(PDO::FETCH_ASSOC)['latest_date'];
+$as_of_date = $latest_raw ? date('F d, Y', strtotime($latest_raw . ' +1 day')) : date('F d, Y', strtotime('+1 day'));
 
-if ($latest_raw) {
-    $as_of_date = date('F d, Y', strtotime($latest_raw . ' +1 day'));
-} else {
-    $as_of_date = date('F d, Y', strtotime('+1 day'));
-}
-
-// 3. Tank Breakdown
+// 3. Tank Breakdown Strip
 $tank_query = $conn->query("
     SELECT unit_name, SUM(amount) as unit_balance
     FROM (
@@ -149,44 +143,19 @@ $tanks_ft = ["Tank 1", "Tank 2", "Tank 3", "Tank 4", "Tank 5", "Tank 6", "Tank 7
         td { padding: 10px 15px; border-bottom: 1px solid #eee; font-size: 12px; }
 
         .btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; transition: 0.2s; }
-        .btn-action { background: var(--gold); color: var(--navy); }
-        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
-
+        
+        /* Modal styling */
         .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:1000; justify-content:center; align-items:center; }
-        .modal-content { background:white; border-radius:8px; width:400px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        
-        .modal-header-upload {
-            background: var(--navy); color: white;
-            padding: 15px 20px; display: flex;
-            justify-content: space-between; align-items: center;
-        }
-        .modal-header-upload h3 { margin: 0; font-size: 18px; letter-spacing: 0.5px; }
-        .modal-body-upload { padding: 25px 20px; }
-        .modal-body-upload p { font-size: 10px; font-weight: bold; color: #555; margin: 0 0 8px 0; text-transform: uppercase; }
-        
-        .btn-start-upload {
-            background: var(--success-green); color: white;
-            width: 100%; padding: 14px; border: none;
-            border-radius: 6px; font-weight: 900; cursor: pointer;
-            display: flex; justify-content: center; align-items: center;
-            gap: 10px; font-size: 14px; transition: 0.3s;
-        }
-        .btn-start-upload:hover { filter: brightness(1.1); }
-
-        .attachment-link { 
-            text-decoration: none; margin-left: 8px; 
-            font-size: 14px; cursor: pointer; color: var(--print-blue);
-        }
+        .modal-content { background:white; border-radius:8px; width:450px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .modal-header { background: var(--navy); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
+        .modal-body { padding: 25px 20px; }
     </style>
 </head>
 <body>
 
 <div class="page-wrapper">
     <header class="main-header">
-        <div class="header-left">
-            <a href="index.php" class="btn" style="background:#eee; color:#333;">⬅ DASHBOARD</a>
-        </div>
-        
+        <div class="header-left"><a href="index.php" class="btn" style="background:#eee; color:#333;">⬅ DASHBOARD</a></div>
         <div class="header-center">
             <img src="images/logo.png" alt="Logo" class="logo-img">
             <div>
@@ -194,12 +163,9 @@ $tanks_ft = ["Tank 1", "Tank 2", "Tank 3", "Tank 4", "Tank 5", "Tank 6", "Tank 7
                 <h3 class="page-title">DIESEL INVENTORY LEDGER</h3>
             </div>
         </div>
-
-       <div class="header-right">
+        <div class="header-right">
             <div class="total-stock-position">
-                <div style="font-size: 10px; font-weight: bold; text-transform: uppercase; color: #fff; margin-bottom: 2px;">
-                    STOCK POSITION AS OF: <?= $as_of_date ?>
-                </div>
+                <div style="font-size: 10px; font-weight: bold; text-transform: uppercase; color: #fff;">AS OF: <?= $as_of_date ?></div>
                 <div style="font-size: 24px; font-weight: 900;"><?= number_format($balance, 2) ?> L</div>
             </div>
         </div>
@@ -214,23 +180,19 @@ $tanks_ft = ["Tank 1", "Tank 2", "Tank 3", "Tank 4", "Tank 5", "Tank 6", "Tank 7
         <?php endforeach; ?>
     </div>
 
-   <nav class="controls-bar">
-    <form method="GET" style="display: flex; gap: 8px;">
-        <input type="text" name="search" value="<?= htmlspecialchars($search) ?>" placeholder="Search records..." style="padding: 6px; border: 1px solid #ccc; border-radius: 4px; width: 220px;">
-        <input type="date" name="from_date" value="<?= $from_date ?>" style="padding: 5px; border: 1px solid #ccc; border-radius: 4px;">
-        <input type="date" name="to_date" value="<?= $to_date ?>" style="padding: 5px; border: 1px solid #ccc; border-radius: 4px;">
-        <button type="submit" class="btn" style="background: #112941; color: white;">FILTER</button>
-    </form>
-
-    <div style="display:flex; gap:12px; align-items: center;">
-        <a href="issuance.php" class="btn" style="background: #8e44ad; color: white; padding: 12px 24px; font-size: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
-            📋 ISSUANCE
-        </a>
-        <button class="btn" onclick="openFuelModal()" style="background: #112941; color: white;">+ NEW ENTRY</button>
-        <button class="btn" onclick="clearInventory()" style="background: #112941; color: white;">🗑️ WIPE</button>
-        <button class="btn" onclick="window.print()" style="background: #112941; color: white;">🖨️ PRINT</button>
-    </div>
-</nav>
+    <nav class="controls-bar">
+        <form method="GET" style="display: flex; gap: 8px;">
+            <input type="text" name="search" value="<?= htmlspecialchars($search) ?>" placeholder="Search records..." style="padding: 6px; border: 1px solid #ccc; border-radius: 4px; width: 220px;">
+            <input type="date" name="from_date" value="<?= $from_date ?>" style="padding: 5px; border: 1px solid #ccc; border-radius: 4px;">
+            <input type="date" name="to_date" value="<?= $to_date ?>" style="padding: 5px; border: 1px solid #ccc; border-radius: 4px;">
+            <button type="submit" class="btn" style="background: #112941; color: white;">FILTER</button>
+        </form>
+        <div style="display:flex; gap:12px;">
+            <button class="btn" onclick="openFuelModal()" style="background: #112941; color: white;">+ NEW ENTRY</button>
+            <button class="btn" onclick="clearInventory()" style="background: #112941; color: white;">🗑️ WIPE</button>
+            <button class="btn" onclick="window.print()" style="background: #112941; color: white;">🖨️ PRINT</button>
+        </div>
+    </nav>
 
     <div class="table-container">
         <table>
@@ -253,14 +215,14 @@ $tanks_ft = ["Tank 1", "Tank 2", "Tank 3", "Tank 4", "Tank 5", "Tank 6", "Tank 7
                     <td style="font-weight: bold;"><?= date('M d, Y', strtotime($row['rdate'])) ?></td>
                     <td>
                         <span style="padding: 3px 8px; border-radius: 12px; font-size: 10px; font-weight: bold; background: <?= strtoupper($row['activity'])=='INFLOW'?'#dcfce7':(strtoupper($row['activity'])=='TRANSFERRED'?'#dbeafe':'#ffedd5') ?>; color: <?= strtoupper($row['activity'])=='INFLOW'?'#166534':(strtoupper($row['activity'])=='TRANSFERRED'?'#1e40af':'#9a3412') ?>;">
-                            <?= $row['activity'] ?>
+                            <?= htmlspecialchars($row['activity']) ?>
                         </span>
                     </td>
                     <td><?= htmlspecialchars($row['received_from'] ?: '---') ?></td>
                     <td>
                         <?= htmlspecialchars($row['rr_no'] ?: '---') ?>
                         <?php if (!empty($row['attachment_path'])): ?>
-                            <a href="<?= htmlspecialchars($row['attachment_path']) ?>" target="_blank" class="attachment-link" title="View Attachment">📎 PDF File</a>
+                            <a href="<?= htmlspecialchars($row['attachment_path']) ?>" download class="attachment-link" title="Download File">📎</a>
                         <?php endif; ?>
                     </td>
                     <td><?= htmlspecialchars($row['ws_no'] ?: '---') ?></td>
@@ -268,13 +230,13 @@ $tanks_ft = ["Tank 1", "Tank 2", "Tank 3", "Tank 4", "Tank 5", "Tank 6", "Tank 7
                     <td style="font-weight: bold;"><?= htmlspecialchars($row['deposited_to']) ?></td>
                     <td style="font-weight: 900; color: var(--dark-red);"><?= number_format($row['qty'], 2) ?></td>
                     <td>
-                        <button onclick='editRecord(<?= json_encode($row) ?>)' style="border:none; background:none; cursor:pointer;" title="Edit">✏️</button>
+                        <button onclick='editRecord(<?= json_encode($row) ?>)' style="border:none; background:none; cursor:pointer;">✏️</button>
                         
                         <?php if (strtoupper($row['activity']) === 'INFLOW'): ?>
                             <button onclick="openUploadModal(<?= $row['id'] ?>)" style="border:none; background:none; cursor:pointer;" title="Upload Scan">📤</button>
                         <?php endif; ?>
 
-                        <button onclick="deleteRecord(<?= $row['id'] ?>)" style="border:none; background:none; cursor:pointer;" title="Delete">🗑️</button>
+                        <button onclick="deleteRecord(<?= $row['id'] ?>)" style="border:none; background:none; cursor:pointer;">🗑️</button>
                     </td>
                 </tr>
                 <?php endwhile; ?>
@@ -284,39 +246,32 @@ $tanks_ft = ["Tank 1", "Tank 2", "Tank 3", "Tank 4", "Tank 5", "Tank 6", "Tank 7
 </div>
 
 <div id="uploadModal" class="modal">
-    <div class="modal-content" style="width: 450px;">
-        <div class="modal-header-upload">
+    <div class="modal-content">
+        <div class="modal-header">
             <h3>Upload RR Scan</h3>
             <span style="cursor:pointer; font-size:24px;" onclick="closeUploadModal()">&times;</span>
         </div>
         <form action="diesel_process.php" method="POST" enctype="multipart/form-data">
             <input type="hidden" name="id" id="upload_record_id">
             <input type="hidden" name="upload_only" value="1">
-            
-            <div class="modal-body-upload">
-                <p>SELECT IMAGE OR PDF:</p>
-                <input type="file" name="attachment" accept="image/*,.pdf" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;">
-            </div>
-            
-            <div style="padding: 0 20px 20px 20px;">
-                <button type="submit" class="btn-start-upload">
-                    🕹️ START UPLOAD
-                </button>
+            <div class="modal-body">
+                <input type="file" name="attachment" accept="image/*,.pdf" required style="width:100%;">
+                <button type="submit" class="btn" style="background:var(--success-green); color:white; width:100%; margin-top:20px; padding:15px;">START UPLOAD</button>
             </div>
         </form>
     </div>
 </div>
 
 <div id="fuelModal" class="modal">
-    <div class="modal-content" style="padding: 20px;">
+    <div class="modal-content" style="padding:20px;">
         <h3 style="margin-top:0; color: var(--navy);">Fuel Entry</h3>
         <form action="diesel_process.php" method="POST">
             <input type="hidden" name="id" id="formId">
             <label style="font-size:11px; font-weight:bold;">Activity</label>
             <select name="activity" id="activityType" onchange="toggleFields()" required style="width:100%; padding:8px; margin-bottom:10px;">
-                <option value="INFLOW">📥 INFLOW (Delivery)</option>
-                <option value="OUTFLOW">📤 OUTFLOW (Issuance)</option>
-                <option value="TRANSFERRED">🔄 TRANSFER (Tank to Tank)</option>
+                <option value="INFLOW">INFLOW</option>
+                <option value="OUTFLOW">OUTFLOW</option>
+                <option value="TRANSFERRED">TRANSFER</option>
             </select>
             <div style="display:flex; gap:10px;">
                 <div style="flex:1;"><label style="font-size:11px;">Date</label><input type="date" name="rdate" id="formDate" required style="width:100%; padding:5px;"></div>
@@ -358,11 +313,9 @@ function openUploadModal(id) {
     document.getElementById('uploadModal').style.display = 'flex';
 }
 function closeUploadModal() { document.getElementById('uploadModal').style.display = 'none'; }
-
 function openFuelModal() {
     document.getElementById('fuelModal').style.display = 'flex';
     document.getElementById('formId').value = '';
-    document.querySelector('#fuelModal form').reset();
     document.getElementById('formDate').value = "<?= date('Y-m-d') ?>";
     document.getElementById('formTime').value = "<?= date('H:i') ?>";
     toggleFields();
@@ -391,7 +344,7 @@ function editRecord(data) {
 }
 
 function deleteRecord(id) { if(confirm("Delete this record?")) window.location.href = "delete_fuel.php?id=" + id; }
-function clearInventory() { if(confirm("PERMANENTLY WIPE ALL DATA?")) window.location.href = "clear_inventory.php"; }
+function clearInventory() { if(confirm("Wipe all data permanently?")) window.location.href = "clear_inventory.php"; }
 
 window.onclick = function(event) {
     if (event.target == document.getElementById('uploadModal')) closeUploadModal();
