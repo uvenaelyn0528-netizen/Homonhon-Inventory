@@ -99,7 +99,7 @@ if ($rows) {
                     <th>DATE</th><th>RR NUMBER</th><th>SUPPLIER</th><th>ITEM DESCRIPTION</th><th>UM</th><th>QTY</th><th>PRICE</th><th>AMOUNT</th><th>DEPT</th><th>PURPOSE</th><th class="action-col">ACTION</th>
                 </tr>
             </thead>
-           <tbody>
+          <tbody>
     <?php if ($rows): foreach ($rows as $row): 
         $p = floatval($row['price'] ?? 0); 
         $q = floatval($row['qty'] ?? 0);
@@ -124,9 +124,12 @@ if ($rows) {
         
         <td class="action-col">
             <?php if ($role === 'admin'): ?>
-                <a href='delete_received_row.php?id=<?= $row['id'] ?>' onclick="return confirm('Delete this row?')" style="text-decoration:none;">🗑️</a>
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <a href="edit_received.php?id=<?= $row['id'] ?>" title="Edit Record" style="text-decoration:none;">✏️</a>
+                    <a href="delete_received_row.php?id=<?= $row['id'] ?>" onclick="return confirm('Delete this row?')" title="Delete Record" style="text-decoration:none;">🗑️</a>
+                </div>
             <?php else: ?>
-                🔒
+                <span title="Read Only">🔒</span>
             <?php endif; ?>
         </td>
     </tr>
