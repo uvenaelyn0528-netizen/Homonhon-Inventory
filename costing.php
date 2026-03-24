@@ -4,24 +4,23 @@ if (!isset($_SESSION['user_id'])) { header("Location: login.php"); exit(); }
 include 'db.php'; 
 
 /**
- * Robust data fetcher that handles specific table schemas for Inflow and Outflow
+ * Maps the correct quantity column based on the provided schema
+ *
  */
 function getCostingData($conn, $table) {
-    // Standardize column names based on your working report screenshots
-    // The previous error showed 'qty_out' failed, so we'll use 'qty' as seen in the report
-    $qtyCol = 'qty'; 
+    // According to your schema: 'received_history' uses 'qty', but 'withdrawals' uses 'qty_withdrawn'
+    $qtyCol = ($table === 'withdrawals') ? 'qty_withdrawn' : 'qty'; 
     $priceCol = 'price';
 
     $whereClauses = [
         "department IS NOT NULL",
         "department != ''",
-        "department ~ '[a-zA-Z]'", // Filters out non-letter department headers
+        "department ~ '[a-zA-Z]'", // Filters out numeric headers like '1' or '7'
         "UPPER(purpose) != 'GENERAL OPERATIONS'"
     ];
 
     $whereSql = implode(" AND ", $whereClauses);
 
-    // Using SUM directly on the columns identified in your Outflow report
     $sql = "SELECT department, purpose, 
                    SUM($qtyCol) as total_qty, 
                    SUM($qtyCol * $priceCol) as project_total 
@@ -30,30 +29,16 @@ function getCostingData($conn, $table) {
             GROUP BY department, purpose
             ORDER BY department ASC, project_total DESC";
     
-    try {
-        $stmt = $conn->prepare($sql);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    } catch (PDOException $e) {
-        // If 'qty' fails again, it means the column name in the DB is different 
-        // than the display name in the report. We will try 'quantity'.
-        if (strpos($e->getMessage(), 'qty') !== false) {
-            $sql = str_replace("qty", "quantity", $sql);
-            $stmt = $conn->prepare($sql);
-            $stmt->execute();
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        }
-        throw $e;
-    }
+    $stmt = $conn->prepare($sql);
+    $stmt->execute();
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-// 1. Fetch Inflow records
+// Fetch Inflow and Outflow
 $received_rows = getCostingData($conn, 'received_history');
-
-// 2. Fetch Outflow records from withdrawals table
 $withdrawn_rows = getCostingData($conn, 'withdrawals'); 
 
-// Calculate Grand Totals for the red footer
+// Calculate Grand Totals
 $grand_received = array_sum(array_column($received_rows, 'project_total'));
 $grand_withdrawn = array_sum(array_column($withdrawn_rows, 'project_total'));
 
