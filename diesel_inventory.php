@@ -273,9 +273,10 @@ $tanks_ft = ["Tank 1", "Tank 2", "Tank 3", "Tank 4", "Tank 5", "Tank 6", "Tank 7
                 <option value="OUTFLOW">OUTFLOW</option>
                 <option value="TRANSFERRED">TRANSFER</option>
             </select>
-            <div style="display:flex; gap:10px;">
-                <div style="flex:1;"><label style="font-size:11px;">Date</label><input type="date" name="rdate" id="formDate" required style="width:100%; padding:5px;"></div>
-                <div style="flex:1;"><label style="font-size:11px;">Time</label><input type="time" name="rtime" id="formTime" required style="width:100%; padding:5px;"></div>
+            
+            <div style="margin-bottom:10px;">
+                <label style="font-size:11px; font-weight:bold;">Date</label>
+                <input type="date" name="rdate" id="formDate" required style="width:100%; padding:8px;">
             </div>
             
             <div id="inflowFields">
@@ -313,11 +314,11 @@ function openUploadModal(id) {
     document.getElementById('uploadModal').style.display = 'flex';
 }
 function closeUploadModal() { document.getElementById('uploadModal').style.display = 'none'; }
+
 function openFuelModal() {
     document.getElementById('fuelModal').style.display = 'flex';
     document.getElementById('formId').value = '';
     document.getElementById('formDate').value = "<?= date('Y-m-d') ?>";
-    document.getElementById('formTime').value = "<?= date('H:i') ?>";
     toggleFields();
 }
 function closeFuelModal() { document.getElementById('fuelModal').style.display = 'none'; }
@@ -333,7 +334,6 @@ function editRecord(data) {
     document.getElementById('formId').value = data.id;
     document.getElementById('activityType').value = data.activity;
     document.getElementById('formDate').value = data.rdate;
-    document.getElementById('formTime').value = data.rtime;
     document.getElementById('in_rec').value = data.received_from || '';
     document.getElementById('in_rr').value = data.rr_no || '';
     document.getElementById('out_ws').value = data.ws_no || '';
