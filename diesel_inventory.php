@@ -71,7 +71,7 @@ $tank_query = $conn->query("
 ");
 $unit_breakdown = $tank_query->fetchAll(PDO::FETCH_ASSOC);
 
-$tanks_ft = ["TANK 001", "TANK 002", "TANK 003", "TANK 004", "TANK 005", "TANK 006", "TANK 007", "TANK 008", "TANK 009", "FT-03", "FT-04", "FD-01", "FD-02"];
+$tanks_ft = ["TANK 001", "TANK 002", "TANK 003", "TANK 004", "TANK 005", "TANK 006", "TANK 007", "TANK 008", "TANK 009", "FT-03", "FT-04", "FD-01", "FD-02", "FT-02"];
 ?>
 
 <!DOCTYPE html>
