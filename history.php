@@ -94,6 +94,17 @@ if (session_status() === PHP_SESSION_NONE) {
 
         #withdrawalTable tbody tr:hover { background-color: #fffaf5; }
 
+        /* FIX: Limit the Purpose column and force wrapping */
+        td.purpose-cell {
+            max-width: 300px; 
+            white-space: normal;
+            word-wrap: break-word;
+            line-height: 1.4;
+            font-size: 11px; 
+            color: #7f8c8d;
+            font-style: italic;
+        }
+
         /* 6. UI Components */
         .badge-count {
             background: #fef5e7;
@@ -210,36 +221,36 @@ if (session_status() === PHP_SESSION_NONE) {
 
                     if ($rows && count($rows) > 0) {
                        foreach ($rows as $row) {
-    $db_date = $row['withdrawal_date'] ?? ''; 
-    $formattedDate = ($db_date) ? date('M d, Y', strtotime($db_date)) : '---';
-    
-    $item_name = htmlspecialchars($row['item_name'] ?? '');
-    $spec      = htmlspecialchars($row['specification'] ?? '');
-    $qty       = number_format($row['qty_withdrawn'] ?? 0);
-    $um        = htmlspecialchars($row['um'] ?? '');
-    $dept      = htmlspecialchars($row['department'] ?? '');
-    $purpose   = htmlspecialchars($row['purpose'] ?? ''); 
-    $price     = number_format($row['price'] ?? 0, 2);
-    $name      = htmlspecialchars($row['withdrawn_by'] ?? 'N/A'); 
-    $ws_no     = htmlspecialchars($row['ws_no'] ?? '---');
-    $id        = $row['id'] ?? 0;
+                        $db_date = $row['withdrawal_date'] ?? ''; 
+                        $formattedDate = ($db_date) ? date('M d, Y', strtotime($db_date)) : '---';
+                        
+                        $item_name = htmlspecialchars($row['item_name'] ?? '');
+                        $spec      = htmlspecialchars($row['specification'] ?? '');
+                        $qty       = number_format($row['qty_withdrawn'] ?? 0);
+                        $um        = htmlspecialchars($row['um'] ?? '');
+                        $dept      = htmlspecialchars($row['department'] ?? '');
+                        $purpose   = htmlspecialchars($row['purpose'] ?? ''); 
+                        $price     = number_format($row['price'] ?? 0, 2);
+                        $name      = htmlspecialchars($row['withdrawn_by'] ?? 'N/A'); 
+                        $ws_no     = htmlspecialchars($row['ws_no'] ?? '---');
+                        $id        = $row['id'] ?? 0;
 
-    echo "<tr>
-        <td style='font-weight: 600; color: #34495e; text-align: center;'>$formattedDate</td>
-        <td style='font-weight: 600;'>$item_name</td>
-        <td style='color: #7f8c8d;'>$spec</td>
-        <td style='color:#e67e22; font-weight: bold; text-align: center;'>$qty</td>
-        <td>$um</td>
-        <td><span style='background: #f1f2f6; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;'>$dept</span></td>
-        <td style='font-style: italic; color: #7f8c8d;'>$purpose</td>
-        <td style='font-weight: 500;'>₱$price</td>
-        <td style='font-weight: 500;'>$name</td>
-        <td style='text-align: center; font-weight: bold;'>$ws_no</td>
-        <td class='action-col' style='text-align: center;'>
-            <a href='delete_log.php?id=$id&type=withdrawal' class='delete-btn-log' onclick=\"return confirm('Delete record?')\">🗑️ Delete</a>
-        </td>
-    </tr>";
-}
+                        echo "<tr>
+                            <td style='font-weight: 600; color: #34495e; text-align: center;'>$formattedDate</td>
+                            <td style='font-weight: 600;'>$item_name</td>
+                            <td style='color: #7f8c8d;'>$spec</td>
+                            <td style='color:#e67e22; font-weight: bold; text-align: center;'>$qty</td>
+                            <td>$um</td>
+                            <td><span style='background: #f1f2f6; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;'>$dept</span></td>
+                            <td class='purpose-cell'>$purpose</td>
+                            <td style='font-weight: 500;'>₱$price</td>
+                            <td style='font-weight: 500;'>$name</td>
+                            <td style='text-align: center; font-weight: bold;'>$ws_no</td>
+                            <td class='action-col' style='text-align: center;'>
+                                <a href='delete_log.php?id=$id&type=withdrawal' class='delete-btn-log' onclick=\"return confirm('Delete record?')\">🗑️ Delete</a>
+                            </td>
+                        </tr>";
+                    }
                     } else {
                         echo "<tr><td colspan='11' style='text-align:center; padding: 40px; color: #95a5a6;'>No withdrawal records found.</td></tr>";
                     }
