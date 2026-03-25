@@ -203,13 +203,7 @@ $tanks_ft = ["TANK 001", "TANK 002", "TANK 003", "TANK 004", "TANK 005", "TANK 0
             <div style="display:flex; gap:12px;">
     <a href="history.php" class="btn" style="background: var(--issuance-purple); color: white; padding: 12px 24px; font-size: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
         ⛽ ISSUANCE HISTORY
-    </a>
-
-    <button class="btn" onclick="openFuelModal('INFLOW')" style="background: #112941; color: white;">+ NEW ENTRY</button>
-    <button class="btn" onclick="clearInventory()" style="background: #112941; color: white;">🗑️ WIPE</button>
-    <button class="btn" onclick="window.print()" style="background: #112941; color: white;">🖨️ PRINT</button>
-</div>
-            
+    </a>   
             <button class="btn" onclick="openFuelModal('INFLOW')" style="background: #112941; color: white;">+ NEW ENTRY</button>
             <button class="btn" onclick="clearInventory()" style="background: #112941; color: white;">🗑️ WIPE</button>
             <button class="btn" onclick="window.print()" style="background: #112941; color: white;">🖨️ PRINT</button>
