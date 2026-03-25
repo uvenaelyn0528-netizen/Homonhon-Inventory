@@ -79,6 +79,7 @@ $tanks_ft = ["Tank 1", "Tank 2", "Tank 3", "Tank 4", "Tank 5", "Tank 6", "Tank 7
             --dark-red: #8B0000;
             --print-blue: #3498db;
             --success-green: #2ecc71;
+            --issuance-purple: #6f42c1; /* Matching the purple theme in screenshot */
         }
 
         html, body { 
@@ -144,7 +145,6 @@ $tanks_ft = ["Tank 1", "Tank 2", "Tank 3", "Tank 4", "Tank 5", "Tank 6", "Tank 7
 
         .btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; transition: 0.2s; }
         
-        /* Modal styling */
         .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:1000; justify-content:center; align-items:center; }
         .modal-content { background:white; border-radius:8px; width:450px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         .modal-header { background: var(--navy); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
@@ -188,7 +188,8 @@ $tanks_ft = ["Tank 1", "Tank 2", "Tank 3", "Tank 4", "Tank 5", "Tank 6", "Tank 7
             <button type="submit" class="btn" style="background: #112941; color: white;">FILTER</button>
         </form>
         <div style="display:flex; gap:12px;">
-            <button class="btn" onclick="openFuelModal()" style="background: #112941; color: white;">+ NEW ENTRY</button>
+            <button class="btn" onclick="openFuelModal('OUTFLOW')" style="background: var(--issuance-purple); color: white;">⛽ ISSUANCE</button>
+            <button class="btn" onclick="openFuelModal('INFLOW')" style="background: #112941; color: white;">+ NEW ENTRY</button>
             <button class="btn" onclick="clearInventory()" style="background: #112941; color: white;">🗑️ WIPE</button>
             <button class="btn" onclick="window.print()" style="background: #112941; color: white;">🖨️ PRINT</button>
         </div>
@@ -245,32 +246,15 @@ $tanks_ft = ["Tank 1", "Tank 2", "Tank 3", "Tank 4", "Tank 5", "Tank 6", "Tank 7
     </div>
 </div>
 
-<div id="uploadModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3>Upload RR Scan</h3>
-            <span style="cursor:pointer; font-size:24px;" onclick="closeUploadModal()">&times;</span>
-        </div>
-        <form action="diesel_process.php" method="POST" enctype="multipart/form-data">
-            <input type="hidden" name="id" id="upload_record_id">
-            <input type="hidden" name="upload_only" value="1">
-            <div class="modal-body">
-                <input type="file" name="attachment" accept="image/*,.pdf" required style="width:100%;">
-                <button type="submit" class="btn" style="background:var(--success-green); color:white; width:100%; margin-top:20px; padding:15px;">START UPLOAD</button>
-            </div>
-        </form>
-    </div>
-</div>
-
 <div id="fuelModal" class="modal">
     <div class="modal-content" style="padding:20px;">
-        <h3 style="margin-top:0; color: var(--navy);">Fuel Entry</h3>
+        <h3 id="modalTitle" style="margin-top:0; color: var(--navy);">Fuel Entry</h3>
         <form action="diesel_process.php" method="POST">
             <input type="hidden" name="id" id="formId">
             <label style="font-size:11px; font-weight:bold;">Activity</label>
             <select name="activity" id="activityType" onchange="toggleFields()" required style="width:100%; padding:8px; margin-bottom:10px;">
                 <option value="INFLOW">INFLOW</option>
-                <option value="OUTFLOW">OUTFLOW</option>
+                <option value="OUTFLOW">OUTFLOW (ISSUANCE)</option>
                 <option value="TRANSFERRED">TRANSFER</option>
             </select>
             
@@ -285,14 +269,15 @@ $tanks_ft = ["Tank 1", "Tank 2", "Tank 3", "Tank 4", "Tank 5", "Tank 6", "Tank 7
             </div>
 
             <div id="outflowFields" style="display:none;">
-                <select name="from_tank_no" id="out_tank" style="width:100%; padding:8px; margin-top:10px;">
+                <label style="font-size:11px; font-weight:bold;">Source Tank</label>
+                <select name="from_tank_no" id="out_tank" style="width:100%; padding:8px; margin-top:5px;">
                     <option value="">-- From --</option>
                     <?php foreach($tanks_ft as $t) echo "<option value='$t'>$t</option>"; ?>
                 </select>
                 <input type="text" name="ws_no" id="out_ws" placeholder="WS No." style="width:100%; padding:8px; margin-top:10px;">
             </div>
 
-            <label style="font-size:11px; font-weight:bold; display:block; margin-top:10px;">Deposited To</label>
+            <label id="toLabel" style="font-size:11px; font-weight:bold; display:block; margin-top:10px;">Deposited To</label>
             <select name="deposited_to" id="formDep" required style="width:100%; padding:8px;">
                 <option value="">-- Select --</option>
                 <?php foreach($tanks_ft as $t) echo "<option value='$t'>$t</option>"; ?>
@@ -309,28 +294,37 @@ $tanks_ft = ["Tank 1", "Tank 2", "Tank 3", "Tank 4", "Tank 5", "Tank 6", "Tank 7
 </div>
 
 <script>
-function openUploadModal(id) {
-    document.getElementById('upload_record_id').value = id;
-    document.getElementById('uploadModal').style.display = 'flex';
-}
-function closeUploadModal() { document.getElementById('uploadModal').style.display = 'none'; }
-
-function openFuelModal() {
+function openFuelModal(type = 'INFLOW') {
     document.getElementById('fuelModal').style.display = 'flex';
     document.getElementById('formId').value = '';
     document.getElementById('formDate').value = "<?= date('Y-m-d') ?>";
+    document.getElementById('activityType').value = type;
+    
+    // Clear other fields
+    document.getElementById('in_rec').value = '';
+    document.getElementById('in_rr').value = '';
+    document.getElementById('out_ws').value = '';
+    document.getElementById('out_tank').value = '';
+    document.getElementById('formDep').value = '';
+    document.getElementById('formQty').value = '';
+
     toggleFields();
 }
-function closeFuelModal() { document.getElementById('fuelModal').style.display = 'none'; }
 
 function toggleFields() {
     const type = document.getElementById('activityType').value;
+    const isOutflow = (type === 'OUTFLOW' || type === 'TRANSFERRED');
+    
     document.getElementById('inflowFields').style.display = type === 'INFLOW' ? 'block' : 'none';
-    document.getElementById('outflowFields').style.display = (type === 'OUTFLOW' || type === 'TRANSFERRED') ? 'block' : 'none';
+    document.getElementById('outflowFields').style.display = isOutflow ? 'block' : 'none';
+    
+    // UI Label Tweaks
+    document.getElementById('toLabel').innerText = type === 'TRANSFERRED' ? "Transfer To" : "Deposited To";
+    document.getElementById('modalTitle').innerText = type === 'OUTFLOW' ? "Fuel Issuance" : (type === 'TRANSFERRED' ? "Fuel Transfer" : "Fuel Inflow Entry");
 }
 
 function editRecord(data) {
-    openFuelModal();
+    document.getElementById('fuelModal').style.display = 'flex';
     document.getElementById('formId').value = data.id;
     document.getElementById('activityType').value = data.activity;
     document.getElementById('formDate').value = data.rdate;
@@ -343,6 +337,9 @@ function editRecord(data) {
     toggleFields();
 }
 
+function closeFuelModal() { document.getElementById('fuelModal').style.display = 'none'; }
+function openUploadModal(id) { document.getElementById('upload_record_id').value = id; document.getElementById('uploadModal').style.display = 'flex'; }
+function closeUploadModal() { document.getElementById('uploadModal').style.display = 'none'; }
 function deleteRecord(id) { if(confirm("Delete this record?")) window.location.href = "delete_fuel.php?id=" + id; }
 function clearInventory() { if(confirm("Wipe all data permanently?")) window.location.href = "clear_inventory.php"; }
 
