@@ -149,9 +149,9 @@ if (!isset($_SESSION['user_id'])) {
 
     <div class="sidebar-section" style="margin-top: 10px;">
         <label style="color:#7f8c8d; font-size:10px; margin-left:15px; display: block; margin-bottom: 5px;">RECORDS & HISTORY</label>
-        <a href="view_requests.php" style="display:block; padding:10px 15px; color:#bdc3c7; text-decoration:none;">📋 Request History</a>
-        <a href="received_summary.php" style="display:block; padding:10px 15px; color:#bdc3c7; text-decoration:none;">📥 Received History</a>
-        <a href="history.php" style="display:block; padding:10px 15px; color:#bdc3c7; text-decoration:none;">📤 Withdrawal History</a>
+        <a href="view_requests.php" style="display:block; padding:10px 15px; color:#bdc3c7; text-decoration:none;font-weight:bold;">📋 Request History</a>
+        <a href="received_summary.php" style="display:block; padding:10px 15px; color:#bdc3c7; text-decoration:none;font-weight:bold;">📥 Received History</a>
+        <a href="history.php" style="display:block; padding:10px 15px; color:#bdc3c7; text-decoration:none;font-weight:bold;">📤 Withdrawal History</a>
         
         <?php if ($role == 'Admin'): ?>
             <a href="trash_bin.php" style="display:block; padding:10px 15px; color: #e74c3c; font-weight: bold; border-top: 1px solid rgba(255,255,255,0.1); margin-top: 5px;">
