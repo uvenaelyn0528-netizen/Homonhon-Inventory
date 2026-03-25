@@ -10,7 +10,7 @@ $isAuthorized = isset($_SESSION['role']) && in_array(strtolower($_SESSION['role'
 $search = $_GET['search'] ?? '';
 $from_date = $_GET['from_date'] ?? '';
 $to_date = $_GET['to_date'] ?? '';
-$filter_activity = $_GET['activity'] ?? ''; // New activity filter
+$filter_activity = $_GET['activity'] ?? ''; 
 
 $sql = "SELECT * FROM diesel_inventory WHERE 1=1";
 $params = [];
@@ -20,7 +20,6 @@ if (!empty($search)) {
     $params[':search'] = "%$search%";
 }
 
-// Apply Activity Filter (Used for Issuance button)
 if (!empty($filter_activity)) {
     $sql .= " AND activity = :activity";
     $params[':activity'] = $filter_activity;
@@ -46,7 +45,6 @@ $bal_stmt = $conn->query("
 ");
 $balance = $bal_stmt->fetch(PDO::FETCH_ASSOC)['balance'] ?? 0;
 
-// Calculate "As of" Date
 $date_stmt = $conn->query("SELECT MAX(rdate) as latest_date FROM diesel_inventory");
 $latest_raw = $date_stmt->fetch(PDO::FETCH_ASSOC)['latest_date'];
 $as_of_date = $latest_raw ? date('F d, Y', strtotime($latest_raw . ' +1 day')) : date('F d, Y', strtotime('+1 day'));
@@ -199,13 +197,16 @@ $tanks_ft = ["TANK 001", "TANK 002", "TANK 003", "TANK 004", "TANK 005", "TANK 0
             <?php endif; ?>
         </form>
         
-    
-            <div style="display:flex; gap:12px;">
-    <a href="issuance.php" class="btn" style="background: var(--issuance-purple); color: white; padding: 12px 24px; font-size: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
-        ⛽ ISSUANCE HISTORY
-    </a>   
-            <button class="btn" onclick="openFuelModal('INFLOW')" style="background: #112941; color: white;">+ NEW ENTRY</button>
-            <button class="btn" onclick="clearInventory()" style="background: #112941; color: white;">🗑️ WIPE</button>
+        <div style="display:flex; gap:12px;">
+            <a href="issuance.php" class="btn" style="background: var(--issuance-purple); color: white; padding: 12px 24px; font-size: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
+                ⛽ ISSUANCE HISTORY
+            </a>   
+
+            <?php if ($isAuthorized): ?>
+                <button class="btn" onclick="openFuelModal('INFLOW')" style="background: #112941; color: white;">+ NEW ENTRY</button>
+                <button class="btn" onclick="clearInventory()" style="background: #112941; color: white;">🗑️ WIPE</button>
+            <?php endif; ?>
+
             <button class="btn" onclick="window.print()" style="background: #112941; color: white;">🖨️ PRINT</button>
         </div>
     </nav>
@@ -246,13 +247,17 @@ $tanks_ft = ["TANK 001", "TANK 002", "TANK 003", "TANK 004", "TANK 005", "TANK 0
                     <td style="font-weight: bold;"><?= htmlspecialchars($row['deposited_to']) ?></td>
                     <td style="font-weight: 900; color: var(--dark-red);"><?= number_format($row['qty'], 2) ?></td>
                     <td>
-                        <button onclick='editRecord(<?= json_encode($row) ?>)' style="border:none; background:none; cursor:pointer;">✏️</button>
-                        
-                        <?php if (strtoupper($row['activity']) === 'INFLOW'): ?>
-                            <button onclick="openUploadModal(<?= $row['id'] ?>)" style="border:none; background:none; cursor:pointer;" title="Upload Scan">📤</button>
-                        <?php endif; ?>
+                        <?php if ($isAuthorized): ?>
+                            <button onclick='editRecord(<?= json_encode($row) ?>)' style="border:none; background:none; cursor:pointer;">✏️</button>
+                            
+                            <?php if (strtoupper($row['activity']) === 'INFLOW'): ?>
+                                <button onclick="openUploadModal(<?= $row['id'] ?>)" style="border:none; background:none; cursor:pointer;" title="Upload Scan">📤</button>
+                            <?php endif; ?>
 
-                        <button onclick="deleteRecord(<?= $row['id'] ?>)" style="border:none; background:none; cursor:pointer;">🗑️</button>
+                            <button onclick="deleteRecord(<?= $row['id'] ?>)" style="border:none; background:none; cursor:pointer;">🗑️</button>
+                        <?php else: ?>
+                            <span style="color:#ccc; font-size:10px;">View Only</span>
+                        <?php endif; ?>
                     </td>
                 </tr>
                 <?php endwhile; ?>
