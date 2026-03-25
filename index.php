@@ -6,8 +6,6 @@ ini_set('display_errors', 1);
 session_start();
 
 // ADD THIS LINE HERE TO FIX THE WARNINGS
-$role = $_SESSION['role'] ?? 'Viewer'; 
-// Check if a role is set in the session, otherwise default to 'guest'
 $role = $_SESSION['role'] ?? 'guest';
 
 try {
@@ -16,7 +14,6 @@ try {
     }
     require 'db.php'; 
 } catch (Throwable $e) {
-    // ... rest of your error handling
     die("<div style='background:red; color:white; padding:20px; font-family:sans-serif;'>
             <h2>Database Connection Error</h2>
             <p>" . $e->getMessage() . "</p>
@@ -44,7 +41,6 @@ if (!isset($_SESSION['user_id'])) {
             --dark-blue: #112941;
         }
 
-        /* Keep your existing Sidebar and Header CSS */
         .header-section { background: white; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f8f9fa; padding: 15px 25px; width: 100%; box-sizing: border-box; }
         .header-center { flex: 3; display: flex; align-items: center; justify-content: center; gap: 25px; }
         .header-center img { width: 80px; height: auto; }
@@ -52,7 +48,6 @@ if (!isset($_SESSION['user_id'])) {
         .search-box { display: flex; align-items: center; background: white; padding: 5px 15px; border-radius: 8px; gap: 10px; }
         .search-box input { border: none; outline: none; padding: 5px; width: 250px; }
 
-        /* Enhanced Modal Design */
         .modal {
             display: none; position: fixed; top: 0; left: 0;
             width: 100%; height: 100%; background: rgba(0,0,0,0.7);
@@ -72,75 +67,51 @@ if (!isset($_SESSION['user_id'])) {
         .submit-btn { width: 100%; padding: 12px; border: none; border-radius: 6px; color: white; font-weight: bold; cursor: pointer; }
         .close-modal { cursor: pointer; font-size: 20px; color: #666; }
 
-        /* 1. Allow the page to handle the layout correctly */
-html, body { 
-    height: 100%; 
-    margin: 0; 
-    padding: 0; 
-    overflow: hidden; /* Keeps the sidebar fixed while the main area scrolls */
-}
+        html, body { 
+            height: 100%; 
+            margin: 0; 
+            padding: 0; 
+            overflow: hidden; 
+        }
 
-      /* 2. Fix the layout of the main content */
-.main-content {
-    margin-left: 250px;
-    background: #f4f7f6;
-    height: 100vh; /* Full viewport height */
-    display: flex;
-    flex-direction: column;
-    transition: margin-left 0.5s;
-}
-CSS
-/* 1. Allow the page to handle the layout correctly */
-html, body { 
-    height: 100%; 
-    margin: 0; 
-    padding: 0; 
-    overflow: hidden; /* Keeps the sidebar fixed while the main area scrolls */
-}
+        .main-content {
+            margin-left: 250px;
+            background: #f4f7f6;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            transition: margin-left 0.5s;
+        }
 
-/* 2. Fix the layout of the main content */
-.main-content {
-    margin-left: 250px;
-    background: #f4f7f6;
-    height: 100vh; /* Full viewport height */
-    display: flex;
-    flex-direction: column;
-    transition: margin-left 0.5s;
-}
+        .table-container {
+            flex: 1; 
+            overflow-x: auto;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f4f7f6;
+        }
+        #inventoryTable {
+            min-width: 1000px;
+            width: 100%;
+            background: white;
+            border-collapse: collapse;
+        }
 
-/* 3. The magic for Scrollbars */
-.table-container {
-    flex: 1;                /* Takes up remaining height */
-    overflow-x: auto;       /* ENABLE SIDE-TO-SIDE SCROLL */
-    overflow-y: auto;       /* ENABLE UP-AND-DOWN SCROLL */
-    padding: 20px;
-    background: #f4f7f6;
-}
-/* 4. Ensure the table doesn't shrink, forcing the scrollbar */
-#inventoryTable {
-    min-width: 1000px;      /* Force side-scroll on smaller screens */
-    width: 100%;
-    background: white;
-    border-collapse: collapse;
-}
+        #inventoryTable thead th { 
+            position: sticky; 
+            top: 0; 
+            z-index: 10; 
+            background: var(--dark-blue); 
+            color: white; 
+            padding: 12px;
+        }
 
-/* 5. Keep the Header at the top while scrolling down */
-#inventoryTable thead th { 
-    position: sticky; 
-    top: 0; 
-    z-index: 10; 
-    background: var(--dark-blue); 
-    color: white; 
-    padding: 12px;
-}
-
-/* 6. Fix the 'Action' column to the right side so it's always visible (Optional) */
-.action-cell {
-    position: sticky;
-    right: 0;
-    background: white;
-    box-shadow: -2px 0 5px rgba(0,0,0,0.05);
-}
+        .action-cell {
+            position: sticky;
+            right: 0;
+            background: white;
+            box-shadow: -2px 0 5px rgba(0,0,0,0.05);
+        }
     </style>
 </head>
 <body>
@@ -171,6 +142,35 @@ html, body {
     <hr style="border: 0.5px solid #3e4f5f; margin: 15px 0;">
     
     <div class="sidebar-section">
+        <label style="color:#7f8c8d; font-size:10px; margin-left:15px;">FUEL MANAGEMENT</label>
+        <a href="diesel_inventory.php" style="display:block; padding:10px 15px; color:#f1c40f; text-decoration:none; font-weight: bold;">⛽ Diesel Inventory</a>
+    </div>
+
+    <div class="sidebar-section">
+        <label style="color:#7f8c8d; font-size:10px; margin-left:15px;">RECORDS & HISTORY</label>
+        <a href="view_requests.php" style="display:block; padding:10px 15px; color:#bdc3c7; text-decoration:none;">📋 Request History</a>
+        <a href="received_summary.php" style="display:block; padding:10px 15px; color:#bdc3c7; text-decoration:none;">📥 Received History</a>
+        <a href="history.php" style="display:block; padding:10px 15px; color:#bdc3c7; text-decoration:none;">📤 Withdrawal History</a>
+        
+        <?php if ($role == 'Admin'): ?>
+            <a href="trash_bin.php" style="display:block; padding:10px 15px; color: #e74c3c; font-weight: bold; margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.1);">
+                🗑️ Inventory Trash Bin
+            </a>
+        <?php endif; ?>
+    </div>
+
+    <div class="sidebar-section">
+        <label style="color:#7f8c8d; font-size:10px; margin-left:15px;">MAIN ACTIONS</label>
+        <?php if ($role == 'Admin' || $role == 'Staff'): ?>
+            <a onclick="openAddModal()" style="cursor:pointer; display:block; padding:10px 15px; color:#bdc3c7;">➕ Add Item</a>
+            <a onclick="openRequestModal()" style="cursor:pointer; display:block; padding:10px 15px; color:#bdc3c7;">📝 Request Item</a>
+        <?php else: ?>
+            <a onclick="restricted('Admin or Staff')" style="cursor:pointer; display:block; padding:10px 15px; color:#555;">➕ Add Item 🔒</a>
+            <a onclick="restricted('Admin or Staff')" style="cursor:pointer; display:block; padding:10px 15px; color:#555;">📝 Request Item 🔒</a>
+        <?php endif; ?>
+    </div>
+
+    <div class="sidebar-section">
         <label style="color:#7f8c8d; font-size:10px; margin-left:15px;">ADMINISTRATION</label>
         <?php if ($role == 'Admin'): ?>
             <a href="register.php" style="display:block; padding:10px 15px; color:#3498db; text-decoration:none; font-weight: bold;">👤 Create Account</a>
@@ -181,60 +181,25 @@ html, body {
     </div>
 
     <div class="sidebar-section">
-        <label style="color:#7f8c8d; font-size:10px; margin-left:15px;">MAIN ACTIONS</label>
-        <?php if ($role == 'Admin' || $role == 'Staff'): ?>
-            <a onclick="openAddModal()" style="cursor:pointer; display:block; padding:10px 15px; color:#bdc3c7;">➕ Add Item</a>
-        <?php else: ?>
-            <a onclick="restricted('Admin or Staff')" style="cursor:pointer; display:block; padding:10px 15px; color:#555;">➕ Add Item 🔒</a>
-        <?php endif; ?>
-
-        <?php if ($role == 'Admin' || $role == 'Staff'): ?>
-            <a onclick="openRequestModal()" style="cursor:pointer; display:block; padding:10px 15px; color:#bdc3c7;">📝 Request Item</a>
-        <?php else: ?>
-            <a onclick="restricted('Admin or Staff')" style="cursor:pointer; display:block; padding:10px 15px; color:#555;">📝 Request Item 🔒</a>
-        <?php endif; ?>
-    </div>
-
-    <div class="sidebar-section">
-        <label style="color:#7f8c8d; font-size:10px; margin-left:15px;">FUEL MANAGEMENT</label>
-        <a href="diesel_inventory.php" style="display:block; padding:10px 15px; color:#f1c40f; text-decoration:none; font-weight: bold;">⛽ Diesel Inventory</a>
-    </div>
-
-    <div class="sidebar-section">
         <label style="color:#7f8c8d; font-size:10px; margin-left:15px;">FINANCIALS AND ANALYTICS</label>
         <a href="costing.php" style="display:block; padding:10px 15px; color:#bdc3c7; text-decoration:none;">📊 Department Costing</a>
     </div>
 
-    <div class="sidebar-section">
-    <label style="color:#7f8c8d; font-size:10px; margin-left:15px;">RECORDS & HISTORY</label>
-    <a href="view_requests.php">📋 Request History</a>
-    <a href="received_summary.php">📥 Received History</a>
-    <a href="history.php">📤 Withdrawal History</a>
-    
-    <?php if ($role == 'Admin'): ?>
-        <a href="trash_bin.php" style="color: #e74c3c; font-weight: bold; margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">
-            🗑️ Inventory Trash Bin
-        </a>
-    <?php endif; ?>
-</div>
-
     <div id="costingSummary" style="display:none; background: #1a252f; padding: 10px 15px; font-size: 11px; border-radius: 4px; margin: 0 10px;">
-    <?php
-    // Updated for PostgreSQL and PDO
-    $cost_query = "SELECT \"department\", SUM(qty * price) as total_cost FROM inventory GROUP BY \"department\"";
-    $stmt = $conn->query($cost_query);
-    
-    while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-        echo '<div style="display: flex; justify-content: space-between; color: white;">';
-        echo '<span>' . htmlspecialchars($row['department']) . ':</span>';
-        echo '<span style="color: #27ae60;">₱' . number_format($row['total_cost'], 2) . '</span>';
-        echo '</div>';
-    }
-    ?>
-</div>
+        <?php
+        $cost_query = "SELECT \"department\", SUM(qty * price) as total_cost FROM inventory GROUP BY \"department\"";
+        $stmt_cost = $conn->query($cost_query);
+        while($crow = $stmt_cost->fetch(PDO::FETCH_ASSOC)) {
+            echo '<div style="display: flex; justify-content: space-between; color: white;">';
+            echo '<span>' . htmlspecialchars($crow['department']) . ':</span>';
+            echo '<span style="color: #27ae60;">₱' . number_format($crow['total_cost'], 2) . '</span>';
+            echo '</div>';
+        }
+        ?>
+    </div>
 </div>
 
-<div id="mainContent" class="main-content" style="margin-left: 250px;">
+<div id="mainContent" class="main-content">
     <div class="header-section">
         <div class="header-left"><button onclick="toggleNav()" style="padding:10px; background:#34495e; color:white; border-radius:8px; cursor:pointer; border:none;">☰ Menu</button></div>
         <div class="header-center">
@@ -263,8 +228,8 @@ html, body {
         </div>
     </div>
 
-    <div class="table-container" style="padding:20px;">
-        <table id="inventoryTable" style="width:100%; background:white; border-collapse: collapse; border-radius:10px; overflow:hidden;">
+    <div class="table-container">
+        <table id="inventoryTable">
             <thead>
                 <tr>
                     <th style="padding:12px; text-align: left;">Item Name</th>
@@ -273,7 +238,6 @@ html, body {
                     <th>Received</th>
                     <th>Withdrawn</th>
                     <th>Stock</th>
-                    
                     <th>Price</th>
                     <th>Total Amount</th>
                     <?php if ($role == 'Admin' || $role == 'Staff'): ?>
@@ -319,13 +283,10 @@ html, body {
                         <input type="text" name="rr_number" placeholder="e.g. RR-1024" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:5px;">
                     </div>
                 </div>
-
-                
                 <div style="margin-bottom: 12px;">
                     <label style="font-size: 11px; font-weight: bold; color: #555;">Item Description</label>
                     <input type="text" name="item_name" placeholder="Name of the item" required style="width:100%; padding:8px; border:1px solid #ddd; border-radius:5px;">
                 </div>
-
                 <div style="margin-bottom: 12px;">
                     <label style="font-size: 11px; font-weight: bold; color: #555;">Technical Specifications</label>
                     <input type="text" name="Specification" placeholder="Brand, Size, or Model" required style="width:100%; padding:8px; border:1px solid #ddd; border-radius:5px;">
@@ -334,8 +295,6 @@ html, body {
                     <label style="font-size: 11px; font-weight: bold; color: #555;">Supplier</label>
                     <input type="text" name="supplier" placeholder="Company Name" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:5px;">
                 </div>
-
-
                 <div style="display:flex; gap:15px; margin-bottom: 12px;">
                     <div style="flex:1;">
                         <label style="font-size: 11px; font-weight: bold; color: #555;">Department</label>
@@ -345,16 +304,14 @@ html, body {
                             <option value="Admin">Admin</option>
                             <option value="Mechanical">Mechanical</option>
                             <option value="Safety">Safety</option>
-                            <option value="Mechanical">TSG</option>
-                            <option value="Safety">Assay</option>
-                            <option value="Mechanical">Mine Operation</option>
-                            <option value="Safety">Port Operation</option>
-                            <option value="Mechanical">Comrel</option>
-                            <option value="Safety">Envi</option>
-                            <option value="Mechanical">Mechanical</option>
-                            <option value="Safety">Forestry</option>
-                            <option value="Mechanical">Engineering</option>
-                            
+                            <option value="TSG">TSG</option>
+                            <option value="Assay">Assay</option>
+                            <option value="Mine Operation">Mine Operation</option>
+                            <option value="Port Operation">Port Operation</option>
+                            <option value="Comrel">Comrel</option>
+                            <option value="Envi">Envi</option>
+                            <option value="Forestry">Forestry</option>
+                            <option value="Engineering">Engineering</option>
                         </select>
                     </div>
                     <div style="flex:1;">
@@ -362,7 +319,6 @@ html, body {
                         <input type="number" step="0.01" name="price" placeholder="0.00" required style="width:100%; padding:8px; border:1px solid #ddd; border-radius:5px;">
                     </div>
                 </div>
-
                 <div style="display:flex; gap:15px; margin-bottom: 12px; background: #f0f7ff; padding: 10px; border-radius: 8px; border: 1px solid #d0e3ff;">
                     <div style="flex:1;">
                         <label style="font-size: 11px; font-weight: bold; color: #e74c3c;">⚠️ Min Stock (Alert)</label>
@@ -373,7 +329,6 @@ html, body {
                         <input type="number" name="max_stock" min="1" value="20" required style="width:100%; padding:8px; border:2px solid #3498db; border-radius:5px;">
                     </div>
                 </div>
-
                 <div style="margin-bottom: 20px;">
                     <label style="font-size: 11px; font-weight: bold; color: #555;">Purpose / Remarks</label>
                     <input type="text" name="Purpose" placeholder="Usage details" required style="width:100%; padding:8px; border:1px solid #ddd; border-radius:5px;">
@@ -405,10 +360,8 @@ html, body {
                 <h3 style="margin: 0; font-size: 16px; color: var(--primary);">📝 Item Request Form (RF)</h3>
             </div>
         </div>
-         
         <div class="modal-body modal-body-scroll" style="max-height: 70vh; overflow-y: auto;">
             <form action="save_request.php" method="POST">
-                
                 <div style="display:flex; gap:15px; margin-bottom: 16px;">
                     <div style="flex:1;">
                         <label>RF Number</label>
@@ -422,17 +375,14 @@ html, body {
                         </select>
                     </div>
                 </div>
-
                 <div class="form-group" style="margin-bottom: 15px;">
                     <label>Item Description</label>
                     <input type="text" name="item_name" placeholder="Name of the item requested" required>
                 </div>
-
                 <div class="form-group" style="margin-bottom: 15px;">
                     <label>Technical Specifications</label>
                     <input type="text" name="specification" placeholder="Size, Model, or Brand Preference">
                 </div>
-
                 <div style="display:flex; gap:15px; margin-bottom: 16px;">
                     <div style="flex:1;">
                         <label>Quantity Required</label>
@@ -442,33 +392,29 @@ html, body {
                         <label>Requesting Department</label>
                         <select name="department" required>
                             <option value="" disabled selected>Select Department</option>
-                             <option value="Warehouse">Warehouse</option>
+                            <option value="Warehouse">Warehouse</option>
                             <option value="Admin">Admin</option>
                             <option value="Mechanical">Mechanical</option>
                             <option value="Safety">Safety</option>
-                            <option value="Mechanical">TSG</option>
-                            <option value="Safety">Assay</option>
-                            <option value="Mechanical">Mine Operation</option>
-                            <option value="Safety">Port Operation</option>
-                            <option value="Mechanical">Comrel</option>
-                            <option value="Safety">Envi</option>
-                            <option value="Mechanical">Mechanical</option>
-                            <option value="Safety">Forestry</option>
-                            <option value="Mechanical">Engineering</option>
+                            <option value="TSG">TSG</option>
+                            <option value="Assay">Assay</option>
+                            <option value="Mine Operation">Mine Operation</option>
+                            <option value="Port Operation">Port Operation</option>
+                            <option value="Comrel">Comrel</option>
+                            <option value="Envi">Envi</option>
+                            <option value="Forestry">Forestry</option>
+                            <option value="Engineering">Engineering</option>
                         </select>
                     </div>
                 </div>
-
                 <div class="form-group" style="margin-bottom: 15px;">
                     <label>Purpose / Remarks</label>
                     <input type="text" name="purpose" placeholder="Reason for request" required>
                 </div>
-
                 <div class="form-group" style="margin-bottom: 20px;">
                     <label>Requested By</label>
                     <input type="text" name="requested_by" placeholder="Name" style="background: #f8faf9; color: #7f8c8d; font-weight: bold; border: 1px dashed #ddd; width: 100%; padding: 10px; border-radius: 6px; box-sizing: border-box;" required>
                 </div>
-
                 <button type="submit" name="submit_request" class="submit-btn" style="background: var(--warning); color:white; width:100%; font-size: 16px;">
                     🚀 Save Request
                 </button>
@@ -487,15 +433,10 @@ html, body {
             <input type="hidden" name="item_id" id="withdraw_item_id">
             <p id="withdraw_item_display" style="font-weight:bold; color:var(--dark-blue);"></p>
             <p style="font-size: 12px;">Available Stock: <span id="withdraw_stock_display" style="color:red; font-weight:bold;"></span></p>
-            
             <label>Quantity to Withdraw</label>
             <input type="number" name="withdraw_qty" required min="1">
-            
             <label>Received By</label>
             <input type="text" name="withdrawn_by" required>
-
-            <label>Purpose / Remarks</label>
-            
             <button type="submit" class="submit-btn" style="background: #e67e22; margin-top: 10px;">Confirm Withdrawal</button>
         </form>
     </div>
@@ -510,13 +451,10 @@ html, body {
         <div class="modal-body">
             <form action="update_item.php" method="POST">
                 <input type="hidden" name="item_id" id="edit_item_id">
-                
                 <label>Item Description</label>
                 <input type="text" name="item_name" id="edit_item_name" required>
-                
                 <label>Technical Specifications</label>
                 <input type="text" name="specification" id="edit_specification" required>
-
                 <label>Department</label>
                 <select name="department" id="edit_department" required style="width:100%; padding:10px; margin-bottom:15px; border:1px solid #ddd; border-radius:6px;">
                     <option value="Warehouse">Warehouse</option>
@@ -532,7 +470,6 @@ html, body {
                     <option value="Forestry">Forestry</option>
                     <option value="Engineering">Engineering</option>
                 </select>
-
                 <div style="display:flex; gap:15px;">
                     <div style="flex:1;">
                         <label style="color: #e74c3c;">Min Stock</label>
@@ -567,7 +504,6 @@ html, body {
     function openAddModal() { closeAllModals(); document.getElementById('addItemModal').style.display = 'flex'; }
     function openRequestModal() { closeAllModals(); document.getElementById('requestItemModal').style.display = 'flex'; }
 
-    // FIXED WITHDRAW MODAL TRIGGER
     function openWithdrawModal(id, name, stock) {
         closeAllModals();
         document.getElementById('withdrawModal').style.display = 'flex';
@@ -576,27 +512,22 @@ html, body {
         document.getElementById('withdraw_stock_display').innerText = stock;
     }
 
-  function openEditModal(id, name, spec, min, max, dept) {
-    closeAllModals();
-    document.getElementById('editItemModal').style.display = 'flex';
-    document.getElementById('edit_item_id').value = id;
-    document.getElementById('edit_item_name').value = name;
-    document.getElementById('edit_specification').value = spec;
-    document.getElementById('edit_min_stock').value = min;
-    document.getElementById('edit_max_stock').value = max;
-    
-    // Select the correct department in the dropdown
-    var deptField = document.getElementById('edit_department');
-    if (deptField) {
-        deptField.value = dept; 
+    function openEditModal(id, name, spec, min, max, dept) {
+        closeAllModals();
+        document.getElementById('editItemModal').style.display = 'flex';
+        document.getElementById('edit_item_id').value = id;
+        document.getElementById('edit_item_name').value = name;
+        document.getElementById('edit_specification').value = spec;
+        document.getElementById('edit_min_stock').value = min;
+        document.getElementById('edit_max_stock').value = max;
+        var deptField = document.getElementById('edit_department');
+        if (deptField) { deptField.value = dept; }
     }
-}
 
     window.onclick = function(event) {
         if (event.target.classList.contains('modal')) closeAllModals();
     }
 
-    // Live Search
     document.getElementById('live_search').addEventListener('input', function() {
         fetch(`fetch_items.php?search=${this.value}`)
             .then(res => res.text())
@@ -605,11 +536,10 @@ html, body {
 
     function restricted(role) { alert("⛔ Restricted to " + role); }
     function confirmDelete(id, name) {
-    if (confirm("❗ Move '" + name + "' to Trash Bin?\n\nYou can restore it later if needed.")) {
-        // Change this line to include the 'type'
-        window.location.href = "delete_log.php?type=inventory&id=" + id;
+        if (confirm("❗ Move '" + name + "' to Trash Bin?\n\nYou can restore it later if needed.")) {
+            window.location.href = "delete_log.php?type=inventory&id=" + id;
+        }
     }
-}
 </script>
 </body>
 </html>
