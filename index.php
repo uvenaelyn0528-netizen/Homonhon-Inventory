@@ -164,18 +164,6 @@ if (!isset($_SESSION['user_id'])) {
         <label style="color:#7f8c8d; font-size:10px; margin-left:15px; display: block; margin-bottom: 5px;">FINANCIALS AND ANALYTICS</label>
         <a href="costing.php" style="display:block; padding:10px 15px; color:#bdc3c7; text-decoration:none;">📊 Department Costing</a>
         
-        <div id="costingSummary" style="background: #1a252f; padding: 10px 15px; font-size: 11px; border-radius: 4px; margin: 5px 10px;">
-            <?php
-            $cost_query = "SELECT \"department\", SUM(qty * price) as total_cost FROM inventory GROUP BY \"department\"";
-            $stmt = $conn->query($cost_query);
-            while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                echo '<div style="display: flex; justify-content: space-between; color: white; margin-bottom: 3px;">';
-                echo '<span>' . htmlspecialchars($row['department']) . ':</span>';
-                echo '<span style="color: #27ae60;">₱' . number_format($row['total_cost'], 2) . '</span>';
-                echo '</div>';
-            }
-            ?>
-        </div>
     </div>
 
     <div class="sidebar-section" style="margin-top: 15px;">
