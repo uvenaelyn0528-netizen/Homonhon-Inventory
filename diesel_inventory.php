@@ -10,6 +10,7 @@ $isAuthorized = isset($_SESSION['role']) && in_array(strtolower($_SESSION['role'
 $search = $_GET['search'] ?? '';
 $from_date = $_GET['from_date'] ?? '';
 $to_date = $_GET['to_date'] ?? '';
+$filter_activity = $_GET['activity'] ?? ''; // New activity filter
 
 $sql = "SELECT * FROM diesel_inventory WHERE 1=1";
 $params = [];
@@ -17,6 +18,12 @@ $params = [];
 if (!empty($search)) {
     $sql .= " AND (rr_no LIKE :search OR ws_no LIKE :search OR deposited_to LIKE :search OR received_from LIKE :search OR withdrawn_from LIKE :search)";
     $params[':search'] = "%$search%";
+}
+
+// Apply Activity Filter (Used for Issuance button)
+if (!empty($filter_activity)) {
+    $sql .= " AND activity = :activity";
+    $params[':activity'] = $filter_activity;
 }
 
 if (!empty($from_date) && !empty($to_date)) {
@@ -79,7 +86,7 @@ $tanks_ft = ["TANK 001", "TANK 002", "TANK 003", "TANK 004", "TANK 005", "TANK 0
             --dark-red: #8B0000;
             --print-blue: #3498db;
             --success-green: #2ecc71;
-            --issuance-purple: #6f42c1; /* Matching the purple theme in screenshot */
+            --issuance-purple: #6f42c1;
         }
 
         html, body { 
@@ -186,9 +193,15 @@ $tanks_ft = ["TANK 001", "TANK 002", "TANK 003", "TANK 004", "TANK 005", "TANK 0
             <input type="date" name="from_date" value="<?= $from_date ?>" style="padding: 5px; border: 1px solid #ccc; border-radius: 4px;">
             <input type="date" name="to_date" value="<?= $to_date ?>" style="padding: 5px; border: 1px solid #ccc; border-radius: 4px;">
             <button type="submit" class="btn" style="background: #112941; color: white;">FILTER</button>
+            
+            <?php if (!empty($filter_activity) || !empty($search)): ?>
+                <a href="diesel_inventory.php" class="btn" style="background: #eee; color: #333;">SHOW ALL</a>
+            <?php endif; ?>
         </form>
+        
         <div style="display:flex; gap:12px;">
-            <button class="btn" onclick="openFuelModal('OUTFLOW')" style="background: var(--issuance-purple); color: white;">⛽ ISSUANCE</button>
+            <a href="diesel_inventory.php?activity=OUTFLOW" class="btn" style="background: var(--issuance-purple); color: white;">⛽ ISSUANCE HISTORY</a>
+            
             <button class="btn" onclick="openFuelModal('INFLOW')" style="background: #112941; color: white;">+ NEW ENTRY</button>
             <button class="btn" onclick="clearInventory()" style="background: #112941; color: white;">🗑️ WIPE</button>
             <button class="btn" onclick="window.print()" style="background: #112941; color: white;">🖨️ PRINT</button>
@@ -300,7 +313,6 @@ function openFuelModal(type = 'INFLOW') {
     document.getElementById('formDate').value = "<?= date('Y-m-d') ?>";
     document.getElementById('activityType').value = type;
     
-    // Clear other fields
     document.getElementById('in_rec').value = '';
     document.getElementById('in_rr').value = '';
     document.getElementById('out_ws').value = '';
@@ -318,7 +330,6 @@ function toggleFields() {
     document.getElementById('inflowFields').style.display = type === 'INFLOW' ? 'block' : 'none';
     document.getElementById('outflowFields').style.display = isOutflow ? 'block' : 'none';
     
-    // UI Label Tweaks
     document.getElementById('toLabel').innerText = type === 'TRANSFERRED' ? "Transfer To" : "Deposited To";
     document.getElementById('modalTitle').innerText = type === 'OUTFLOW' ? "Fuel Issuance" : (type === 'TRANSFERRED' ? "Fuel Transfer" : "Fuel Inflow Entry");
 }
@@ -338,13 +349,10 @@ function editRecord(data) {
 }
 
 function closeFuelModal() { document.getElementById('fuelModal').style.display = 'none'; }
-function openUploadModal(id) { document.getElementById('upload_record_id').value = id; document.getElementById('uploadModal').style.display = 'flex'; }
-function closeUploadModal() { document.getElementById('uploadModal').style.display = 'none'; }
 function deleteRecord(id) { if(confirm("Delete this record?")) window.location.href = "delete_fuel.php?id=" + id; }
 function clearInventory() { if(confirm("Wipe all data permanently?")) window.location.href = "clear_inventory.php"; }
 
 window.onclick = function(event) {
-    if (event.target == document.getElementById('uploadModal')) closeUploadModal();
     if (event.target == document.getElementById('fuelModal')) closeFuelModal();
 }
 </script>
