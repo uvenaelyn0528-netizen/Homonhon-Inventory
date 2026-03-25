@@ -207,7 +207,8 @@ $tanks_ft = ["TANK 001", "TANK 002", "TANK 003", "TANK 004", "TANK 005", "TANK 0
                 <button class="btn" onclick="clearInventory()" style="background: #112941; color: white;">🗑️ WIPE</button>
             <?php endif; ?>
 
-            <button class="btn" onclick="window.print()" style="background: #112941; color: white;">🖨️ PRINT</button>
+            <button class="btn" onclick="exportToExcel()" style="background: #27ae60; color: white;">📈 EXCEL</button>
+<button class="btn" onclick="window.print()" style="background: #112941; color: white;">🖨️ PRINT</button>
         </div>
     </nav>
 
@@ -394,6 +395,12 @@ function closeUploadModal() {
 window.onclick = function(event) {
     if (event.target == document.getElementById('fuelModal')) closeFuelModal();
     if (event.target == document.getElementById('uploadModal')) closeUploadModal();
+}
+    function exportToExcel() {
+    // Get current URL parameters (filters)
+    const urlParams = new URLSearchParams(window.location.search);
+    // Redirect to the export script with the same filters
+    window.location.href = 'export_diesel.php?' + urlParams.toString();
 }
 </script>
 </body>
