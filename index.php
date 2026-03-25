@@ -116,7 +116,8 @@ if (!isset($_SESSION['user_id'])) {
 </head>
 <body>
 
-<div id="mySidebar" class="sidebar">
+<div id="mySidebar" class="sidebar" style="height: 100%; width: 250px; position: fixed; z-index: 1000; top: 0; left: 0; background-color: #2c3e50; overflow-x: hidden; transition: 0.5s; display: flex; flex-direction: column;">
+    
     <div class="sidebar-user" style="padding: 20px 15px; background: rgba(0, 0, 0, 0.1); border-bottom: 1px solid rgba(255,255,255,0.05);">
         <div class="user-details" style="display: flex; align-items: center; gap: 15px;">
             <div class="user-avatar" style="min-width: 45px; height: 45px; background: linear-gradient(135deg, #34495e, #2c3e50); border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #3498db; color: white; font-size: 20px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
@@ -136,42 +137,60 @@ if (!isset($_SESSION['user_id'])) {
     </div>
 
     <div class="sidebar-actions" style="padding: 10px 15px;">
-        <a href="logout.php" class="logout-btn-stacked" onclick="return confirm('Confirm Logout?')">🚪 LOGOUT ACCOUNT</a>
+        <a href="logout.php" class="logout-btn-stacked" style="display: block; padding: 10px; background: #c0392b; color: white; text-align: center; text-decoration: none; border-radius: 4px; font-weight: bold;" onclick="return confirm('Confirm Logout?')">🚪 LOGOUT ACCOUNT</a>
     </div>
 
     <hr style="border: 0.5px solid #3e4f5f; margin: 15px 0;">
     
     <div class="sidebar-section">
-        <label style="color:#7f8c8d; font-size:10px; margin-left:15px;">FUEL MANAGEMENT</label>
+        <label style="color:#7f8c8d; font-size:10px; margin-left:15px; display: block; margin-bottom: 5px;">FUEL MANAGEMENT</label>
         <a href="diesel_inventory.php" style="display:block; padding:10px 15px; color:#f1c40f; text-decoration:none; font-weight: bold;">⛽ Diesel Inventory</a>
     </div>
 
-    <div class="sidebar-section">
-        <label style="color:#7f8c8d; font-size:10px; margin-left:15px;">RECORDS & HISTORY</label>
+    <div class="sidebar-section" style="margin-top: 10px;">
+        <label style="color:#7f8c8d; font-size:10px; margin-left:15px; display: block; margin-bottom: 5px;">RECORDS & HISTORY</label>
         <a href="view_requests.php" style="display:block; padding:10px 15px; color:#bdc3c7; text-decoration:none;">📋 Request History</a>
         <a href="received_summary.php" style="display:block; padding:10px 15px; color:#bdc3c7; text-decoration:none;">📥 Received History</a>
         <a href="history.php" style="display:block; padding:10px 15px; color:#bdc3c7; text-decoration:none;">📤 Withdrawal History</a>
         
         <?php if ($role == 'Admin'): ?>
-            <a href="trash_bin.php" style="display:block; padding:10px 15px; color: #e74c3c; font-weight: bold; margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.1);">
+            <a href="trash_bin.php" style="display:block; padding:10px 15px; color: #e74c3c; font-weight: bold; border-top: 1px solid rgba(255,255,255,0.1); margin-top: 5px;">
                 🗑️ Inventory Trash Bin
             </a>
         <?php endif; ?>
     </div>
 
-    <div class="sidebar-section">
-        <label style="color:#7f8c8d; font-size:10px; margin-left:15px;">MAIN ACTIONS</label>
+    <div class="sidebar-section" style="margin-top: 15px;">
+        <label style="color:#7f8c8d; font-size:10px; margin-left:15px; display: block; margin-bottom: 5px;">FINANCIALS AND ANALYTICS</label>
+        <a href="costing.php" style="display:block; padding:10px 15px; color:#bdc3c7; text-decoration:none;">📊 Department Costing</a>
+        
+        <div id="costingSummary" style="background: #1a252f; padding: 10px 15px; font-size: 11px; border-radius: 4px; margin: 5px 10px;">
+            <?php
+            $cost_query = "SELECT \"department\", SUM(qty * price) as total_cost FROM inventory GROUP BY \"department\"";
+            $stmt = $conn->query($cost_query);
+            while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                echo '<div style="display: flex; justify-content: space-between; color: white; margin-bottom: 3px;">';
+                echo '<span>' . htmlspecialchars($row['department']) . ':</span>';
+                echo '<span style="color: #27ae60;">₱' . number_format($row['total_cost'], 2) . '</span>';
+                echo '</div>';
+            }
+            ?>
+        </div>
+    </div>
+
+    <div class="sidebar-section" style="margin-top: 15px;">
+        <label style="color:#7f8c8d; font-size:10px; margin-left:15px; display: block; margin-bottom: 5px;">MAIN ACTIONS</label>
         <?php if ($role == 'Admin' || $role == 'Staff'): ?>
-            <a onclick="openAddModal()" style="cursor:pointer; display:block; padding:10px 15px; color:#bdc3c7;">➕ Add Item</a>
-            <a onclick="openRequestModal()" style="cursor:pointer; display:block; padding:10px 15px; color:#bdc3c7;">📝 Request Item</a>
+            <a onclick="openAddModal()" style="cursor:pointer; display:block; padding:10px 15px; color:#bdc3c7; text-decoration:none;">➕ Add Item</a>
+            <a onclick="openRequestModal()" style="cursor:pointer; display:block; padding:10px 15px; color:#bdc3c7; text-decoration:none;">📝 Request Item</a>
         <?php else: ?>
-            <a onclick="restricted('Admin or Staff')" style="cursor:pointer; display:block; padding:10px 15px; color:#555;">➕ Add Item 🔒</a>
-            <a onclick="restricted('Admin or Staff')" style="cursor:pointer; display:block; padding:10px 15px; color:#555;">📝 Request Item 🔒</a>
+            <a onclick="restricted('Admin or Staff')" style="cursor:pointer; display:block; padding:10px 15px; color:#555; text-decoration:none;">➕ Add Item 🔒</a>
+            <a onclick="restricted('Admin or Staff')" style="cursor:pointer; display:block; padding:10px 15px; color:#555; text-decoration:none;">📝 Request Item 🔒</a>
         <?php endif; ?>
     </div>
 
-    <div class="sidebar-section">
-        <label style="color:#7f8c8d; font-size:10px; margin-left:15px;">ADMINISTRATION</label>
+    <div class="sidebar-section" style="margin-top: 15px; margin-bottom: 20px;">
+        <label style="color:#7f8c8d; font-size:10px; margin-left:15px; display: block; margin-bottom: 5px;">ADMINISTRATION</label>
         <?php if ($role == 'Admin'): ?>
             <a href="register.php" style="display:block; padding:10px 15px; color:#3498db; text-decoration:none; font-weight: bold;">👤 Create Account</a>
             <a href="manage_users.php" style="display:block; padding:10px 15px; color:#bdc3c7; text-decoration:none;">⚙️ Manage Users</a>
@@ -180,23 +199,6 @@ if (!isset($_SESSION['user_id'])) {
         <?php endif; ?>
     </div>
 
-    <div class="sidebar-section">
-        <label style="color:#7f8c8d; font-size:10px; margin-left:15px;">FINANCIALS AND ANALYTICS</label>
-        <a href="costing.php" style="display:block; padding:10px 15px; color:#bdc3c7; text-decoration:none;">📊 Department Costing</a>
-    </div>
-
-    <div id="costingSummary" style="display:none; background: #1a252f; padding: 10px 15px; font-size: 11px; border-radius: 4px; margin: 0 10px;">
-        <?php
-        $cost_query = "SELECT \"department\", SUM(qty * price) as total_cost FROM inventory GROUP BY \"department\"";
-        $stmt_cost = $conn->query($cost_query);
-        while($crow = $stmt_cost->fetch(PDO::FETCH_ASSOC)) {
-            echo '<div style="display: flex; justify-content: space-between; color: white;">';
-            echo '<span>' . htmlspecialchars($crow['department']) . ':</span>';
-            echo '<span style="color: #27ae60;">₱' . number_format($crow['total_cost'], 2) . '</span>';
-            echo '</div>';
-        }
-        ?>
-    </div>
 </div>
 
 <div id="mainContent" class="main-content">
