@@ -312,6 +312,25 @@ $tanks_ft = ["TANK 001", "TANK 002", "TANK 003", "TANK 004", "TANK 005", "TANK 0
         </form>
     </div>
 </div>
+    <div id="uploadModal" class="modal">
+    <div class="modal-content" style="padding:20px; width: 350px;">
+        <h3 style="margin-top:0; color: var(--navy);">Upload RR Scan</h3>
+        <form action="diesel_process.php" method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="upload_only" value="1">
+            <input type="hidden" name="id" id="uploadId">
+            
+            <div style="margin-bottom:15px;">
+                <label style="font-size:12px; font-weight:bold;">Select File (PDF/JPG/PNG)</label>
+                <input type="file" name="attachment" required style="width:100%; margin-top:5px;">
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <button type="submit" class="btn" style="flex:1; background:var(--navy); color: white; justify-content:center;">UPLOAD</button>
+                <button type="button" onclick="closeUploadModal()" class="btn" style="flex:1; background:#ccc; justify-content:center;">CANCEL</button>
+            </div>
+        </form>
+    </div>
+</div>
 
 <script>
 function openFuelModal(type = 'INFLOW') {
@@ -361,6 +380,20 @@ function clearInventory() { if(confirm("Wipe all data permanently?")) window.loc
 
 window.onclick = function(event) {
     if (event.target == document.getElementById('fuelModal')) closeFuelModal();
+}
+    function openUploadModal(id) {
+    document.getElementById('uploadModal').style.display = 'flex';
+    document.getElementById('uploadId').value = id;
+}
+
+function closeUploadModal() {
+    document.getElementById('uploadModal').style.display = 'none';
+}
+
+// Update your existing window.onclick to close this modal too
+window.onclick = function(event) {
+    if (event.target == document.getElementById('fuelModal')) closeFuelModal();
+    if (event.target == document.getElementById('uploadModal')) closeUploadModal();
 }
 </script>
 </body>
