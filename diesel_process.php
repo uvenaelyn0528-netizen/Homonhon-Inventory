@@ -48,11 +48,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id = $_POST['id'] ?? '';
     $activity = $_POST['activity']; 
     $rdate = $_POST['rdate'];
-    $rtime = $_POST['rtime'];
     $qty = $_POST['qty'];
     $deposited_to = $_POST['deposited_to'];
 
     // Business Logic: Clean data based on activity type
+    // This handles both Inflow and Issuance (Outflow/Transfer)
     $received_from = ($activity === 'INFLOW') ? $_POST['received_from'] : '---';
     $rr_no = ($activity === 'INFLOW') ? $_POST['rr_no'] : '---';
     $withdrawn_from = ($activity === 'OUTFLOW' || $activity === 'TRANSFERRED') ? $_POST['from_tank_no'] : '---';
@@ -60,11 +60,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     try {
         if (!empty($id)) {
-            // UPDATE existing record
+            // UPDATE existing record (rtime removed)
             $sql = "UPDATE diesel_inventory SET 
                     activity = :activity, 
                     rdate = :rdate, 
-                    rtime = :rtime, 
                     received_from = :rec, 
                     rr_no = :rr, 
                     ws_no = :ws, 
@@ -77,7 +76,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([
                 ':activity' => $activity,
                 ':rdate' => $rdate,
-                ':rtime' => $rtime,
                 ':rec' => $received_from,
                 ':rr' => $rr_no,
                 ':ws' => $ws_no,
@@ -87,15 +85,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ':id' => $id
             ]);
         } else {
-            // INSERT new record
-            $sql = "INSERT INTO diesel_inventory (activity, rdate, rtime, received_from, rr_no, ws_no, withdrawn_from, deposited_to, qty) 
-                    VALUES (:activity, :rdate, :rtime, :rec, :rr, :ws, :withdrawn, :dep, :qty)";
+            // INSERT new record (rtime removed)
+            $sql = "INSERT INTO diesel_inventory (activity, rdate, received_from, rr_no, ws_no, withdrawn_from, deposited_to, qty) 
+                    VALUES (:activity, :rdate, :rec, :rr, :ws, :withdrawn, :dep, :qty)";
             
             $stmt = $conn->prepare($sql);
             $stmt->execute([
                 ':activity' => $activity,
                 ':rdate' => $rdate,
-                ':rtime' => $rtime,
                 ':rec' => $received_from,
                 ':rr' => $rr_no,
                 ':ws' => $ws_no,
