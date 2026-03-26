@@ -3,56 +3,81 @@ include 'db.php';
 
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
-// Security: Only allow Admin or Staff to perform these actions
+// --- CONFIGURATION: Replace these with your actual Supabase details ---
+$sb_project_ref = "YOUR_PROJECT_REFERENCE"; 
+$sb_api_key = "YOUR_SERVICE_ROLE_KEY";
+$bucket = "inventory_files";
+
+// Security Check
 $isAuthorized = isset($_SESSION['role']) && in_array(strtolower($_SESSION['role']), ['admin', 'staff']);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
-    // --- SCENARIO 1: STANDALONE UPLOAD (From the 📤 icon modal) ---
-    if (isset($_POST['upload_only'])) {
-        if (!$isAuthorized) {
-            die("Unauthorized access.");
+    // Helper function to handle Supabase Upload
+    function uploadToSupabase($file, $ref, $key, $bucketName) {
+        $file_tmp = $file['tmp_name'];
+        $file_ext = pathinfo($file['name'], PATHINFO_EXTENSION);
+        $file_name = 'RR_' . time() . '_' . uniqid() . '.' . $file_ext;
+
+        $upload_url = "https://$ref.supabase.co/storage/v1/object/$bucketName/$file_name";
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $upload_url);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
+        curl_setopt($ch, CURLOPT_POSTFIELDS, file_get_contents($file_tmp));
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            "Authorization: Bearer $key",
+            "Content-Type: " . mime_content_type($file_tmp)
+        ]);
+
+        $response = curl_exec($ch);
+        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($http_code == 200) {
+            // Return the Public URL
+            return "https://$ref.supabase.co/storage/v1/object/public/$bucketName/$file_name";
         }
+        return null;
+    }
+
+    // --- SCENARIO 1: STANDALONE UPLOAD ---
+    if (isset($_POST['upload_only'])) {
+        if (!$isAuthorized) { die("Unauthorized access."); }
 
         $id = $_POST['id'];
-        $attachment_path = null;
-
         if (isset($_FILES['attachment']) && $_FILES['attachment']['error'] === UPLOAD_ERR_OK) {
-            $uploadDir = 'uploads/diesel_rr/';
-            if (!is_dir($uploadDir)) {
-                mkdir($uploadDir, 0777, true);
-            }
+            $publicUrl = uploadToSupabase($_FILES['attachment'], $sb_project_ref, $sb_api_key, $bucket);
 
-            $fileExt = pathinfo($_FILES['attachment']['name'], PATHINFO_EXTENSION);
-            $newFileName = 'RR_SCAN_' . time() . '_' . uniqid() . '.' . $fileExt;
-            $targetPath = $uploadDir . $newFileName;
-
-            if (move_uploaded_file($_FILES['attachment']['tmp_name'], $targetPath)) {
+            if ($publicUrl) {
                 try {
                     $sql = "UPDATE diesel_inventory SET attachment_path = :path WHERE id = :id";
                     $stmt = $conn->prepare($sql);
-                    $stmt->execute([':path' => $targetPath, ':id' => $id]);
-                    
+                    $stmt->execute([':path' => $publicUrl, ':id' => $id]);
                     header("Location: diesel_inventory.php?msg=upload_success");
                     exit();
-                } catch (PDOException $e) {
-                    die("Database Error: " . $e->getMessage());
-                }
+                } catch (PDOException $e) { die("Database Error: " . $e->getMessage()); }
             }
         }
         header("Location: diesel_inventory.php?msg=upload_failed");
         exit();
     }
 
-    // --- SCENARIO 2: STANDARD SAVE/UPDATE (From the "New Entry" modal) ---
+    // --- SCENARIO 2: STANDARD SAVE/UPDATE ---
     $id = $_POST['id'] ?? '';
     $activity = $_POST['activity']; 
     $rdate = $_POST['rdate'];
     $qty = $_POST['qty'];
     $deposited_to = $_POST['deposited_to'];
+    
+    // Handle persistent file logic during standard form submission
+    $attachment_path = $_POST['existing_attachment'] ?? null;
+    if (isset($_FILES['attachment']) && $_FILES['attachment']['error'] === UPLOAD_ERR_OK) {
+        $newUrl = uploadToSupabase($_FILES['attachment'], $sb_project_ref, $sb_api_key, $bucket);
+        if ($newUrl) { $attachment_path = $newUrl; }
+    }
 
-    // Business Logic: Clean data based on activity type
-    // This handles both Inflow and Issuance (Outflow/Transfer)
     $received_from = ($activity === 'INFLOW') ? $_POST['received_from'] : '---';
     $rr_no = ($activity === 'INFLOW') ? $_POST['rr_no'] : '---';
     $withdrawn_from = ($activity === 'OUTFLOW' || $activity === 'TRANSFERRED') ? $_POST['from_tank_no'] : '---';
@@ -60,53 +85,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     try {
         if (!empty($id)) {
-            // UPDATE existing record (rtime removed)
             $sql = "UPDATE diesel_inventory SET 
-                    activity = :activity, 
-                    rdate = :rdate, 
-                    received_from = :rec, 
-                    rr_no = :rr, 
-                    ws_no = :ws, 
-                    withdrawn_from = :withdrawn, 
-                    deposited_to = :dep, 
-                    qty = :qty 
+                    activity = :activity, rdate = :rdate, received_from = :rec, 
+                    rr_no = :rr, ws_no = :ws, withdrawn_from = :withdrawn, 
+                    deposited_to = :dep, qty = :qty, attachment_path = :path 
                     WHERE id = :id";
             
             $stmt = $conn->prepare($sql);
             $stmt->execute([
-                ':activity' => $activity,
-                ':rdate' => $rdate,
-                ':rec' => $received_from,
-                ':rr' => $rr_no,
-                ':ws' => $ws_no,
-                ':withdrawn' => $withdrawn_from,
-                ':dep' => $deposited_to,
-                ':qty' => $qty,
-                ':id' => $id
+                ':activity' => $activity, ':rdate' => $rdate, ':rec' => $received_from,
+                ':rr' => $rr_no, ':ws' => $ws_no, ':withdrawn' => $withdrawn_from,
+                ':dep' => $deposited_to, ':qty' => $qty, ':path' => $attachment_path, ':id' => $id
             ]);
         } else {
-            // INSERT new record (rtime removed)
-            $sql = "INSERT INTO diesel_inventory (activity, rdate, received_from, rr_no, ws_no, withdrawn_from, deposited_to, qty) 
-                    VALUES (:activity, :rdate, :rec, :rr, :ws, :withdrawn, :dep, :qty)";
+            $sql = "INSERT INTO diesel_inventory (activity, rdate, received_from, rr_no, ws_no, withdrawn_from, deposited_to, qty, attachment_path) 
+                    VALUES (:activity, :rdate, :rec, :rr, :ws, :withdrawn, :dep, :qty, :path)";
             
             $stmt = $conn->prepare($sql);
             $stmt->execute([
-                ':activity' => $activity,
-                ':rdate' => $rdate,
-                ':rec' => $received_from,
-                ':rr' => $rr_no,
-                ':ws' => $ws_no,
-                ':withdrawn' => $withdrawn_from,
-                ':dep' => $deposited_to,
-                ':qty' => $qty
+                ':activity' => $activity, ':rdate' => $rdate, ':rec' => $received_from,
+                ':rr' => $rr_no, ':ws' => $ws_no, ':withdrawn' => $withdrawn_from,
+                ':dep' => $deposited_to, ':qty' => $qty, ':path' => $attachment_path
             ]);
         }
-
         header("Location: diesel_inventory.php?msg=success");
         exit();
-
-    } catch (PDOException $e) {
-        die("Error saving record: " . $e->getMessage());
-    }
+    } catch (PDOException $e) { die("Error saving record: " . $e->getMessage()); }
 }
 ?>
