@@ -12,7 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $remove_attachment = isset($_POST['remove_attachment']) && $_POST['remove_attachment'] == '1';
     $publicUrl = null;
 
-    // --- 1. HANDLE FILE UPLOAD (Common for both modes) ---
+    // --- 1. HANDLE FILE UPLOAD ---
     if (isset($_FILES['attachment']) && $_FILES['attachment']['error'] === UPLOAD_ERR_OK) {
         $file = $_FILES['attachment'];
         $fileName = time() . '_' . uniqid() . '_' . basename($file['name']);
@@ -40,10 +40,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // --- 2. BRANCH LOGIC BASED ON ACTION ---
-    
+    // --- 2. BRANCH LOGIC ---
     if ($upload_only) {
-        // ACTION: ONLY UPDATING THE FILE SCAN via 📤 icon
         if ($id && $publicUrl) {
             $stmt = $conn->prepare("UPDATE diesel_inventory SET attachment_path = ? WHERE id = ?");
             $stmt->execute([$publicUrl, $id]);
@@ -52,19 +50,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit();
 
     } else {
-        // ACTION: FULL FORM SAVE (New Entry or Edit Button)
-        // We only look for these keys here to avoid the "Undefined Key" warnings
+        // FULL FORM SAVE
         $activity = $_POST['activity'] ?? null;
         $rdate = $_POST['rdate'] ?? null;
         $qty = $_POST['qty'] ?? 0;
         $deposited_to = $_POST['deposited_to'] ?? '';
+
+        // Safety check: if activity or rdate is missing, don't crash the DB
+        if (!$activity || !$rdate) {
+            header("Location: diesel_inventory.php?msg=error_missing_fields");
+            exit();
+        }
         
         $received_from = ($activity === 'INFLOW') ? ($_POST['received_from'] ?? '---') : '---';
         $rr_no = ($activity === 'INFLOW') ? ($_POST['rr_no'] ?? '---') : '---';
         $from_tank = $_POST['from_tank_no'] ?? '---';
         $ws_no = $_POST['ws_no'] ?? '---';
 
-        // Attachment handling for Full Form
         if ($remove_attachment) {
             $attachment_path = null;
         } elseif ($publicUrl) {
@@ -74,12 +76,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if (!empty($id)) {
-            // UPDATE EXISTING
             $sql = "UPDATE diesel_inventory SET activity=?, rdate=?, received_from=?, rr_no=?, ws_no=?, withdrawn_from=?, deposited_to=?, qty=?, attachment_path=? WHERE id=?";
             $stmt = $conn->prepare($sql);
             $stmt->execute([$activity, $rdate, $received_from, $rr_no, $ws_no, $from_tank, $deposited_to, $qty, $attachment_path, $id]);
         } else {
-            // INSERT NEW
             $sql = "INSERT INTO diesel_inventory (activity, rdate, received_from, rr_no, ws_no, withdrawn_from, deposited_to, qty, attachment_path) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
             $stmt = $conn->prepare($sql);
             $stmt->execute([$activity, $rdate, $received_from, $rr_no, $ws_no, $from_tank, $deposited_to, $qty, $attachment_path]);
