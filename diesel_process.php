@@ -2,10 +2,10 @@
 include 'db.php';
 
 // --- CONFIGURATION ---
-// Ensure there is NO trailing slash at the end of the URL
-$supabaseUrl = 'https://YOUR_PROJECT_ID.supabase.co'; 
-$supabaseKey = 'YOUR_SUPABASE_SERVICE_ROLE_KEY'; 
-$bucketName  = 'scan_copy';
+// I added trim() here to prevent the "Malformed input" error caused by hidden spaces
+$supabaseUrl = trim('YOUR_SUPABASE_URL'); 
+$supabaseKey = trim('YOUR_SUPABASE_SERVICE_ROLE_KEY'); 
+$bucketName  = trim('scan_copy');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id = $_POST['id'] ?? null;
@@ -16,18 +16,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // --- 1. HANDLE FILE UPLOAD (SUPABASE) ---
     if (isset($_FILES['attachment']) && $_FILES['attachment']['error'] === UPLOAD_ERR_OK) {
         $file = $_FILES['attachment'];
-        $fileName = time() . '_' . uniqid() . '_' . basename($file['name']);
+        $fileName = time() . '_' . uniqid() . '_' . preg_replace('/[^A-Za-z0-9.]/', '_', basename($file['name']));
         $filePath = $file['tmp_name'];
         
-        // Supabase requires PUT for uploads to a specific path
-        $url = "{$supabaseUrl}/storage/v1/object/{$bucketName}/{$fileName}";
+        // Construct URL - ensuring no double slashes or hidden spaces
+        $url = rtrim($supabaseUrl, '/') . "/storage/v1/object/{$bucketName}/{$fileName}";
         
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "PUT"); 
         curl_setopt($ch, CURLOPT_POSTFIELDS, file_get_contents($filePath));
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // Helps if Render has SSL CA issues
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); 
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
             "Authorization: Bearer {$supabaseKey}",
             "apikey: {$supabaseKey}",
@@ -40,26 +40,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         curl_close($ch);
 
         if ($httpCode === 200 || $httpCode === 201) {
-            // This is the absolute URL that fixes the 404 error
-            $publicUrl = "{$supabaseUrl}/storage/v1/object/public/{$bucketName}/{$fileName}";
+            // Success: Construct the public link
+            $publicUrl = rtrim($supabaseUrl, '/') . "/storage/v1/object/public/{$bucketName}/{$fileName}";
         } else {
-            // Detailed error reporting to debug "Code 0"
-            die("Upload Failed. HTTP Code: $httpCode | Error: $curlError | Response: $response");
+            // This will now show exactly what went wrong if it fails again
+            die("Upload Failed. HTTP Code: $httpCode | cURL Error: $curlError | Response: $response");
         }
     }
 
     // --- 2. DATABASE LOGIC ---
     if ($upload_only) {
-        // Only updating the scan from the 📤 button
         if ($id && $publicUrl) {
             $stmt = $conn->prepare("UPDATE diesel_inventory SET attachment_path = ? WHERE id = ?");
             $stmt->execute([$publicUrl, $id]);
         }
         header("Location: diesel_inventory.php?upload=success");
         exit();
-
     } else {
-        // Full Form Save (New Entry or Edit Modal)
         $activity = $_POST['activity'] ?? null;
         $rdate = $_POST['rdate'] ?? null;
         $qty = $_POST['qty'] ?? 0;
@@ -75,7 +72,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $from_tank = $_POST['from_tank_no'] ?? '---';
         $ws_no = $_POST['ws_no'] ?? '---';
 
-        // Determine final attachment path
         if ($remove_attachment) {
             $attachment_path = null;
         } elseif ($publicUrl) {
