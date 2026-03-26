@@ -1,98 +1,88 @@
 <?php
 include 'db.php';
 
-if (session_status() === PHP_SESSION_NONE) { session_start(); }
-
 // --- CONFIGURATION ---
-$sb_project_ref = "YOUR_PROJECT_REFERENCE"; // Replace with your actual ref
-$sb_api_key = "YOUR_SERVICE_ROLE_KEY";      // Replace with your actual key
-$bucket = "inventory_files";
-
-$isAuthorized = isset($_SESSION['role']) && in_array(strtolower($_SESSION['role']), ['admin', 'staff']);
+// Replace these with your actual Supabase Project Settings
+$supabaseUrl = 'YOUR_SUPABASE_URL'; 
+$supabaseKey = 'YOUR_SUPABASE_SERVICE_ROLE_KEY'; // Use Service Role Key for storage
+$bucketName  = 'scan_copy';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    
-    // Function to handle Supabase Upload
-   function uploadToSupabase($file, $ref, $key, $bucketName) {
-    $file_tmp = $file['tmp_name'];
-    $file_ext = pathinfo($file['name'], PATHINFO_EXTENSION);
-    $file_name = 'RR_' . time() . '_' . uniqid() . '.' . $file_ext;
-    
-    // The URL for uploading via PUT
-    $upload_url = "https://$ref.supabase.co/storage/v1/object/$bucketName/$file_name";
-
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $upload_url);
-    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "PUT"); // Change POST to PUT for direct file stream
-    curl_setopt($ch, CURLOPT_POSTFIELDS, file_get_contents($file_tmp));
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        "Authorization: Bearer $key",
-        "ApiKey: $key", // Added ApiKey header for Supabase stability
-        "Content-Type: " . mime_content_type($file_tmp)
-    ]);
-
-    $response = curl_exec($ch);
-    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-
-    // Supabase returns 200 for successful PUT uploads
-    if ($http_code == 200) {
-        return "https://$ref.supabase.co/storage/v1/object/public/$bucketName/$file_name";
-    } else {
-        // Optional: Error logging to help you troubleshoot
-        // error_log("Supabase Upload Error: " . $response); 
-        return null;
-    }
-}
-    // --- SCENARIO 1: RR SCAN UPLOAD ONLY (From your Modal) ---
-    if (isset($_POST['upload_only'])) {
-        if (!$isAuthorized) { die("Unauthorized access."); }
-        $id = $_POST['id'];
-        if (isset($_FILES['attachment']) && $_FILES['attachment']['error'] === UPLOAD_ERR_OK) {
-            $publicUrl = uploadToSupabase($_FILES['attachment'], $sb_project_ref, $sb_api_key, $bucket);
-            if ($publicUrl) {
-                $stmt = $conn->prepare("UPDATE diesel_inventory SET attachment_path = :path WHERE id = :id");
-                $stmt->execute([':path' => $publicUrl, ':id' => $id]);
-                header("Location: diesel_inventory.php?msg=upload_success");
-                exit();
-            }
-        }
-        header("Location: diesel_inventory.php?msg=upload_failed");
-        exit();
-    }
-
-    // --- SCENARIO 2: STANDARD SAVE/UPDATE ---
-    $id = $_POST['id'] ?? '';
-    $activity = $_POST['activity']; 
+    $id = $_POST['id'] ?? null;
+    $activity = $_POST['activity'];
     $rdate = $_POST['rdate'];
     $qty = $_POST['qty'];
     $deposited_to = $_POST['deposited_to'];
     
-    $attachment_path = $_POST['existing_attachment'] ?? null;
-    if (isset($_FILES['attachment']) && $_FILES['attachment']['error'] === UPLOAD_ERR_OK) {
-        $newUrl = uploadToSupabase($_FILES['attachment'], $sb_project_ref, $sb_api_key, $bucket);
-        if ($newUrl) { $attachment_path = $newUrl; }
-    }
-
+    // Conditional logic for fields based on activity type
     $received_from = ($activity === 'INFLOW') ? $_POST['received_from'] : '---';
     $rr_no = ($activity === 'INFLOW') ? $_POST['rr_no'] : '---';
     $withdrawn_from = (in_array($activity, ['OUTFLOW', 'TRANSFERRED'])) ? $_POST['from_tank_no'] : '---';
     $ws_no = (in_array($activity, ['OUTFLOW', 'TRANSFERRED'])) ? $_POST['ws_no'] : '---';
 
-    $sql = !empty($id) 
-        ? "UPDATE diesel_inventory SET activity=:activity, rdate=:rdate, received_from=:rec, rr_no=:rr, ws_no=:ws, withdrawn_from=:withdrawn, deposited_to=:dep, qty=:qty, attachment_path=:path WHERE id=:id"
-        : "INSERT INTO diesel_inventory (activity, rdate, received_from, rr_no, ws_no, withdrawn_from, deposited_to, qty, attachment_path) VALUES (:activity, :rdate, :rec, :rr, :ws, :withdrawn, :dep, :qty, :path)";
-    
-    $stmt = $conn->prepare($sql);
-    $params = [
-        ':activity' => $activity, ':rdate' => $rdate, ':rec' => $received_from,
-        ':rr' => $rr_no, ':ws' => $ws_no, ':withdrawn' => $withdrawn_from,
-        ':dep' => $deposited_to, ':qty' => $qty, ':path' => $attachment_path
-    ];
-    if (!empty($id)) $params[':id'] = $id;
+    // Keep the existing path if editing and no new file is selected
+    $attachment_path = $_POST['existing_attachment'] ?? null;
 
-    $stmt->execute($params);
+    // --- INTEGRATED SUPABASE UPLOAD ---
+    // This section acts as your "Upload Button" logic
+    if (isset($_FILES['attachment']) && $_FILES['attachment']['error'] === UPLOAD_ERR_OK) {
+        $file = $_FILES['attachment'];
+        $fileName = 'RR_' . time() . '_' . uniqid() . '_' . basename($file['name']);
+        $filePath = $file['tmp_name'];
+        
+        $upload_url = "{$supabaseUrl}/storage/v1/object/{$bucketName}/{$fileName}";
+        
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $upload_url);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "PUT"); // More stable for Supabase
+        curl_setopt($ch, CURLOPT_POSTFIELDS, file_get_contents($filePath));
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            "Authorization: Bearer {$supabaseKey}",
+            "apikey: {$supabaseKey}",
+            "Content-Type: " . mime_content_type($filePath)
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        // If upload is successful (200 or 201), set the public URL for the DB
+        if ($httpCode === 200 || $httpCode === 201) {
+            $attachment_path = "{$supabaseUrl}/storage/v1/object/public/{$bucketName}/{$fileName}";
+        } else {
+            // Optional: Uncomment for debugging if uploads fail
+            // die("Supabase Error: " . $response);
+        }
+    }
+
+    // --- DATABASE EXECUTION ---
+    if (!empty($id)) {
+        // SCENARIO: EDITING EXISTING RECORD
+        $sql = "UPDATE diesel_inventory SET 
+                activity=?, rdate=?, received_from=?, rr_no=?, ws_no=?, 
+                withdrawn_from=?, deposited_to=?, qty=?, attachment_path=? 
+                WHERE id=?";
+        $stmt = $conn->prepare($sql);
+        $stmt->execute([
+            $activity, $rdate, $received_from, $rr_no, $ws_no, 
+            $withdrawn_from, $deposited_to, $qty, $attachment_path, $id
+        ]);
+    } else {
+        // SCENARIO: NEW ENTRY
+        $sql = "INSERT INTO diesel_inventory (
+                    activity, rdate, received_from, rr_no, ws_no, 
+                    withdrawn_from, deposited_to, qty, attachment_path
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        $stmt = $conn->prepare($sql);
+        $stmt->execute([
+            $activity, $rdate, $received_from, $rr_no, $ws_no, 
+            $withdrawn_from, $deposited_to, $qty, $attachment_path
+        ]);
+    }
+
+    // Redirect back with a success message
     header("Location: diesel_inventory.php?msg=success");
     exit();
 }
+?>
