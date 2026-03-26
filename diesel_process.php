@@ -2,9 +2,9 @@
 include 'db.php';
 
 // --- CONFIGURATION ---
-// I added trim() here to prevent the "Malformed input" error caused by hidden spaces
-$supabaseUrl = trim('YOUR_SUPABASE_URL'); 
-$supabaseKey = trim('YOUR_SUPABASE_SERVICE_ROLE_KEY'); 
+// ⚠️ REPLACE THESE WITH YOUR REAL SUPABASE DETAILS ⚠️
+$supabaseUrl = trim('https://your-project-id.supabase.co'); 
+$supabaseKey = trim('your-long-service-role-key-here'); 
 $bucketName  = trim('scan_copy');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -16,10 +16,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // --- 1. HANDLE FILE UPLOAD (SUPABASE) ---
     if (isset($_FILES['attachment']) && $_FILES['attachment']['error'] === UPLOAD_ERR_OK) {
         $file = $_FILES['attachment'];
+        // Clean filename: replace spaces/special chars with underscores
         $fileName = time() . '_' . uniqid() . '_' . preg_replace('/[^A-Za-z0-9.]/', '_', basename($file['name']));
         $filePath = $file['tmp_name'];
         
-        // Construct URL - ensuring no double slashes or hidden spaces
         $url = rtrim($supabaseUrl, '/') . "/storage/v1/object/{$bucketName}/{$fileName}";
         
         $ch = curl_init();
@@ -40,10 +40,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         curl_close($ch);
 
         if ($httpCode === 200 || $httpCode === 201) {
-            // Success: Construct the public link
             $publicUrl = rtrim($supabaseUrl, '/') . "/storage/v1/object/public/{$bucketName}/{$fileName}";
         } else {
-            // This will now show exactly what went wrong if it fails again
             die("Upload Failed. HTTP Code: $httpCode | cURL Error: $curlError | Response: $response");
         }
     }
