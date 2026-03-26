@@ -3,161 +3,87 @@ include 'db.php';
 
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
-/**
- * EXPORT PROTOCOL: 
- * Professional Excel Generation with Consumption Summaries and Category Breakdowns.
- */
+// --- CONFIGURATION ---
+$sb_project_ref = "YOUR_PROJECT_REFERENCE"; // Replace with your actual ref
+$sb_api_key = "YOUR_SERVICE_ROLE_KEY";      // Replace with your actual key
+$bucket = "inventory_files";
 
-// 1. Fetch the data (Matching your "Daily Issuance Log" table)
-$query = "SELECT * FROM diesel_history WHERE activity = 'OUTFLOW' ORDER BY rdate DESC, rtime DESC";
-$res = $conn->query($query);
-$rows = $res->fetchAll(PDO::FETCH_ASSOC);
+$isAuthorized = isset($_SESSION['role']) && in_array(strtolower($_SESSION['role']), ['admin', 'staff']);
 
-// 2. Initialize variables for totals and categories
-$total_year = 0;
-$total_month = 0;
-$unique_days = [];
-$summary_type = [];
-$summary_unit = [];
-
-$current_year = date('Y');
-$current_month = date('m');
-
-foreach ($rows as $row) {
-    $qty = (float)($row['qty'] ?? 0);
-    $row_date = $row['rdate'];
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
-    if ($row_date) {
-        $unique_days[$row_date] = true;
-        
-        // Match the logic from your UI: Equipment Type and Equipment ID
-        $type = !empty($row['equipment_type']) ? $row['equipment_type'] : 'Unknown';
-        $unit = !empty($row['equipment_id']) ? $row['equipment_id'] : 'Unknown';
+    // Function to handle Supabase Upload
+    function uploadToSupabase($file, $ref, $key, $bucketName) {
+        $file_tmp = $file['tmp_name'];
+        $file_ext = pathinfo($file['name'], PATHINFO_EXTENSION);
+        $file_name = 'RR_' . time() . '_' . uniqid() . '.' . $file_ext;
+        $upload_url = "https://$ref.supabase.co/storage/v1/object/$bucketName/$file_name";
 
-        // Time-based totals
-        if (strpos($row_date, $current_year) === 0) {
-            $total_year += $qty;
-            if (substr($row_date, 5, 2) === $current_month) {
-                $total_month += $qty;
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $upload_url);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
+        curl_setopt($ch, CURLOPT_POSTFIELDS, file_get_contents($file_tmp));
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            "Authorization: Bearer $key",
+            "Content-Type: " . mime_content_type($file_tmp)
+        ]);
+
+        $response = curl_exec($ch);
+        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        return ($http_code == 200) ? "https://$ref.supabase.co/storage/v1/object/public/$bucketName/$file_name" : null;
+    }
+
+    // --- SCENARIO 1: RR SCAN UPLOAD ONLY (From your Modal) ---
+    if (isset($_POST['upload_only'])) {
+        if (!$isAuthorized) { die("Unauthorized access."); }
+        $id = $_POST['id'];
+        if (isset($_FILES['attachment']) && $_FILES['attachment']['error'] === UPLOAD_ERR_OK) {
+            $publicUrl = uploadToSupabase($_FILES['attachment'], $sb_project_ref, $sb_api_key, $bucket);
+            if ($publicUrl) {
+                $stmt = $conn->prepare("UPDATE diesel_inventory SET attachment_path = :path WHERE id = :id");
+                $stmt->execute([':path' => $publicUrl, ':id' => $id]);
+                header("Location: diesel_inventory.php?msg=upload_success");
+                exit();
             }
         }
-
-        // Category-based totals
-        $summary_type[$type] = ($summary_type[$type] ?? 0) + $qty;
-        $summary_unit[$unit] = ($summary_unit[$unit] ?? 0) + $qty;
+        header("Location: diesel_inventory.php?msg=upload_failed");
+        exit();
     }
+
+    // --- SCENARIO 2: STANDARD SAVE/UPDATE ---
+    $id = $_POST['id'] ?? '';
+    $activity = $_POST['activity']; 
+    $rdate = $_POST['rdate'];
+    $qty = $_POST['qty'];
+    $deposited_to = $_POST['deposited_to'];
+    
+    $attachment_path = $_POST['existing_attachment'] ?? null;
+    if (isset($_FILES['attachment']) && $_FILES['attachment']['error'] === UPLOAD_ERR_OK) {
+        $newUrl = uploadToSupabase($_FILES['attachment'], $sb_project_ref, $sb_api_key, $bucket);
+        if ($newUrl) { $attachment_path = $newUrl; }
+    }
+
+    $received_from = ($activity === 'INFLOW') ? $_POST['received_from'] : '---';
+    $rr_no = ($activity === 'INFLOW') ? $_POST['rr_no'] : '---';
+    $withdrawn_from = (in_array($activity, ['OUTFLOW', 'TRANSFERRED'])) ? $_POST['from_tank_no'] : '---';
+    $ws_no = (in_array($activity, ['OUTFLOW', 'TRANSFERRED'])) ? $_POST['ws_no'] : '---';
+
+    $sql = !empty($id) 
+        ? "UPDATE diesel_inventory SET activity=:activity, rdate=:rdate, received_from=:rec, rr_no=:rr, ws_no=:ws, withdrawn_from=:withdrawn, deposited_to=:dep, qty=:qty, attachment_path=:path WHERE id=:id"
+        : "INSERT INTO diesel_inventory (activity, rdate, received_from, rr_no, ws_no, withdrawn_from, deposited_to, qty, attachment_path) VALUES (:activity, :rdate, :rec, :rr, :ws, :withdrawn, :dep, :qty, :path)";
+    
+    $stmt = $conn->prepare($sql);
+    $params = [
+        ':activity' => $activity, ':rdate' => $rdate, ':rec' => $received_from,
+        ':rr' => $rr_no, ':ws' => $ws_no, ':withdrawn' => $withdrawn_from,
+        ':dep' => $deposited_to, ':qty' => $qty, ':path' => $attachment_path
+    ];
+    if (!empty($id)) $params[':id'] = $id;
+
+    $stmt->execute($params);
+    header("Location: diesel_inventory.php?msg=success");
+    exit();
 }
-
-// Sort summaries by highest consumption for the report
-arsort($summary_type);
-arsort($summary_unit);
-
-$day_count = count($unique_days);
-$daily_average = ($day_count > 0) ? ($total_year / $day_count) : 0;
-
-// 3. Set Download Headers
-$filename = "Diesel_Issuance_Report_" . date('Y-m-d') . ".xls";
-header("Content-Type: application/vnd.ms-excel");
-header("Content-Disposition: attachment; filename=\"$filename\"");
-?>
-
-<meta charset="UTF-8">
-<table border="1">
-    <tr>
-        <th colspan="12" style="background-color: #112941; color: #ffffff; font-size: 16px; height: 35px;">
-            GOLDRICH CONSTRUCTION AND TRADING - DAILY DIESEL ISSUANCE LOG
-        </th>
-    </tr>
-
-    <tr style="background-color: #f4f7f6;">
-        <th colspan="4" align="left"><b>CONSUMPTION METRICS (LITERS)</b></th>
-        <th colspan="3" align="left">Daily Avg: <?= number_format($daily_average, 2) ?></th>
-        <th colspan="2" align="left">Month Total: <?= number_format($total_month, 2) ?></th>
-        <th colspan="3" align="left">Year Total: <?= number_format($total_year, 2) ?></th>
-    </tr>
-
-    <tr><td colspan="12" style="border:none;"></td></tr>
-
-    <tr>
-        <th colspan="6" style="background-color: #f1c40f; color: #000;"><b>BY EQUIPMENT TYPE</b></th>
-        <th colspan="6" style="background-color: #112941; color: #fff;"><b>BY UNIT (EQPT ID)</b></th>
-    </tr>
-
-    <tr>
-        <td colspan="6" valign="top" style="padding:0;">
-            <table border="1" width="100%">
-                <tr style="background-color: #eee;">
-                    <th>Equipment Type</th>
-                    <th>Total Qty (L)</th>
-                </tr>
-                <?php foreach($summary_type as $type => $q): ?>
-                <tr>
-                    <td><?= htmlspecialchars($type) ?></td>
-                    <td align="right"><?= number_format($q, 2) ?></td>
-                </tr>
-                <?php endforeach; ?>
-            </table>
-        </td>
-        <td colspan="6" valign="top" style="padding:0;">
-            <table border="1" width="100%">
-                <tr style="background-color: #eee;">
-                    <th>Unit ID</th>
-                    <th>Total Qty (L)</th>
-                </tr>
-                <?php foreach($summary_unit as $unit => $q): ?>
-                <tr>
-                    <td><?= htmlspecialchars($unit) ?></td>
-                    <td align="right"><?= number_format($q, 2) ?></td>
-                </tr>
-                <?php endforeach; ?>
-            </table>
-        </td>
-    </tr>
-
-    <tr><td colspan="12" style="border:none;"></td></tr>
-
-    <thead>
-        <tr style="background-color: #8B0000; color: #ffffff;">
-            <th>TANK</th>
-            <th>DATE</th>
-            <th>TIME</th>
-            <th>SHIFT</th>
-            <th>EQPT. ID</th>
-            <th>EQPT. TYPE</th>
-            <th>WS NO.</th>
-            <th>IS NO.</th>
-            <th>OPERATOR</th>
-            <th>CODE</th>
-            <th>ODO/HRS</th>
-            <th style="background-color: #f1c40f; color: #000;">QTY (L)</th>
-        </tr>
-    </thead>
-    <tbody>
-        <?php foreach($rows as $row): ?>
-        <tr>
-            <td align="center"><?= htmlspecialchars($row['tank_source'] ?? '---') ?></td>
-            <td align="center"><?= htmlspecialchars($row['rdate'] ?? '') ?></td>
-            <td align="center"><?= $row['rtime'] ? date('h:i A', strtotime($row['rtime'])) : '---' ?></td>
-            <td align="center"><?= htmlspecialchars($row['shift'] ?? '---') ?></td>
-            <td><b><?= htmlspecialchars($row['equipment_id'] ?? '') ?></b></td>
-            <td><?= htmlspecialchars($row['equipment_type'] ?? '---') ?></td>
-            <td align="center"><?= htmlspecialchars($row['ws_no'] ?? '---') ?></td>
-            <td align="center"><?= htmlspecialchars($row['is_no'] ?? '---') ?></td>
-            <td><?= htmlspecialchars($row['name'] ?? '---') ?></td>
-            <td align="center"><?= htmlspecialchars($row['code'] ?? '---') ?></td>
-            <td align="right"><?= number_format($row['odometer'] ?? 0, 1) ?></td>
-            <td align="right" style="font-weight: bold;">
-                <?= number_format($row['qty'] ?? 0, 2) ?>
-            </td>
-        </tr>
-        <?php endforeach; ?>
-    </tbody>
-</table>
-
-<table border="0" style="margin-top: 20px;">
-    <tr>
-        <td colspan="4" style="font-size: 10px; color: #666;">
-            Report Generated: <?= date('F d, Y h:i A') ?>
-        </td>
-    </tr>
-</table>
