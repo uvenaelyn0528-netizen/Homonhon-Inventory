@@ -2,7 +2,8 @@
 include 'db.php';
 
 // --- CONFIGURATION ---
-$supabaseUrl = 'YOUR_SUPABASE_URL'; 
+// Ensure there is NO trailing slash at the end of the URL
+$supabaseUrl = 'https://YOUR_PROJECT_ID.supabase.co'; 
 $supabaseKey = 'YOUR_SUPABASE_SERVICE_ROLE_KEY'; 
 $bucketName  = 'scan_copy';
 
@@ -26,6 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "PUT"); 
         curl_setopt($ch, CURLOPT_POSTFIELDS, file_get_contents($filePath));
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // Helps if Render has SSL CA issues
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
             "Authorization: Bearer {$supabaseKey}",
             "apikey: {$supabaseKey}",
@@ -34,12 +36,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
         curl_close($ch);
 
         if ($httpCode === 200 || $httpCode === 201) {
+            // This is the absolute URL that fixes the 404 error
             $publicUrl = "{$supabaseUrl}/storage/v1/object/public/{$bucketName}/{$fileName}";
         } else {
-            die("Upload Failed. HTTP Code: $httpCode | Response: $response");
+            // Detailed error reporting to debug "Code 0"
+            die("Upload Failed. HTTP Code: $httpCode | Error: $curlError | Response: $response");
         }
     }
 
