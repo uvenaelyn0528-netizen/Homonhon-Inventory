@@ -1,6 +1,10 @@
 <?php
 include 'db.php';
-if (session_status() === PHP_SESSION_NONE) { session_start(); } 
+// --- CONFIGURATION ---
+// ⚠️ REPLACE THE TEXT INSIDE THE QUOTES BELOW ⚠️
+$supabaseUrl = trim('https://otrkginfndevnotgkajc.supabase.co'); 
+$supabaseKey = trim('sb_secret_d3XLsGNZJ42UJkwx_ts42w_dj1ukXWl'); 
+$bucketName  = trim('inventory_files');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id = $_POST['id'] ?? null;
