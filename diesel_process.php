@@ -1,12 +1,6 @@
 <?php
 include 'db.php';
 
-// --- CONFIGURATION ---
-// ⚠️ REPLACE THESE WITH YOUR REAL SUPABASE DETAILS ⚠️
-$supabaseUrl = trim('https://your-project-id.supabase.co'); 
-$supabaseKey = trim('your-long-service-role-key-here'); 
-$bucketName  = trim('scan_copy');
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id = $_POST['id'] ?? null;
     $upload_only = isset($_POST['upload_only']);
