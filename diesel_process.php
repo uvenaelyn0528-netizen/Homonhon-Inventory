@@ -13,29 +13,38 @@ $isAuthorized = isset($_SESSION['role']) && in_array(strtolower($_SESSION['role'
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     // Function to handle Supabase Upload
-    function uploadToSupabase($file, $ref, $key, $bucketName) {
-        $file_tmp = $file['tmp_name'];
-        $file_ext = pathinfo($file['name'], PATHINFO_EXTENSION);
-        $file_name = 'RR_' . time() . '_' . uniqid() . '.' . $file_ext;
-        $upload_url = "https://$ref.supabase.co/storage/v1/object/$bucketName/$file_name";
+   function uploadToSupabase($file, $ref, $key, $bucketName) {
+    $file_tmp = $file['tmp_name'];
+    $file_ext = pathinfo($file['name'], PATHINFO_EXTENSION);
+    $file_name = 'RR_' . time() . '_' . uniqid() . '.' . $file_ext;
+    
+    // The URL for uploading via PUT
+    $upload_url = "https://$ref.supabase.co/storage/v1/object/$bucketName/$file_name";
 
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $upload_url);
-        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
-        curl_setopt($ch, CURLOPT_POSTFIELDS, file_get_contents($file_tmp));
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            "Authorization: Bearer $key",
-            "Content-Type: " . mime_content_type($file_tmp)
-        ]);
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $upload_url);
+    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "PUT"); // Change POST to PUT for direct file stream
+    curl_setopt($ch, CURLOPT_POSTFIELDS, file_get_contents($file_tmp));
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        "Authorization: Bearer $key",
+        "ApiKey: $key", // Added ApiKey header for Supabase stability
+        "Content-Type: " . mime_content_type($file_tmp)
+    ]);
 
-        $response = curl_exec($ch);
-        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+    $response = curl_exec($ch);
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
 
-        return ($http_code == 200) ? "https://$ref.supabase.co/storage/v1/object/public/$bucketName/$file_name" : null;
+    // Supabase returns 200 for successful PUT uploads
+    if ($http_code == 200) {
+        return "https://$ref.supabase.co/storage/v1/object/public/$bucketName/$file_name";
+    } else {
+        // Optional: Error logging to help you troubleshoot
+        // error_log("Supabase Upload Error: " . $response); 
+        return null;
     }
-
+}
     // --- SCENARIO 1: RR SCAN UPLOAD ONLY (From your Modal) ---
     if (isset($_POST['upload_only'])) {
         if (!$isAuthorized) { die("Unauthorized access."); }
