@@ -296,12 +296,11 @@ $tanks_ft = ["TANK 001", "TANK 002", "TANK 003", "TANK 004", "TANK 005", "TANK 0
                     <td><?= htmlspecialchars($row['received_from'] ?: '---') ?></td>
                     <td>
                         <?= htmlspecialchars($row['rr_no'] ?: '---') ?>
-                        <?php if (!empty($row['attachment_path'])): ?>
-                            <br>
-                            <a href="<?= htmlspecialchars($row['attachment_path']) ?>" target="_blank" class="attachment-link" title="View File" style="font-size: 10px; margin-top: 4px;">
-                                📎 View Scan
-                            </a>
-                        <?php endif; ?>
+                       <?php if (!empty($row['attachment_path'])): ?>
+    <a href="<?= htmlspecialchars($row['attachment_path']) ?>" target="_blank" class="attachment-link">
+        📎 View Scan
+    </a>
+<?php endif; ?>
                     </td>
                     <td><?= htmlspecialchars($row['ws_no'] ?: '---') ?></td>
                     <td><?= htmlspecialchars($row['withdrawn_from'] ?: '---') ?></td> 
