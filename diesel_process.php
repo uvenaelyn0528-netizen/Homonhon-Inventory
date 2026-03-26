@@ -2,9 +2,9 @@
 include 'db.php';
 
 // --- CONFIGURATION ---
-$supabaseUrl = 'YOUR_SUPABASE_URL';
+$supabaseUrl = 'YOUR_SUPABASE_URL'; 
 $supabaseKey = 'YOUR_SUPABASE_SERVICE_ROLE_KEY'; 
-$bucketName = 'scan_copy';
+$bucketName  = 'scan_copy';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id = $_POST['id'] ?? null;
@@ -12,12 +12,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $remove_attachment = isset($_POST['remove_attachment']) && $_POST['remove_attachment'] == '1';
     $publicUrl = null;
 
-    // --- 1. HANDLE FILE UPLOAD ---
+    // --- 1. HANDLE FILE UPLOAD (SUPABASE) ---
     if (isset($_FILES['attachment']) && $_FILES['attachment']['error'] === UPLOAD_ERR_OK) {
         $file = $_FILES['attachment'];
         $fileName = time() . '_' . uniqid() . '_' . basename($file['name']);
         $filePath = $file['tmp_name'];
         
+        // Supabase requires PUT for uploads to a specific path
         $url = "{$supabaseUrl}/storage/v1/object/{$bucketName}/{$fileName}";
         
         $ch = curl_init();
@@ -37,11 +38,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($httpCode === 200 || $httpCode === 201) {
             $publicUrl = "{$supabaseUrl}/storage/v1/object/public/{$bucketName}/{$fileName}";
+        } else {
+            die("Upload Failed. HTTP Code: $httpCode | Response: $response");
         }
     }
 
-    // --- 2. BRANCH LOGIC ---
+    // --- 2. DATABASE LOGIC ---
     if ($upload_only) {
+        // Only updating the scan from the 📤 button
         if ($id && $publicUrl) {
             $stmt = $conn->prepare("UPDATE diesel_inventory SET attachment_path = ? WHERE id = ?");
             $stmt->execute([$publicUrl, $id]);
@@ -50,13 +54,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit();
 
     } else {
-        // FULL FORM SAVE
+        // Full Form Save (New Entry or Edit Modal)
         $activity = $_POST['activity'] ?? null;
         $rdate = $_POST['rdate'] ?? null;
         $qty = $_POST['qty'] ?? 0;
         $deposited_to = $_POST['deposited_to'] ?? '';
 
-        // Safety check: if activity or rdate is missing, don't crash the DB
         if (!$activity || !$rdate) {
             header("Location: diesel_inventory.php?msg=error_missing_fields");
             exit();
@@ -67,6 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $from_tank = $_POST['from_tank_no'] ?? '---';
         $ws_no = $_POST['ws_no'] ?? '---';
 
+        // Determine final attachment path
         if ($remove_attachment) {
             $attachment_path = null;
         } elseif ($publicUrl) {
