@@ -268,7 +268,22 @@ $tanks_ft = ["TANK 001", "TANK 002", "TANK 003", "TANK 004", "TANK 005", "TANK 0
             <button class="btn" onclick="window.print()" style="background: #112941; color: white;">🖨️ PRINT</button>
         </div>
     </nav>
-
+<?php if (isset($_GET['msg']) || isset($_GET['upload'])): ?>
+    <div id="statusAlert" style="background: #dcfce7; color: #166534; padding: 10px 15px; margin-bottom: 10px; border-radius: 4px; border: 1px solid #bbf7d0; font-size: 13px; font-weight: bold; display: flex; align-items: center; justify-content: space-between;">
+        <span>
+            <?= isset($_GET['upload']) ? "✅ Scan uploaded successfully!" : "✅ Record saved successfully!" ?>
+        </span>
+        <button onclick="this.parentElement.style.display='none'" style="background:none; border:none; color:#166534; cursor:pointer; font-weight:bold;">×</button>
+    </div>
+    <script>
+        setTimeout(() => { 
+            const alert = document.getElementById('statusAlert');
+            if(alert) alert.style.transition = "opacity 0.5s";
+            if(alert) alert.style.opacity = "0";
+            setTimeout(() => { if(alert) alert.remove(); }, 500);
+        }, 3000);
+    </script>
+<?php endif; ?>
     <div class="table-container">
         <table>
             <thead>
