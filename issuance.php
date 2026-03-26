@@ -108,6 +108,9 @@ $daily_average = ($day_count > 0) ? ($total_year / $day_count) : 0;
         </div>
 
         <div class="header-right">
+            <a href="export_issuance.php" class="btn" style="background: #27ae60; color: white; border: 1px solid #219150;">
+        📊 EXPORT TO EXCEL
+    </a>
             <button class="btn btn-add" onclick="openAddModal()">➕ ADD NEW ISSUANCE</button>
             <button class="btn btn-import" onclick="document.getElementById('importFile').click()">📥 IMPORT EXCEL</button>
 
