@@ -326,7 +326,7 @@ $tanks_ft = ["TANK 001", "TANK 002", "TANK 003", "TANK 004", "TANK 005", "TANK 0
                             <button onclick='editRecord(<?= json_encode($row) ?>)' style="border:none; background:none; cursor:pointer;">✏️</button>
                             
                             <?php if (strtoupper($row['activity']) === 'INFLOW'): ?>
-                                <button onclick="openUploadModal(<?= $row['id'] ?>)" style="border:none; background:none; cursor:pointer;" title="Upload Scan">📤</button>
+                                <button type="button" onclick="openUploadModal(<?= $row['id'] ?>)" title="Upload Scan">📤</button>
                             <?php endif; ?>
 
                             <button onclick="deleteRecord(<?= $row['id'] ?>)" style="border:none; background:none; cursor:pointer;">🗑️</button>
@@ -395,20 +395,25 @@ $tanks_ft = ["TANK 001", "TANK 002", "TANK 003", "TANK 004", "TANK 005", "TANK 0
 </div>
 
 <div id="uploadModal" class="modal">
-    <div class="modal-content" style="padding:20px; width: 350px;">
-        <h3 style="margin-top:0; color: var(--navy);">Upload RR Scan</h3>
+    <div class="modal-content" style="padding:20px; width: 350px; border-top: 5px solid var(--navy);">
+        <h3 style="margin-top:0; color: var(--navy); font-size: 16px;">📤 Upload RR Scan</h3>
+        
         <form action="diesel_process.php" method="POST" enctype="multipart/form-data">
+            
             <input type="hidden" name="upload_only" value="1">
+            
             <input type="hidden" name="id" id="uploadId">
             
-            <div style="margin-bottom:15px;">
-                <label style="font-size:12px; font-weight:bold;">Select File (PDF/JPG/PNG)</label>
-                <input type="file" name="attachment" required style="width:100%; margin-top:5px;">
+            <div style="margin-bottom:20px;">
+                <label style="font-size:12px; font-weight:bold; color: #444; display: block; margin-bottom: 8px;">
+                    Select File (PDF, JPG, or PNG)
+                </label>
+                <input type="file" name="attachment" required style="font-size:12px; border: 1px solid #ddd; padding: 5px; width: 100%; border-radius: 4px;">
             </div>
 
             <div style="display: flex; gap: 10px;">
-                <button type="submit" class="btn" style="flex:1; background:var(--navy); color: white; justify-content:center;">UPLOAD</button>
-                <button type="button" onclick="closeUploadModal()" class="btn" style="flex:1; background:#ccc; justify-content:center;">CANCEL</button>
+                <button type="submit" class="btn" style="flex:1; background:var(--navy); color: white; justify-content:center;">UPLOAD NOW</button>
+                <button type="button" onclick="closeUploadModal()" class="btn" style="flex:1; background:#eee; color: #333; justify-content:center;">CANCEL</button>
             </div>
         </form>
     </div>
@@ -469,8 +474,13 @@ window.onclick = function(event) {
 }
 
 function openUploadModal(id) {
+    // 1. Show the modal
     document.getElementById('uploadModal').style.display = 'flex';
+    
+    // 2. Insert the ID into the hidden form field
     document.getElementById('uploadId').value = id;
+    
+    console.log("Opening upload for ID: " + id); // Debugging: check your browser console (F12)
 }
 
 function closeUploadModal() {
