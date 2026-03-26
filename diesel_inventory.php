@@ -353,7 +353,7 @@ $tanks_ft = ["TANK 001", "TANK 002", "TANK 003", "TANK 004", "TANK 005", "TANK 0
 function openFuelModal(type = 'INFLOW') {
     document.getElementById('fuelModal').style.display = 'flex';
     document.getElementById('formId').value = '';
-    document.getElementById('edit_attachment_path').value = ''; // Reset path for new entries
+    document.getElementById('edit_attachment_path').value = ''; 
     document.getElementById('formDate').value = "<?= date('Y-m-d') ?>";
     document.getElementById('activityType').value = type;
     
@@ -381,8 +381,6 @@ function toggleFields() {
 function editRecord(data) {
     document.getElementById('fuelModal').style.display = 'flex';
     document.getElementById('formId').value = data.id;
-    
-    // CRITICAL: Carry the existing attachment path over during edit
     document.getElementById('edit_attachment_path').value = data.attachment_path || '';
 
     document.getElementById('activityType').value = data.activity;
