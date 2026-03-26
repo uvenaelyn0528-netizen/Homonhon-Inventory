@@ -154,6 +154,12 @@ $tanks_ft = ["TANK 001", "TANK 002", "TANK 003", "TANK 004", "TANK 005", "TANK 0
         .modal-content { background:white; border-radius:8px; width:450px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         .modal-header { background: var(--navy); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
         .modal-body { padding: 25px 20px; }
+
+        .attachment-link { 
+            color: var(--navy); font-weight: bold; text-decoration: none; 
+            display: inline-block; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; border: 1px solid #cbd5e1;
+        }
+        .attachment-link:hover { background: #e2e8f0; }
     </style>
 </head>
 <body>
@@ -208,7 +214,7 @@ $tanks_ft = ["TANK 001", "TANK 002", "TANK 003", "TANK 004", "TANK 005", "TANK 0
             <?php endif; ?>
 
             <button class="btn" onclick="exportToExcel()" style="background: #27ae60; color: white;">📈 EXCEL</button>
-<button class="btn" onclick="window.print()" style="background: #112941; color: white;">🖨️ PRINT</button>
+            <button class="btn" onclick="window.print()" style="background: #112941; color: white;">🖨️ PRINT</button>
         </div>
     </nav>
 
@@ -240,7 +246,10 @@ $tanks_ft = ["TANK 001", "TANK 002", "TANK 003", "TANK 004", "TANK 005", "TANK 0
                     <td>
                         <?= htmlspecialchars($row['rr_no'] ?: '---') ?>
                         <?php if (!empty($row['attachment_path'])): ?>
-                            <a href="<?= htmlspecialchars($row['attachment_path']) ?>" download class="attachment-link" title="Download File">📎 attached File</a>
+                            <br>
+                            <a href="<?= htmlspecialchars($row['attachment_path']) ?>" target="_blank" class="attachment-link" title="View File" style="font-size: 10px; margin-top: 4px;">
+                                📎 View Scan
+                            </a>
                         <?php endif; ?>
                     </td>
                     <td><?= htmlspecialchars($row['ws_no'] ?: '---') ?></td>
@@ -270,8 +279,10 @@ $tanks_ft = ["TANK 001", "TANK 002", "TANK 003", "TANK 004", "TANK 005", "TANK 0
 <div id="fuelModal" class="modal">
     <div class="modal-content" style="padding:20px;">
         <h3 id="modalTitle" style="margin-top:0; color: var(--navy);">Fuel Entry</h3>
-        <form action="diesel_process.php" method="POST">
+        <form action="diesel_process.php" method="POST" enctype="multipart/form-data">
             <input type="hidden" name="id" id="formId">
+            <input type="hidden" name="existing_attachment" id="edit_attachment_path">
+
             <label style="font-size:11px; font-weight:bold;">Activity</label>
             <select name="activity" id="activityType" onchange="toggleFields()" required style="width:100%; padding:8px; margin-bottom:10px;">
                 <option value="INFLOW">INFLOW</option>
@@ -287,6 +298,10 @@ $tanks_ft = ["TANK 001", "TANK 002", "TANK 003", "TANK 004", "TANK 005", "TANK 0
             <div id="inflowFields">
                 <input type="text" name="received_from" id="in_rec" placeholder="Supplier" style="width:100%; padding:8px; margin-top:10px;">
                 <input type="text" name="rr_no" id="in_rr" placeholder="RR No." style="width:100%; padding:8px; margin-top:10px;">
+                <div style="margin-top: 10px;">
+                    <label style="font-size:10px; font-weight:bold; color: #666;">Attach RR Scan (Optional)</label>
+                    <input type="file" name="attachment" style="font-size:11px;">
+                </div>
             </div>
 
             <div id="outflowFields" style="display:none;">
@@ -313,7 +328,8 @@ $tanks_ft = ["TANK 001", "TANK 002", "TANK 003", "TANK 004", "TANK 005", "TANK 0
         </form>
     </div>
 </div>
-    <div id="uploadModal" class="modal">
+
+<div id="uploadModal" class="modal">
     <div class="modal-content" style="padding:20px; width: 350px;">
         <h3 style="margin-top:0; color: var(--navy);">Upload RR Scan</h3>
         <form action="diesel_process.php" method="POST" enctype="multipart/form-data">
@@ -337,6 +353,7 @@ $tanks_ft = ["TANK 001", "TANK 002", "TANK 003", "TANK 004", "TANK 005", "TANK 0
 function openFuelModal(type = 'INFLOW') {
     document.getElementById('fuelModal').style.display = 'flex';
     document.getElementById('formId').value = '';
+    document.getElementById('edit_attachment_path').value = ''; // Reset path for new entries
     document.getElementById('formDate').value = "<?= date('Y-m-d') ?>";
     document.getElementById('activityType').value = type;
     
@@ -364,6 +381,10 @@ function toggleFields() {
 function editRecord(data) {
     document.getElementById('fuelModal').style.display = 'flex';
     document.getElementById('formId').value = data.id;
+    
+    // CRITICAL: Carry the existing attachment path over during edit
+    document.getElementById('edit_attachment_path').value = data.attachment_path || '';
+
     document.getElementById('activityType').value = data.activity;
     document.getElementById('formDate').value = data.rdate;
     document.getElementById('in_rec').value = data.received_from || '';
@@ -381,8 +402,10 @@ function clearInventory() { if(confirm("Wipe all data permanently?")) window.loc
 
 window.onclick = function(event) {
     if (event.target == document.getElementById('fuelModal')) closeFuelModal();
+    if (event.target == document.getElementById('uploadModal')) closeUploadModal();
 }
-    function openUploadModal(id) {
+
+function openUploadModal(id) {
     document.getElementById('uploadModal').style.display = 'flex';
     document.getElementById('uploadId').value = id;
 }
@@ -391,15 +414,8 @@ function closeUploadModal() {
     document.getElementById('uploadModal').style.display = 'none';
 }
 
-// Update your existing window.onclick to close this modal too
-window.onclick = function(event) {
-    if (event.target == document.getElementById('fuelModal')) closeFuelModal();
-    if (event.target == document.getElementById('uploadModal')) closeUploadModal();
-}
-    function exportToExcel() {
-    // Get current URL parameters (filters)
+function exportToExcel() {
     const urlParams = new URLSearchParams(window.location.search);
-    // Redirect to the export script with the same filters
     window.location.href = 'export_diesel.php?' + urlParams.toString();
 }
 </script>
