@@ -1,5 +1,56 @@
-<?php 
-include 'db.php'; 
+<?php
+include 'db.php';
+
+// Supabase Configuration - Ensure these match your project
+$supabaseUrl = 'YOUR_SUPABASE_URL';
+$supabaseKey = 'YOUR_SUPABASE_SERVICE_ROLE_KEY'; // Use Service Role Key for uploads
+$bucketName = 'scan_copy';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $id = $_POST['id'] ?? null;
+    $upload_only = isset($_POST['upload_only']);
+
+    // Check if a file was actually uploaded
+    if (isset($_FILES['attachment']) && $_FILES['attachment']['error'] === UPLOAD_ERR_OK) {
+        $file = $_FILES['attachment'];
+        $fileName = time() . '_' . basename($file['name']);
+        $filePath = $file['tmp_name'];
+        $fileType = $file['type'];
+
+        // 1. Upload to Supabase Storage via API
+        $url = "{$supabaseUrl}/storage/v1/object/{$bucketName}/{$fileName}";
+        
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, file_get_contents($filePath));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            "Authorization: Bearer {$supabaseKey}",
+            "Content-Type: {$fileType}"
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($httpCode === 200 || $httpCode === 201) {
+            // 2. Generate the Public URL
+            $publicUrl = "{$supabaseUrl}/storage/v1/object/public/{$bucketName}/{$fileName}";
+
+            // 3. Update the Database
+            if ($id) {
+                $stmt = $conn->prepare("UPDATE diesel_inventory SET attachment_path = ? WHERE id = ?");
+                $stmt->execute([$publicUrl, $id]);
+            }
+            
+            header("Location: diesel_inventory.php?upload=success");
+            exit();
+        } else {
+            die("Upload Failed. Supabase Status: " . $httpCode . " Response: " . $response);
+        }
+    }
+} 
 
 if (session_status() === PHP_SESSION_NONE) { session_start(); } 
 
