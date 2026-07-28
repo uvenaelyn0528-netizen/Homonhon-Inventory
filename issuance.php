@@ -106,7 +106,6 @@ $daily_average = ($day_count > 0) ? ($total_year / $day_count) : 0;
         .btn-add { background: var(--dark-red); color: white; border: 1px solid var(--gold); }
         .btn-import { background: var(--green); color: white; border: 1px solid #219150; }
         .btn-filter { background: var(--navy); color: white; }
-        .btn-reset { background: #7f8c8d; color: white; text-decoration: none; }
         .btn-edit { color: #3498db; background: none; border: 1px solid #3498db; padding: 4px 6px; border-radius: 4px; cursor: pointer; }
         .btn-delete { color: #e74c3c; background: none; border: 1px solid #e74c3c; padding: 4px 6px; border-radius: 4px; cursor: pointer; }
         
