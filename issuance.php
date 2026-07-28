@@ -8,17 +8,24 @@ $isAuthorized = isset($_SESSION['role']) && in_array(strtolower($_SESSION['role'
 
 // --- HANDLE CSV IMPORT PROCESS ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file'])) {
+    
+    // Increase memory and runtime limits for large imports
+    @ini_set('memory_limit', '256M');
+    @set_time_limit(120);
+
     $file = $_FILES['excel_file']['tmp_name'];
     
-    if (($handle = fopen($file, "r")) !== FALSE) {
+    if (!empty($file) && ($handle = fopen($file, "r")) !== FALSE) {
         $row_count = 0;
         
         // Skip header row
         fgetcsv($handle, 1000, ",");
         
         try {
-            // Begin database transaction for ultra-fast batch insertion and to prevent Render 502 timeouts
-            $conn->beginTransaction();
+            // Check if a transaction is already active before starting one
+            if (!$conn->inTransaction()) {
+                $conn->beginTransaction();
+            }
 
             $insert_stmt = $conn->prepare("
                 INSERT INTO diesel_history 
@@ -27,46 +34,75 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file'])) {
             ");
 
             while (($raw_data = fgetcsv($handle, 1000, ",")) !== FALSE) {
-                // Convert non-UTF8 characters (e.g. Windows-1252 'ñ') to UTF-8 for PostgreSQL
+                // Ignore completely empty rows
+                if (empty($raw_data) || (empty($raw_data[0]) && empty($raw_data[1]))) {
+                    continue;
+                }
+
+                // Convert encoding to UTF-8 to prevent invalid byte sequence errors
                 $data = array_map(function($field) {
-                    return mb_convert_encoding($field ?? '', 'UTF-8', 'UTF-8, Windows-1252, ISO-8859-1');
+                    $val = $field ?? '';
+                    return mb_convert_encoding($val, 'UTF-8', 'UTF-8, Windows-1252, ISO-8859-1');
                 }, $raw_data);
 
-                // Row validation (Check if Date or Tank Source exists)
-                if (!empty($data[0]) || !empty($data[1])) {
-                    
-                    // Format Date safely
-                    $rdate = !empty($data[1]) ? date('Y-m-d', strtotime($data[1])) : date('Y-m-d');
+                // Safe parsing of Date & Time
+                $rdate = !empty($data[1]) ? date('Y-m-d', strtotime($data[1])) : date('Y-m-d');
+                
+                $raw_time = trim($data[9] ?? '');
+                $rtime = !empty($raw_time) ? date('H:i:s', strtotime($raw_time)) : '00:00:00';
 
-                    // Format Time safely
-                    $raw_time = trim($data[9] ?? '');
-                    $rtime = !empty($raw_time) ? date('H:i:s', strtotime($raw_time)) : '00:00:00';
+                // Safe parsing of Numeric values
+                $raw_qty = !empty($data[11]) ? $data[11] : ($data[2] ?? '0');
+                $qty_val = (float) preg_replace('/[^0-9.]/', '', $raw_qty);
+                $odometer_val = (float) preg_replace('/[^0-9.]/', '', $data[8] ?? '0');
 
-                    // Determine Qty (Takes column L, falls back to column C if empty)
-                    $raw_qty = !empty($data[11]) ? $data[11] : ($data[2] ?? '0');
-                    $qty_val = (float) preg_replace('/[^0-9.]/', '', $raw_qty);
+                $insert_stmt->execute([
+                    ':tank_source'    => trim($data[0] ?? 'TANK 001'),
+                    ':rdate'          => $rdate,
+                    ':ws_no'          => trim($data[3] ?? ''),
+                    ':name'           => trim($data[4] ?? ''),
+                    ':equipment_type' => trim($data[5] ?? ''),
+                    ':equipment_id'   => trim($data[6] ?? ''),
+                    ':code'           => trim($data[7] ?? ''),
+                    ':odometer'       => $odometer_val,
+                    ':rtime'          => $rtime,
+                    ':is_no'          => trim($data[10] ?? ''),
+                    ':qty'            => $qty_val,
+                    ':shift'          => trim($data[12] ?? 'D')
+                ]);
 
-                    // Clean Odometer reading
-                    $odometer_val = (float) preg_replace('/[^0-9.]/', '', $data[8] ?? '0');
-
-                    $insert_stmt->execute([
-                        ':tank_source'    => trim($data[0] ?? 'TANK 001'),
-                        ':rdate'          => $rdate,
-                        ':ws_no'          => trim($data[3] ?? ''),
-                        ':name'           => trim($data[4] ?? ''),
-                        ':equipment_type' => trim($data[5] ?? ''),
-                        ':equipment_id'   => trim($data[6] ?? ''),
-                        ':code'           => trim($data[7] ?? ''),
-                        ':odometer'       => $odometer_val,
-                        ':rtime'          => $rtime,
-                        ':is_no'          => trim($data[10] ?? ''),
-                        ':qty'            => $qty_val,
-                        ':shift'          => trim($data[12] ?? 'D')
-                    ]);
-
-                    $row_count++;
-                }
+                $row_count++;
             }
+
+            // Commit transaction
+            if ($conn->inTransaction()) {
+                $conn->commit();
+            }
+            
+            fclose($handle);
+
+            header("Location: " . $_SERVER['PHP_SELF'] . "?import_success=" . $row_count);
+            exit();
+
+        } catch (Throwable $e) {
+            // Catch both Exception and Error objects
+            if ($conn->inTransaction()) {
+                $conn->rollBack();
+            }
+            if ($handle) {
+                fclose($handle);
+            }
+            
+            // Output explicit message to avoid blank 502 page
+            echo "<div style='font-family:sans-serif; padding:20px; background:#fff3f3; color:#900; border:1px solid #f00;'>";
+            echo "<h2>Import Error Encountered</h2>";
+            echo "<p><strong>Message:</strong> " . htmlspecialchars($e->getMessage()) . "</p>";
+            echo "<p><strong>File:</strong> " . $e->getFile() . " on line " . $e->getLine() . "</p>";
+            echo "</div>";
+            exit();
+        }
+    }
+}
 
             // Commit all records in a single execution
             $conn->commit();
