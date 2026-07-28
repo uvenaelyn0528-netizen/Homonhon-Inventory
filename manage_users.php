@@ -8,11 +8,17 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
     exit();
 }
 
-// Handle User Deletion
+// Handle User Deletion using Prepared Statements (PDO)
 if (isset($_GET['delete_id'])) {
-    $id = $_GET['delete_id'];
-    $conn->query("DELETE FROM users WHERE id = $id");
-    header("Location: manage_users.php?msg=User Deleted");
+    $id = (int)$_GET['delete_id'];
+    
+    // Prevent admin from deleting themselves via URL parameter manipulation
+    if (isset($_SESSION['user_id']) && $id != $_SESSION['user_id']) {
+        $stmt = $conn->prepare("DELETE FROM users WHERE id = :id");
+        $stmt->execute([':id' => $id]);
+        header("Location: manage_users.php?msg=User Deleted");
+        exit();
+    }
 }
 ?>
 
@@ -46,7 +52,7 @@ if (isset($_GET['delete_id'])) {
     </div>
 
     <?php if(isset($_GET['msg'])): ?>
-        <p style="color: green; font-weight: bold;"><?php echo $_GET['msg']; ?></p>
+        <p style="color: green; font-weight: bold;"><?php echo htmlspecialchars($_GET['msg']); ?></p>
     <?php endif; ?>
 
     <table>
@@ -60,19 +66,22 @@ if (isset($_GET['delete_id'])) {
         </thead>
         <tbody>
             <?php
-            $result = $conn->query("SELECT id, username, role FROM users");
-            while ($row = $result->fetch_assoc()):
+            // Execute PDO Query
+            $stmt = $conn->query("SELECT id, username, role FROM users ORDER BY id ASC");
+            
+            // Loop through results using PDO syntax
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)):
             ?>
             <tr>
-                <td><?php echo $row['id']; ?></td>
-                <td><strong><?php echo strtoupper($row['username']); ?></strong></td>
+                <td><?php echo htmlspecialchars($row['id']); ?></td>
+                <td><strong><?php echo htmlspecialchars(strtoupper($row['username'])); ?></strong></td>
                 <td>
                     <span class="role-badge <?php echo ($row['role'] == 'Admin') ? 'role-admin' : 'role-staff'; ?>">
-                        <?php echo $row['role']; ?>
+                        <?php echo htmlspecialchars($row['role']); ?>
                     </span>
                 </td>
                 <td>
-                    <?php if ($row['username'] !== $_SESSION['username']): ?>
+                    <?php if (isset($_SESSION['username']) && $row['username'] !== $_SESSION['username']): ?>
                         <a href="manage_users.php?delete_id=<?php echo $row['id']; ?>" 
                            class="delete-btn" 
                            onclick="return confirm('Are you sure you want to delete this user?')">Delete</a>
