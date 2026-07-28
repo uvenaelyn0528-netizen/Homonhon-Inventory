@@ -1,6 +1,52 @@
 <?php 
 include 'db.php'; 
 
+if (session_status() === PHP_SESSION_NONE) { session_start(); } 
+
+// Authorization Check
+$isAuthorized = isset($_SESSION['role']) && in_array(strtolower($_SESSION['role']), ['admin', 'staff']);
+
+// --- HANDLE CSV IMPORT PROCESS ---
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file'])) {
+    $file = $_FILES['excel_file']['tmp_name'];
+    
+    if (($handle = fopen($file, "r")) !== FALSE) {
+        $row_count = 0;
+        
+        // Skip header row
+        fgetcsv($handle, 1000, ",");
+        
+        $insert_stmt = $conn->prepare("
+            INSERT INTO diesel_history 
+            (activity, tank_source, rdate, shift, rtime, is_no, ws_no, equipment_type, equipment_id, code, odometer, name, qty) 
+            VALUES ('OUTFLOW', :tank_source, :rdate, :shift, :rtime, :is_no, :ws_no, :equipment_type, :equipment_id, :code, :odometer, :name, :qty)
+        ");
+
+        while (($data = fgetcsv($handle, 1000, ",")) !== FALSE) {
+            if (!empty($data[0]) || !empty($data[2])) { // Check for valid row content
+                $insert_stmt->execute([
+                    ':tank_source'    => trim($data[0] ?? 'TANK 001'),
+                    ':rdate'          => !empty($data[1]) ? date('Y-m-d', strtotime($data[1])) : date('Y-m-d'),
+                    ':shift'          => trim($data[2] ?? 'D'),
+                    ':rtime'          => !empty($data[3]) ? date('H:i:s', strtotime($data[3])) : date('H:i:s'),
+                    ':is_no'          => trim($data[4] ?? ''),
+                    ':ws_no'          => trim($data[5] ?? ''),
+                    ':equipment_type' => trim($data[6] ?? ''),
+                    ':equipment_id'   => trim($data[7] ?? ''),
+                    ':code'           => trim($data[8] ?? ''),
+                    ':odometer'       => (float)($data[9] ?? 0),
+                    ':name'           => trim($data[10] ?? ''),
+                    ':qty'            => (float)($data[11] ?? 0)
+                ]);
+                $row_count++;
+            }
+        }
+        fclose($handle);
+        header("Location: " . $_SERVER['PHP_SELF'] . "?import_success=" . $row_count);
+        exit();
+    }
+}
+
 // Fetch distinct options for filter dropdowns
 $tank_options = $conn->query("SELECT DISTINCT tank_source FROM diesel_history WHERE activity = 'OUTFLOW' AND tank_source IS NOT NULL AND tank_source != ''")->fetchAll(PDO::FETCH_COLUMN);
 $type_options = $conn->query("SELECT DISTINCT equipment_type FROM diesel_history WHERE activity = 'OUTFLOW' AND equipment_type IS NOT NULL AND equipment_type != ''")->fetchAll(PDO::FETCH_COLUMN);
@@ -124,6 +170,7 @@ $daily_average = ($day_count > 0) ? ($total_year / $day_count) : 0;
         table { width: 100%; border-collapse: separate; border-spacing: 0; background: white; font-size: 11px; min-width: 1600px; }
         thead th { position: sticky; top: 0; background: var(--navy); color: white; padding: 12px; text-align: left; border-bottom: 2px solid var(--gold); z-index: 50; }
         td { padding: 10px; border-bottom: 1px solid #ddd; white-space: nowrap; }
+        
         .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:1000; justify-content:center; align-items:center; }
         .modal-content { background:white; padding:25px; border-radius:10px; width:650px; max-height: 90vh; overflow-y: auto; }
         .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
@@ -150,11 +197,7 @@ $daily_average = ($day_count > 0) ? ($total_year / $day_count) : 0;
         <div class="header-right">
             <a href="export_issuance.php" class="btn" style="background: #27ae60; color: white; border: 1px solid #219150;">📊 EXPORT TO EXCEL</a>
             <button class="btn btn-add" onclick="openAddModal()">➕ ADD NEW ISSUANCE</button>
-            <button class="btn btn-import" onclick="document.getElementById('importFile').click()">📥 IMPORT EXCEL</button>
-
-            <form id="importForm" action="import_process.php" method="POST" enctype="multipart/form-data" style="display:none;">
-                <input type="file" name="excel_file" id="importFile" accept=".csv" onchange="document.getElementById('importForm').submit()">
-            </form>
+            <button class="btn btn-import" onclick="openImportModal()">📥 IMPORT EXCEL</button>
         </div>
     </header>
 
@@ -235,6 +278,14 @@ $daily_average = ($day_count > 0) ? ($total_year / $day_count) : 0;
     </div>
 
     <div class="table-container">
+        <?php if (isset($_GET['import_success'])): ?>
+            <div id="statusAlert" style="background: #dcfce7; color: #166534; padding: 12px 15px; border-bottom: 1px solid #bbf7d0; font-weight: bold; font-size: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; border-radius: 4px;">
+                <span>✅ Imported <?= (int)$_GET['import_success'] ?> issuance records successfully!</span>
+                <button onclick="this.parentElement.remove()" style="background:none; border:none; color:#166534; cursor:pointer;">×</button>
+            </div>
+            <script>setTimeout(() => document.getElementById('statusAlert')?.remove(), 4000);</script>
+        <?php endif; ?>
+
         <table>
             <thead>
                 <tr>
@@ -287,6 +338,31 @@ $daily_average = ($day_count > 0) ? ($total_year / $day_count) : 0;
     </div>
 </div>
 
+<!-- IMPORT EXCEL/CSV MODAL -->
+<div id="importModal" class="modal">
+    <div class="modal-content" style="width: 420px;">
+        <h2 style="margin-top:0; color: var(--navy); border-bottom: 2px solid #eee; padding-bottom: 10px;">📥 Import Issuance CSV</h2>
+        <form action="" method="POST" enctype="multipart/form-data">
+            <p style="font-size:11px; color:#666; margin-top:0;">Select a <code>.csv</code> file containing issuance data to bulk upload records.</p>
+            <div style="margin-bottom: 15px;">
+                <label style="font-size: 11px; font-weight: bold; color: var(--navy); display: block; margin-bottom: 5px;">Select File (.csv)</label>
+                <input type="file" name="excel_file" accept=".csv" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+            </div>
+            
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; padding: 10px; font-size: 10px; color: #475569; margin-bottom: 20px;">
+                <strong>CSV Layout Order:</strong><br>
+                1. Tank Source | 2. Date | 3. Shift | 4. Time | 5. IS No. | 6. WS No. | 7. Eqpt Type | 8. Eqpt ID | 9. Code | 10. Odometer | 11. Operator | 12. Qty
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <button type="submit" class="btn btn-import" style="flex:1; justify-content:center; font-size: 13px;">UPLOAD & IMPORT</button>
+                <button type="button" onclick="toggleImportModal(false)" class="btn btn-back" style="flex:1; justify-content:center; font-size: 13px;">CANCEL</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ADD / EDIT ISSUANCE MODAL -->
 <div id="issuanceModal" class="modal">
     <div class="modal-content">
         <h2 id="modalTitle" style="margin-top:0; color: var(--dark-red); border-bottom: 2px solid #eee; padding-bottom: 10px;">New Daily Issuance</h2>
@@ -355,13 +431,17 @@ $daily_average = ($day_count > 0) ? ($total_year / $day_count) : 0;
 
 <script>
     function toggleModal(show) { document.getElementById('issuanceModal').style.display = show ? 'flex' : 'none'; }
+    function toggleImportModal(show) { document.getElementById('importModal').style.display = show ? 'flex' : 'none'; }
+    function openImportModal() { toggleImportModal(true); }
+    
     function openAddModal() {
         document.getElementById('modalTitle').innerText = "New Daily Issuance";
         document.getElementById('submitBtn').innerText = "SAVE ISSUANCE";
         document.getElementById('formId').value = "";
-        document.querySelector('form').reset();
+        document.querySelector('#issuanceModal form').reset();
         toggleModal(true);
     }
+    
     function editIssuance(data) {
         document.getElementById('modalTitle').innerText = "Edit Daily Issuance";
         document.getElementById('submitBtn').innerText = "UPDATE ISSUANCE";
@@ -380,6 +460,7 @@ $daily_average = ($day_count > 0) ? ($total_year / $day_count) : 0;
         document.getElementById('f_qty').value = data.qty || '';
         toggleModal(true);
     }
+    
     function deleteIssuance(id) {
         if (confirm("Are you sure you want to delete this issuance record?")) {
             window.location.href = "delete_fuel.php?id=" + id;
