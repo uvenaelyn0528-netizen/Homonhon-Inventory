@@ -104,24 +104,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file'])) {
     }
 }
 
-            // Commit all records in a single execution
-            $conn->commit();
-            fclose($handle);
-
-            header("Location: " . $_SERVER['PHP_SELF'] . "?import_success=" . $row_count);
-            exit();
-
-        } catch (Exception $e) {
-            // Roll back changes if an error happens
-            if ($conn->inTransaction()) {
-                $conn->rollBack();
-            }
-            fclose($handle);
-            die("<div style='padding:20px; color:red; font-family:sans-serif;'><h3>Import Failed:</h3>" . htmlspecialchars($e->getMessage()) . "</div>");
-        }
-    }
-}
-
 // Fetch distinct options for filter dropdowns
 $tank_options = $conn->query("SELECT DISTINCT tank_source FROM diesel_history WHERE activity = 'OUTFLOW' AND tank_source IS NOT NULL AND tank_source != ''")->fetchAll(PDO::FETCH_COLUMN);
 $type_options = $conn->query("SELECT DISTINCT equipment_type FROM diesel_history WHERE activity = 'OUTFLOW' AND equipment_type IS NOT NULL AND equipment_type != ''")->fetchAll(PDO::FETCH_COLUMN);
