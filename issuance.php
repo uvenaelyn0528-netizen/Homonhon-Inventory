@@ -196,7 +196,6 @@ $daily_average = ($day_count > 0) ? ($total_year / $day_count) : 0;
         </div>
         <div class="filter-group" style="flex-direction: row; gap: 5px;">
             <button type="submit" class="btn btn-filter">🔍 Filter</button>
-            <a href="daily_issuance.php" class="btn btn-reset">🔄 Reset</a>
         </div>
     </form>
 
