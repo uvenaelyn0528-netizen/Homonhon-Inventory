@@ -16,44 +16,73 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file'])) {
         // Skip header row
         fgetcsv($handle, 1000, ",");
         
-        $insert_stmt = $conn->prepare("
-            INSERT INTO diesel_history 
-            (activity, tank_source, rdate, shift, rtime, is_no, ws_no, equipment_type, equipment_id, code, odometer, name, qty) 
-            VALUES ('OUTFLOW', :tank_source, :rdate, :shift, :rtime, :is_no, :ws_no, :equipment_type, :equipment_id, :code, :odometer, :name, :qty)
-        ");
+        try {
+            // Begin database transaction for ultra-fast batch insertion and to prevent Render 502 timeouts
+            $conn->beginTransaction();
 
-        while (($raw_data = fgetcsv($handle, 1000, ",")) !== FALSE) {
-            // Convert non-UTF8 characters (e.g. Windows-1252 'ñ') to UTF-8 for PostgreSQL
-            $data = array_map(function($field) {
-                return mb_convert_encoding($field ?? '', 'UTF-8', 'UTF-8, Windows-1252, ISO-8859-1');
-            }, $raw_data);
+            $insert_stmt = $conn->prepare("
+                INSERT INTO diesel_history 
+                (activity, tank_source, rdate, shift, rtime, is_no, ws_no, equipment_type, equipment_id, code, odometer, name, qty) 
+                VALUES ('OUTFLOW', :tank_source, :rdate, :shift, :rtime, :is_no, :ws_no, :equipment_type, :equipment_id, :code, :odometer, :name, :qty)
+            ");
 
-            // Row validation (Check if Date or Tank Source exists)
-            if (!empty($data[0]) || !empty($data[1])) {
-                
-                // Determine Qty (Takes column L, falls back to column C if empty)
-                $qty_val = !empty($data[11]) ? $data[11] : ($data[2] ?? 0);
+            while (($raw_data = fgetcsv($handle, 1000, ",")) !== FALSE) {
+                // Convert non-UTF8 characters (e.g. Windows-1252 'ñ') to UTF-8 for PostgreSQL
+                $data = array_map(function($field) {
+                    return mb_convert_encoding($field ?? '', 'UTF-8', 'UTF-8, Windows-1252, ISO-8859-1');
+                }, $raw_data);
 
-                $insert_stmt->execute([
-                    ':tank_source'    => trim($data[0] ?? 'TANK 001'),
-                    ':rdate'          => !empty($data[1]) ? date('Y-m-d', strtotime($data[1])) : date('Y-m-d'),
-                    ':ws_no'          => trim($data[3] ?? ''),
-                    ':name'           => trim($data[4] ?? ''),
-                    ':equipment_type' => trim($data[5] ?? ''),
-                    ':equipment_id'   => trim($data[6] ?? ''),
-                    ':code'           => trim($data[7] ?? ''),
-                    ':odometer'       => (float) preg_replace('/[^0-9.]/', '', $data[8] ?? '0'),
-                    ':rtime'          => !empty($data[9]) ? date('H:i:s', strtotime($data[9])) : date('H:i:s'),
-                    ':is_no'          => trim($data[10] ?? ''),
-                    ':qty'            => (float) preg_replace('/[^0-9.]/', '', $qty_val),
-                    ':shift'          => trim($data[12] ?? 'D')
-                ]);
-                $row_count++;
+                // Row validation (Check if Date or Tank Source exists)
+                if (!empty($data[0]) || !empty($data[1])) {
+                    
+                    // Format Date safely
+                    $rdate = !empty($data[1]) ? date('Y-m-d', strtotime($data[1])) : date('Y-m-d');
+
+                    // Format Time safely
+                    $raw_time = trim($data[9] ?? '');
+                    $rtime = !empty($raw_time) ? date('H:i:s', strtotime($raw_time)) : '00:00:00';
+
+                    // Determine Qty (Takes column L, falls back to column C if empty)
+                    $raw_qty = !empty($data[11]) ? $data[11] : ($data[2] ?? '0');
+                    $qty_val = (float) preg_replace('/[^0-9.]/', '', $raw_qty);
+
+                    // Clean Odometer reading
+                    $odometer_val = (float) preg_replace('/[^0-9.]/', '', $data[8] ?? '0');
+
+                    $insert_stmt->execute([
+                        ':tank_source'    => trim($data[0] ?? 'TANK 001'),
+                        ':rdate'          => $rdate,
+                        ':ws_no'          => trim($data[3] ?? ''),
+                        ':name'           => trim($data[4] ?? ''),
+                        ':equipment_type' => trim($data[5] ?? ''),
+                        ':equipment_id'   => trim($data[6] ?? ''),
+                        ':code'           => trim($data[7] ?? ''),
+                        ':odometer'       => $odometer_val,
+                        ':rtime'          => $rtime,
+                        ':is_no'          => trim($data[10] ?? ''),
+                        ':qty'            => $qty_val,
+                        ':shift'          => trim($data[12] ?? 'D')
+                    ]);
+
+                    $row_count++;
+                }
             }
+
+            // Commit all records in a single execution
+            $conn->commit();
+            fclose($handle);
+
+            header("Location: " . $_SERVER['PHP_SELF'] . "?import_success=" . $row_count);
+            exit();
+
+        } catch (Exception $e) {
+            // Roll back changes if an error happens
+            if ($conn->inTransaction()) {
+                $conn->rollBack();
+            }
+            fclose($handle);
+            die("<div style='padding:20px; color:red; font-family:sans-serif;'><h3>Import Failed:</h3>" . htmlspecialchars($e->getMessage()) . "</div>");
         }
-        fclose($handle);
-        header("Location: " . $_SERVER['PHP_SELF'] . "?import_success=" . $row_count);
-        exit();
     }
 }
 
