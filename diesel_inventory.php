@@ -6,6 +6,42 @@ if (session_status() === PHP_SESSION_NONE) { session_start(); }
 // Authorization Check
 $isAuthorized = isset($_SESSION['role']) && in_array(strtolower($_SESSION['role']), ['admin', 'staff']);
 
+// Handle Import Logic (if posted to the same file or redirect target)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file']) && $isAuthorized) {
+    $file = $_FILES['excel_file']['tmp_name'];
+    if (($handle = fopen($file, "r")) !== FALSE) {
+        $row_count = 0;
+        // Skip header row
+        fgetcsv($handle, 1000, ",");
+        
+        $insert_stmt = $conn->prepare("
+            INSERT INTO diesel_inventory 
+            (rdate, activity, received_from, rr_no, ws_no, withdrawn_from, deposited_to, qty) 
+            VALUES (:rdate, :activity, :received_from, :rr_no, :ws_no, :withdrawn_from, :deposited_to, :qty)
+        ");
+
+        while (($data = fgetcsv($handle, 1000, ",")) !== FALSE) {
+            // Adjust indexes depending on your CSV layout format
+            if (!empty($data[0])) {
+                $insert_stmt->execute([
+                    ':rdate'          => date('Y-m-d', strtotime($data[0] ?? 'now')),
+                    ':activity'       => strtoupper(trim($data[1] ?? 'INFLOW')),
+                    ':received_from'  => $data[2] ?? null,
+                    ':rr_no'          => $data[3] ?? null,
+                    ':ws_no'          => $data[4] ?? null,
+                    ':withdrawn_from' => $data[5] ?? null,
+                    ':deposited_to'   => $data[6] ?? 'Direct to Unit',
+                    ':qty'            => (float)($data[7] ?? 0)
+                ]);
+                $row_count++;
+            }
+        }
+        fclose($handle);
+        header("Location: " . $_SERVER['PHP_SELF'] . "?import_success=" . $row_count);
+        exit();
+    }
+}
+
 // 1. Handle Filters
 $search = $_GET['search'] ?? '';
 $from_date = $_GET['from_date'] ?? '';
@@ -201,6 +237,7 @@ $tanks_ft = ["TANK 001", "TANK 002", "TANK 003", "TANK 004", "TANK 005", "TANK 0
             <a href="issuance.php" class="btn" style="background: var(--issuance-purple); color: white; padding: 12px 24px; font-size: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">⛽ ISSUANCE HISTORY</a>   
             <?php if ($isAuthorized): ?>
                 <button class="btn" onclick="openFuelModal('INFLOW')" style="background: #112941; color: white;">+ NEW ENTRY</button>
+                <button class="btn" onclick="openImportModal()" style="background: #0284c7; color: white;">📥 IMPORT EXCEL</button>
                 <button class="btn" onclick="clearInventory()" style="background: #112941; color: white;">🗑️ WIPE</button>
             <?php endif; ?>
             <button class="btn" onclick="exportToExcel()" style="background: #27ae60; color: white;">📈 EXCEL</button>
@@ -209,6 +246,14 @@ $tanks_ft = ["TANK 001", "TANK 002", "TANK 003", "TANK 004", "TANK 005", "TANK 0
     </nav>
 
     <div class="table-container">
+        <?php if (isset($_GET['import_success'])): ?>
+            <div id="statusAlert" style="background: #dcfce7; color: #166534; padding: 15px; border-bottom: 1px solid #bbf7d0; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between;">
+                <span>✅ Imported <?= (int)$_GET['import_success'] ?> records successfully!</span>
+                <button onclick="this.parentElement.remove()" style="background:none; border:none; color:#166534; cursor:pointer;">×</button>
+            </div>
+            <script>setTimeout(() => document.getElementById('statusAlert')?.remove(), 4000);</script>
+        <?php endif; ?>
+
         <?php if (isset($_GET['upload']) || isset($_GET['msg'])): ?>
             <div id="statusAlert" style="background: #dcfce7; color: #166534; padding: 15px; border-bottom: 1px solid #bbf7d0; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between;">
                 <span><?= isset($_GET['upload']) ? "✅ Scan uploaded to Supabase successfully!" : "✅ Record saved successfully!" ?></span>
@@ -264,6 +309,23 @@ $tanks_ft = ["TANK 001", "TANK 002", "TANK 003", "TANK 004", "TANK 005", "TANK 0
                 <?php endwhile; ?>
             </tbody>
         </table>
+    </div>
+</div>
+
+<!-- IMPORT EXCEL MODAL -->
+<div id="importModal" class="modal">
+    <div class="modal-content" style="width:400px;">
+        <div class="modal-header"><h3 style="margin:0;">📥 Import Excel / CSV</h3></div>
+        <div class="modal-body">
+            <form action="" method="POST" enctype="multipart/form-data">
+                <p style="font-size:11px; color:#666; margin-top:0;">Select a <code>.csv</code> file containing inventory data to import.</p>
+                <input type="file" name="excel_file" accept=".csv" required style="width:100%; margin-bottom:20px;">
+                <div style="display: flex; gap: 10px;">
+                    <button type="submit" class="btn" style="flex:1; background:var(--navy); color:white; justify-content:center;">UPLOAD & IMPORT</button>
+                    <button type="button" onclick="closeImportModal()" class="btn" style="flex:1; background:#ccc; justify-content:center;">CANCEL</button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
@@ -325,6 +387,8 @@ $tanks_ft = ["TANK 001", "TANK 002", "TANK 003", "TANK 004", "TANK 005", "TANK 0
 </div>
 
 <script>
+function openImportModal() { document.getElementById('importModal').style.display = 'flex'; }
+function closeImportModal() { document.getElementById('importModal').style.display = 'none'; }
 function openFuelModal(type) {
     document.getElementById('fuelModal').style.display = 'flex';
     document.getElementById('formId').value = '';
