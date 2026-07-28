@@ -22,21 +22,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file'])) {
             VALUES ('OUTFLOW', :tank_source, :rdate, :shift, :rtime, :is_no, :ws_no, :equipment_type, :equipment_id, :code, :odometer, :name, :qty)
         ");
 
-        while (($data = fgetcsv($handle, 1000, ",")) !== FALSE) {
-            if (!empty($data[0]) || !empty($data[2])) { // Check for valid row content
+        while (($raw_data = fgetcsv($handle, 1000, ",")) !== FALSE) {
+            // Convert non-UTF8 characters (e.g. Windows-1252 'ñ') to UTF-8 for PostgreSQL
+            $data = array_map(function($field) {
+                return mb_convert_encoding($field ?? '', 'UTF-8', 'UTF-8, Windows-1252, ISO-8859-1');
+            }, $raw_data);
+
+            // Row validation (Check if Date or Tank Source exists)
+            if (!empty($data[0]) || !empty($data[1])) {
+                
+                // Determine Qty (Takes column L, falls back to column C if empty)
+                $qty_val = !empty($data[11]) ? $data[11] : ($data[2] ?? 0);
+
                 $insert_stmt->execute([
                     ':tank_source'    => trim($data[0] ?? 'TANK 001'),
                     ':rdate'          => !empty($data[1]) ? date('Y-m-d', strtotime($data[1])) : date('Y-m-d'),
-                    ':shift'          => trim($data[2] ?? 'D'),
-                    ':rtime'          => !empty($data[3]) ? date('H:i:s', strtotime($data[3])) : date('H:i:s'),
-                    ':is_no'          => trim($data[4] ?? ''),
-                    ':ws_no'          => trim($data[5] ?? ''),
-                    ':equipment_type' => trim($data[6] ?? ''),
-                    ':equipment_id'   => trim($data[7] ?? ''),
-                    ':code'           => trim($data[8] ?? ''),
-                    ':odometer'       => (float)($data[9] ?? 0),
-                    ':name'           => trim($data[10] ?? ''),
-                    ':qty'            => (float)($data[11] ?? 0)
+                    ':ws_no'          => trim($data[3] ?? ''),
+                    ':name'           => trim($data[4] ?? ''),
+                    ':equipment_type' => trim($data[5] ?? ''),
+                    ':equipment_id'   => trim($data[6] ?? ''),
+                    ':code'           => trim($data[7] ?? ''),
+                    ':odometer'       => (float) preg_replace('/[^0-9.]/', '', $data[8] ?? '0'),
+                    ':rtime'          => !empty($data[9]) ? date('H:i:s', strtotime($data[9])) : date('H:i:s'),
+                    ':is_no'          => trim($data[10] ?? ''),
+                    ':qty'            => (float) preg_replace('/[^0-9.]/', '', $qty_val),
+                    ':shift'          => trim($data[12] ?? 'D')
                 ]);
                 $row_count++;
             }
