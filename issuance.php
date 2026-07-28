@@ -2,16 +2,19 @@
 include 'db.php'; 
 
 /**
- * FIXED: Query uses your specific Supabase 'diesel_history' table columns.
+ * FIXED: Safer PDO query execution with fallback empty array to prevent fatal errors on fetchAll()
  */
 $query = "SELECT * FROM diesel_history WHERE activity = 'OUTFLOW' ORDER BY rdate DESC, rtime DESC";
 $res = $conn->query($query);
+
+// Fallback in case $res is false (query failure)
+$rows = $res ? $res->fetchAll(PDO::FETCH_ASSOC) : [];
 
 // Initialize variables for totals
 $total_year = 0;
 $total_month = 0;
 $total_day = 0;
-$unique_days = []; // Added to track unique dates for averaging
+$unique_days = []; 
 $summary_type = [];
 $summary_unit = [];
 
@@ -19,19 +22,16 @@ $current_year = date('Y');
 $current_month = date('m');
 $current_day = date('Y-m-d');
 
-// Fetch all rows into an array to calculate totals before displaying
-$rows = $res->fetchAll(PDO::FETCH_ASSOC);
-
 foreach ($rows as $row) {
     $qty = (float)($row['qty'] ?? 0);
-    $row_date = $row['rdate'];
+    $row_date = (string)($row['rdate'] ?? '');
     
-    // Safety check: only process if date is not null to prevent strpos errors
-    if ($row_date) {
-        $unique_days[$row_date] = true; // Mark this date as having activity
+    // Safety check: ensure rdate is valid
+    if (!empty($row_date)) {
+        $unique_days[$row_date] = true; 
         
-        $type = $row['equipment_type'] ?: 'Unknown';
-        $unit = $row['equipment_id'] ?: 'Unknown';
+        $type = !empty($row['equipment_type']) ? $row['equipment_type'] : 'Unknown';
+        $unit = !empty($row['equipment_id']) ? $row['equipment_id'] : 'Unknown';
 
         // Time-based totals
         if (strpos($row_date, $current_year) === 0) {
@@ -84,7 +84,6 @@ $daily_average = ($day_count > 0) ? ($total_year / $day_count) : 0;
         label { font-size: 11px; font-weight: bold; color: var(--navy); display: block; margin-bottom: 5px; }
         input, select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
         
-        /* Dashboard Stats Styling */
         .dashboard-container { padding: 20px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; flex-shrink: 0; }
         .stat-card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .stat-list { font-size: 11px; margin-top: 5px; max-height: 80px; overflow-y: auto; }
@@ -108,9 +107,7 @@ $daily_average = ($day_count > 0) ? ($total_year / $day_count) : 0;
         </div>
 
         <div class="header-right">
-            <a href="export_issuance.php" class="btn" style="background: #27ae60; color: white; border: 1px solid #219150;">
-        📊 EXPORT TO EXCEL
-    </a>
+            <a href="export_issuance.php" class="btn" style="background: #27ae60; color: white; border: 1px solid #219150;">📊 EXPORT TO EXCEL</a>
             <button class="btn btn-add" onclick="openAddModal()">➕ ADD NEW ISSUANCE</button>
             <button class="btn btn-import" onclick="document.getElementById('importFile').click()">📥 IMPORT EXCEL</button>
 
@@ -135,7 +132,7 @@ $daily_average = ($day_count > 0) ? ($total_year / $day_count) : 0;
             <div class="stat-list">
                 <?php foreach($summary_type as $type => $q): ?>
                     <div class="stat-item">
-                        <span><?= htmlspecialchars($type) ?></span>
+                        <span><?= htmlspecialchars((string)$type) ?></span>
                         <strong><?= number_format($q, 2) ?></strong>
                     </div>
                 <?php endforeach; ?>
@@ -147,7 +144,7 @@ $daily_average = ($day_count > 0) ? ($total_year / $day_count) : 0;
             <div class="stat-list">
                 <?php foreach($summary_unit as $unit => $q): ?>
                     <div class="stat-item">
-                        <span><?= htmlspecialchars($unit) ?></span>
+                        <span><?= htmlspecialchars((string)$unit) ?></span>
                         <strong><?= number_format($q, 2) ?></strong>
                     </div>
                 <?php endforeach; ?>
@@ -179,8 +176,8 @@ $daily_average = ($day_count > 0) ? ($total_year / $day_count) : 0;
                 <?php foreach($rows as $row): ?>
                 <tr>
                     <td style="text-align: center;">
-                        <button class="btn-edit" onclick='editIssuance(<?= json_encode($row) ?>)'>✏️</button>
-                        <button class="btn-delete" onclick="deleteIssuance(<?= $row['id'] ?>)">🗑️</button>
+                        <button class="btn-edit" onclick='editIssuance(<?= json_encode($row, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'>✏️</button>
+                        <button class="btn-delete" onclick="deleteIssuance(<?= (int)($row['id'] ?? 0) ?>)">🗑️</button>
                     </td>
                     <td><?= htmlspecialchars($row['tank_source'] ?? '---') ?></td>
                     <td><?= htmlspecialchars($row['rdate'] ?? '') ?></td>
@@ -192,7 +189,7 @@ $daily_average = ($day_count > 0) ? ($total_year / $day_count) : 0;
                     <td><?= htmlspecialchars($row['equipment_id'] ?? '') ?></td>
                     <td><?= htmlspecialchars($row['code'] ?? '---') ?></td>
                     <td><?= htmlspecialchars($row['odometer'] ?? '0') ?></td>
-                    <td><?= $row['rtime'] ? date('h:i A', strtotime($row['rtime'])) : '---' ?></td>
+                    <td><?= !empty($row['rtime']) ? date('h:i A', strtotime($row['rtime'])) : '---' ?></td>
                     <td><?= htmlspecialchars($row['is_no'] ?? '---') ?></td>
                     <td style="text-align:right; font-weight:bold;"><?= number_format($row['qty'] ?? 0, 2) ?></td>
                 </tr>
@@ -280,19 +277,19 @@ $daily_average = ($day_count > 0) ? ($total_year / $day_count) : 0;
     function editIssuance(data) {
         document.getElementById('modalTitle').innerText = "Edit Daily Issuance";
         document.getElementById('submitBtn').innerText = "UPDATE ISSUANCE";
-        document.getElementById('formId').value = data.id;
+        document.getElementById('formId').value = data.id || '';
         document.getElementById('f_tank').value = data.tank_source || '';
-        document.getElementById('f_date').value = data.rdate;
-        document.getElementById('f_time').value = data.rtime;
+        document.getElementById('f_date').value = data.rdate || '';
+        document.getElementById('f_time').value = data.rtime || '';
         document.getElementById('f_shift').value = data.shift || '';
         document.getElementById('f_slip').value = data.is_no || '';
-        document.getElementById('f_ws').value = data.ws_no;
+        document.getElementById('f_ws').value = data.ws_no || '';
         document.getElementById('f_type').value = data.equipment_type || '';
-        document.getElementById('f_dep').value = data.equipment_id;
+        document.getElementById('f_dep').value = data.equipment_id || '';
         document.getElementById('f_code').value = data.code || '';
         document.getElementById('f_odo').value = data.odometer || '';
         document.getElementById('f_rec').value = data.name || '';
-        document.getElementById('f_qty').value = data.qty;
+        document.getElementById('f_qty').value = data.qty || '';
         toggleModal(true);
     }
     function deleteIssuance(id) {
