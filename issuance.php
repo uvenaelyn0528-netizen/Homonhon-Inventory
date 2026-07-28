@@ -1,14 +1,48 @@
 <?php 
 include 'db.php'; 
 
-/**
- * FIXED: Safer PDO query execution with fallback empty array to prevent fatal errors on fetchAll()
- */
-$query = "SELECT * FROM diesel_history WHERE activity = 'OUTFLOW' ORDER BY rdate DESC, rtime DESC";
-$res = $conn->query($query);
+// Fetch distinct options for filter dropdowns
+$tank_options = $conn->query("SELECT DISTINCT tank_source FROM diesel_history WHERE activity = 'OUTFLOW' AND tank_source IS NOT NULL AND tank_source != ''")->fetchAll(PDO::FETCH_COLUMN);
+$type_options = $conn->query("SELECT DISTINCT equipment_type FROM diesel_history WHERE activity = 'OUTFLOW' AND equipment_type IS NOT NULL AND equipment_type != ''")->fetchAll(PDO::FETCH_COLUMN);
 
-// Fallback in case $res is false (query failure)
-$rows = $res ? $res->fetchAll(PDO::FETCH_ASSOC) : [];
+// Filter Input Values
+$filter_from = $_GET['from_date'] ?? '';
+$filter_to = $_GET['to_date'] ?? '';
+$filter_tank = $_GET['tank_source'] ?? '';
+$filter_type = $_GET['equipment_type'] ?? '';
+$filter_search = trim($_GET['search'] ?? '');
+
+// Build Dynamic SQL Query with Prepared Statements
+$sql = "SELECT * FROM diesel_history WHERE activity = 'OUTFLOW'";
+$params = [];
+
+if (!empty($filter_from)) {
+    $sql .= " AND rdate >= :from_date";
+    $params[':from_date'] = $filter_from;
+}
+if (!empty($filter_to)) {
+    $sql .= " AND rdate <= :to_date";
+    $params[':to_date'] = $filter_to;
+}
+if (!empty($filter_tank)) {
+    $sql .= " AND tank_source = :tank_source";
+    $params[':tank_source'] = $filter_tank;
+}
+if (!empty($filter_type)) {
+    $sql .= " AND equipment_type = :equipment_type";
+    $params[':equipment_type'] = $filter_type;
+}
+if (!empty($filter_search)) {
+    $sql .= " AND (ws_no ILIKE :search OR is_no ILIKE :search OR equipment_id ILIKE :search OR name ILIKE :search)";
+    $params[':search'] = "%{$filter_search}%";
+}
+
+$sql .= " ORDER BY rdate DESC, rtime DESC";
+
+// Execute Prepared Query
+$stmt = $conn->prepare($sql);
+$stmt->execute($params);
+$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Initialize variables for totals
 $total_year = 0;
@@ -26,7 +60,6 @@ foreach ($rows as $row) {
     $qty = (float)($row['qty'] ?? 0);
     $row_date = (string)($row['rdate'] ?? '');
     
-    // Safety check: ensure rdate is valid
     if (!empty($row_date)) {
         $unique_days[$row_date] = true; 
         
@@ -50,7 +83,7 @@ foreach ($rows as $row) {
     }
 }
 
-// Calculate Daily Average based on active days in the database
+// Calculate Daily Average based on active days in the filtered results
 $day_count = count($unique_days);
 $daily_average = ($day_count > 0) ? ($total_year / $day_count) : 0;
 ?>
@@ -72,8 +105,22 @@ $daily_average = ($day_count > 0) ? ($total_year / $day_count) : 0;
         .btn-back { background: #eee; color: #333; border: 1px solid #ccc; }
         .btn-add { background: var(--dark-red); color: white; border: 1px solid var(--gold); }
         .btn-import { background: var(--green); color: white; border: 1px solid #219150; }
+        .btn-filter { background: var(--navy); color: white; }
+        .btn-reset { background: #7f8c8d; color: white; text-decoration: none; }
         .btn-edit { color: #3498db; background: none; border: 1px solid #3498db; padding: 4px 6px; border-radius: 4px; cursor: pointer; }
         .btn-delete { color: #e74c3c; background: none; border: 1px solid #e74c3c; padding: 4px 6px; border-radius: 4px; cursor: pointer; }
+        
+        /* Filter Bar Styles */
+        .filter-bar { background: white; padding: 10px 20px; border-bottom: 1px solid #ddd; display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; flex-shrink: 0; }
+        .filter-group { display: flex; flex-direction: column; gap: 3px; }
+        .filter-group label { font-size: 10px; font-weight: bold; color: var(--navy); }
+        .filter-group input, .filter-group select { padding: 5px 8px; font-size: 11px; border: 1px solid #ccc; border-radius: 4px; height: 28px; box-sizing: border-box; }
+
+        .dashboard-container { padding: 15px 20px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; flex-shrink: 0; }
+        .stat-card { background: white; padding: 12px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .stat-list { font-size: 11px; margin-top: 5px; max-height: 70px; overflow-y: auto; }
+        .stat-item { display:flex; justify-content:space-between; border-bottom: 1px solid #eee; padding: 2px 0; }
+
         .table-container { flex: 1; overflow: auto; padding: 0 20px 20px 20px; }
         table { width: 100%; border-collapse: separate; border-spacing: 0; background: white; font-size: 11px; min-width: 1600px; }
         thead th { position: sticky; top: 0; background: var(--navy); color: white; padding: 12px; text-align: left; border-bottom: 2px solid var(--gold); z-index: 50; }
@@ -81,13 +128,8 @@ $daily_average = ($day_count > 0) ? ($total_year / $day_count) : 0;
         .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:1000; justify-content:center; align-items:center; }
         .modal-content { background:white; padding:25px; border-radius:10px; width:650px; max-height: 90vh; overflow-y: auto; }
         .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        label { font-size: 11px; font-weight: bold; color: var(--navy); display: block; margin-bottom: 5px; }
-        input, select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        
-        .dashboard-container { padding: 20px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; flex-shrink: 0; }
-        .stat-card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .stat-list { font-size: 11px; margin-top: 5px; max-height: 80px; overflow-y: auto; }
-        .stat-item { display:flex; justify-content:space-between; border-bottom: 1px solid #eee; padding: 2px 0; }
+        .form-grid label { font-size: 11px; font-weight: bold; color: var(--navy); display: block; margin-bottom: 5px; }
+        .form-grid input, .form-grid select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
     </style>
 </head>
 <body>
@@ -116,6 +158,48 @@ $daily_average = ($day_count > 0) ? ($total_year / $day_count) : 0;
             </form>
         </div>
     </header>
+
+    <!-- FILTER BAR -->
+    <form method="GET" class="filter-bar">
+        <div class="filter-group">
+            <label>From Date</label>
+            <input type="date" name="from_date" value="<?= htmlspecialchars($filter_from) ?>">
+        </div>
+        <div class="filter-group">
+            <label>To Date</label>
+            <input type="date" name="to_date" value="<?= htmlspecialchars($filter_to) ?>">
+        </div>
+        <div class="filter-group">
+            <label>Tank Source</label>
+            <select name="tank_source">
+                <option value="">All Tanks</option>
+                <?php foreach($tank_options as $tank): ?>
+                    <option value="<?= htmlspecialchars($tank) ?>" <?= $filter_tank === $tank ? 'selected' : '' ?>>
+                        <?= htmlspecialchars($tank) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Equipment Type</label>
+            <select name="equipment_type">
+                <option value="">All Types</option>
+                <?php foreach($type_options as $type): ?>
+                    <option value="<?= htmlspecialchars($type) ?>" <?= $filter_type === $type ? 'selected' : '' ?>>
+                        <?= htmlspecialchars($type) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Search Keyword</label>
+            <input type="text" name="search" placeholder="WS#, IS#, Unit, Operator..." value="<?= htmlspecialchars($filter_search) ?>">
+        </div>
+        <div class="filter-group" style="flex-direction: row; gap: 5px;">
+            <button type="submit" class="btn btn-filter">🔍 Filter</button>
+            <a href="daily_issuance.php" class="btn btn-reset">🔄 Reset</a>
+        </div>
+    </form>
 
     <div class="dashboard-container">
         <div class="stat-card" style="border-left: 5px solid var(--dark-red);">
@@ -173,27 +257,33 @@ $daily_average = ($day_count > 0) ? ($total_year / $day_count) : 0;
                 </tr>
             </thead>
             <tbody>
-                <?php foreach($rows as $row): ?>
+                <?php if (empty($rows)): ?>
                 <tr>
-                    <td style="text-align: center;">
-                        <button class="btn-edit" onclick='editIssuance(<?= json_encode($row, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'>✏️</button>
-                        <button class="btn-delete" onclick="deleteIssuance(<?= (int)($row['id'] ?? 0) ?>)">🗑️</button>
-                    </td>
-                    <td><?= htmlspecialchars($row['tank_source'] ?? '---') ?></td>
-                    <td><?= htmlspecialchars($row['rdate'] ?? '') ?></td>
-                    <td><?= htmlspecialchars($row['shift'] ?? '---') ?></td>
-                    <td><strong><?= htmlspecialchars($row['equipment_id'] ?? '') ?></strong></td>
-                    <td><?= htmlspecialchars($row['ws_no'] ?? '') ?></td>
-                    <td><?= htmlspecialchars($row['name'] ?? '') ?></td>
-                    <td><?= htmlspecialchars($row['equipment_type'] ?? '---') ?></td>
-                    <td><?= htmlspecialchars($row['equipment_id'] ?? '') ?></td>
-                    <td><?= htmlspecialchars($row['code'] ?? '---') ?></td>
-                    <td><?= htmlspecialchars($row['odometer'] ?? '0') ?></td>
-                    <td><?= !empty($row['rtime']) ? date('h:i A', strtotime($row['rtime'])) : '---' ?></td>
-                    <td><?= htmlspecialchars($row['is_no'] ?? '---') ?></td>
-                    <td style="text-align:right; font-weight:bold;"><?= number_format($row['qty'] ?? 0, 2) ?></td>
+                    <td colspan="14" style="text-align: center; color: #888; padding: 20px;">No records match the current filter criteria.</td>
                 </tr>
-                <?php endforeach; ?>
+                <?php else: ?>
+                    <?php foreach($rows as $row): ?>
+                    <tr>
+                        <td style="text-align: center;">
+                            <button class="btn-edit" onclick='editIssuance(<?= json_encode($row, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'>✏️</button>
+                            <button class="btn-delete" onclick="deleteIssuance(<?= (int)($row['id'] ?? 0) ?>)">🗑️</button>
+                        </td>
+                        <td><?= htmlspecialchars($row['tank_source'] ?? '---') ?></td>
+                        <td><?= htmlspecialchars($row['rdate'] ?? '') ?></td>
+                        <td><?= htmlspecialchars($row['shift'] ?? '---') ?></td>
+                        <td><strong><?= htmlspecialchars($row['equipment_id'] ?? '') ?></strong></td>
+                        <td><?= htmlspecialchars($row['ws_no'] ?? '') ?></td>
+                        <td><?= htmlspecialchars($row['name'] ?? '') ?></td>
+                        <td><?= htmlspecialchars($row['equipment_type'] ?? '---') ?></td>
+                        <td><?= htmlspecialchars($row['equipment_id'] ?? '') ?></td>
+                        <td><?= htmlspecialchars($row['code'] ?? '---') ?></td>
+                        <td><?= htmlspecialchars($row['odometer'] ?? '0') ?></td>
+                        <td><?= !empty($row['rtime']) ? date('h:i A', strtotime($row['rtime'])) : '---' ?></td>
+                        <td><?= htmlspecialchars($row['is_no'] ?? '---') ?></td>
+                        <td style="text-align:right; font-weight:bold;"><?= number_format($row['qty'] ?? 0, 2) ?></td>
+                    </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </tbody>
         </table>
     </div>
