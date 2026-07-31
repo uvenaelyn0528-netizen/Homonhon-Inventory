@@ -256,7 +256,7 @@ $tanks_ft = ["TANK 001", "TANK 002", "TANK 003", "TANK 004", "TANK 005", "TANK 0
 
         <?php if (isset($_GET['upload']) || isset($_GET['msg'])): ?>
             <div id="statusAlert" style="background: #dcfce7; color: #166534; padding: 15px; border-bottom: 1px solid #bbf7d0; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between;">
-                <span><?= isset($_GET['upload']) ? "✅ Scan uploaded to Supabase successfully!" : "✅ Record saved successfully!" ?></span>
+                <span><?= isset($_GET['upload']) ? "✅ Scan uploaded to Supabase successfully!" : htmlspecialchars($_GET['msg']) ?></span>
                 <button onclick="this.parentElement.remove()" style="background:none; border:none; color:#166534; cursor:pointer;">×</button>
             </div>
             <script>setTimeout(() => document.getElementById('statusAlert')?.remove(), 4000);</script>
@@ -413,6 +413,14 @@ function openUploadModal(id) { document.getElementById('uploadModal').style.disp
 function closeFuelModal() { document.getElementById('fuelModal').style.display = 'none'; }
 function closeUploadModal() { document.getElementById('uploadModal').style.display = 'none'; }
 function deleteRecord(id) { if(confirm("Delete record?")) window.location.href="delete_fuel.php?id="+id; }
+
+// ADDED: Missing clearInventory function
+function clearInventory() {
+    if (confirm("⚠️ WARNING: Are you sure you want to WIPE/CLEAR ALL records from the diesel inventory? This cannot be undone!")) {
+        window.location.href = "clear_diesel.php";
+    }
+}
+
 function exportToExcel() { window.location.href="export_diesel.php?" + new URLSearchParams(window.location.search); }
 </script>
 </body>
