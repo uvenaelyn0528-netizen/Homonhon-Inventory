@@ -138,10 +138,10 @@ if (!isset($_SESSION['user_id'])) {
     </div>
 
     <div class="sidebar-actions" style="padding: 10px 15px;">
-        <a href="logout.php" class="logout-btn-stacked" style="display: block; padding: 10px; background: #c0392b; color: white; text-align: center; text-decoration: none; border-radius: 4px; font-weight: bold;" onclick="return confirm('Confirm Logout?')">🚪 LOGOUT ACCOUNT</a>
+        <a href="logout.php" class="logout-btn-stacked" style="display: block; padding: 5px; background: #c0392b; color: white; text-align: center; text-decoration: none; border-radius: 4px; font-weight: bold;" onclick="return confirm('Confirm Logout?')">🚪 LOGOUT ACCOUNT</a>
     </div>
 
-    <hr style="border: 0.5px solid #3e4f5f; margin: 15px 0;">
+    <hr style="border: 0.5px solid #3e4f5f; margin: 5px 0;">
     
     <div class="sidebar-section">
         <label style="color:#7f8c8d; font-size:10px; margin-left:15px; display: block; margin-bottom: 5px;">FUEL MANAGEMENT</label>
