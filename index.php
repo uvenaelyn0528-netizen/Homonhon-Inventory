@@ -120,8 +120,9 @@ if (!isset($_SESSION['user_id'])) {
     
     <div class="sidebar-user" style="padding: 20px 15px; background: rgba(0, 0, 0, 0.1); border-bottom: 1px solid rgba(255,255,255,0.05);">
         <div class="user-details" style="display: flex; align-items: center; gap: 15px;">
-            <div class="user-avatar" style="min-width: 45px; height: 45px; background: linear-gradient(135deg, #34495e, #2c3e50); border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #3498db; color: white; font-size: 20px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
-                👤
+            <!-- COMPANY LOGO USER BOX -->
+            <div class="user-avatar" style="min-width: 45px; width: 45px; height: 45px; background: #ffffff; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #3498db; box-shadow: 0 4px 8px rgba(0,0,0,0.2); overflow: hidden; padding: 2px; box-sizing: border-box;">
+                <img src="images/logo.png" alt="Company Logo" style="width: 100%; height: 100%; object-fit: contain; border-radius: 50%;">
             </div>
             <div class="user-info-text">
                 <span class="username" style="font-size:10px; color:#3498db; text-transform: uppercase; letter-spacing: 1px; display: block; line-height: 1.4;">
