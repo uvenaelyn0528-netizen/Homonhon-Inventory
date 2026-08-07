@@ -50,27 +50,42 @@ if (!isset($_SESSION['user_id'])) {
             background-color: #f4f7f6;
         }
 
-        /* Top Navigation Bar */
+        /* Top Navigation Bar styled like the inventory view */
         .top-navbar {
-            background-color: var(--dark-blue);
-            color: white;
-            padding: 15px 30px;
+            background-color: #ffffff;
+            color: #112941;
+            padding: 10px 25px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             box-sizing: border-box;
             z-index: 1000;
+            border-bottom: 1px solid #e1e8ed;
         }
 
-        .top-navbar .brand {
+        .top-navbar .brand-container {
             display: flex;
             align-items: center;
             gap: 15px;
+        }
+
+        .menu-toggle-btn {
+            background-color: var(--dark-blue);
+            color: white;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            font-size: 13px;
         }
 
         .top-navbar .brand img {
@@ -78,26 +93,45 @@ if (!isset($_SESSION['user_id'])) {
             height: auto;
         }
 
-        .top-navbar .brand h1 {
-            font-size: 16px;
+        .top-navbar .brand-text h1 {
+            font-size: 15px;
             margin: 0;
+            color: #8b0000;
+            font-weight: 800;
             letter-spacing: 0.5px;
+            font-family: 'Georgia', serif;
+        }
+
+        .top-navbar .brand-text p {
+            font-size: 9px;
+            margin: 0;
+            color: #555;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .top-navbar .system-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--dark-blue);
+            letter-spacing: 1px;
         }
 
         .user-panel {
             display: flex;
             align-items: center;
-            gap: 20px;
-            font-size: 14px;
+            gap: 15px;
+            font-size: 13px;
         }
 
         .logout-btn {
             background-color: #e74c3c;
             color: white;
-            padding: 8px 16px;
+            padding: 6px 14px;
             border-radius: 6px;
             text-decoration: none;
             font-weight: bold;
+            font-size: 12px;
             transition: background 0.2s;
         }
 
@@ -108,15 +142,15 @@ if (!isset($_SESSION['user_id'])) {
         /* App Wrapper for Sidebar + Main Content Layout */
         .app-wrapper {
             display: flex;
-            height: calc(100vh - 75px); /* Subtract top-navbar height */
-            margin-top: 75px;
+            height: calc(100vh - 70px); /* Subtract top-navbar height */
+            margin-top: 70px;
             box-sizing: border-box;
             overflow: hidden;
         }
 
-        /* Left Sidebar Styling - Compacted paddings and fonts to maximize vertical visibility */
+        /* Left Sidebar Styling - Fixed compact layout matching reference style */
         .sidebar {
-            width: 260px;
+            width: 250px;
             background-color: var(--sidebar-bg);
             color: #bdc3c7;
             display: flex;
@@ -128,8 +162,8 @@ if (!isset($_SESSION['user_id'])) {
         }
 
         .sidebar-profile {
-            padding: 10px 15px;
-            background: rgba(0,0,0,0.2);
+            padding: 12px 15px;
+            background: rgba(0,0,0,0.25);
             border-bottom: 1px solid rgba(255,255,255,0.05);
             display: flex;
             align-items: center;
@@ -137,14 +171,14 @@ if (!isset($_SESSION['user_id'])) {
         }
 
         .sidebar-profile img {
-            width: 30px;
-            height: 30px;
+            width: 32px;
+            height: 32px;
         }
 
         .sidebar-profile-info .user-name {
             color: #ffffff;
             font-weight: bold;
-            font-size: 12px;
+            font-size: 11px;
             text-transform: uppercase;
             margin: 0 0 1px 0;
             letter-spacing: 0.5px;
@@ -152,14 +186,14 @@ if (!isset($_SESSION['user_id'])) {
 
         .sidebar-profile-info .user-role {
             color: #3498db;
-            font-size: 10px;
+            font-size: 9px;
             font-weight: bold;
             margin: 0;
             letter-spacing: 0.5px;
         }
 
         .sidebar-menu {
-            padding: 8px 0;
+            padding: 6px 0;
             display: flex;
             flex-direction: column;
         }
@@ -177,10 +211,10 @@ if (!isset($_SESSION['user_id'])) {
             display: flex;
             align-items: center;
             gap: 10px;
-            padding: 6px 15px;
+            padding: 5px 15px;
             color: #ecf0f1;
             text-decoration: none;
-            font-size: 12px;
+            font-size: 11px;
             transition: background 0.2s, color 0.2s;
         }
 
@@ -190,8 +224,8 @@ if (!isset($_SESSION['user_id'])) {
         }
 
         .sidebar-item span.icon {
-            font-size: 14px;
-            width: 18px;
+            font-size: 13px;
+            width: 16px;
             text-align: center;
             flex-shrink: 0;
         }
@@ -210,24 +244,24 @@ if (!isset($_SESSION['user_id'])) {
 
         .dashboard-header {
             background: white;
-            padding: 20px 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
-            margin-bottom: 20px;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            margin-bottom: 15px;
             border-left: 5px solid #3498db;
             flex-shrink: 0;
         }
 
         .dashboard-header h2 {
-            margin: 0 0 5px 0;
+            margin: 0 0 3px 0;
             color: var(--dark-blue);
-            font-size: 22px;
+            font-size: 20px;
         }
 
         .dashboard-header p {
             margin: 0;
             color: #7f8c8d;
-            font-size: 14px;
+            font-size: 13px;
         }
 
         /* Scrollable Grid Container */
@@ -241,17 +275,17 @@ if (!isset($_SESSION['user_id'])) {
         /* Grid Layout matching reference image */
         .cards-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 15px;
         }
 
         .dept-card {
             background: white;
-            border-radius: 12px;
-            padding: 20px;
+            border-radius: 10px;
+            padding: 15px;
             text-decoration: none;
             color: inherit;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
             border: 1px solid #e1e8ed;
             border-top: 4px solid var(--dark-blue);
             transition: transform 0.2s, box-shadow 0.2s;
@@ -261,23 +295,23 @@ if (!isset($_SESSION['user_id'])) {
         }
 
         .dept-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 15px rgba(0,0,0,0.08);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.06);
             border-top-color: #3498db;
         }
 
         .dept-card-header {
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 12px;
         }
 
         .dept-icon {
-            font-size: 28px;
+            font-size: 24px;
             background: #f8f9fa;
-            width: 50px;
-            height: 50px;
-            border-radius: 10px;
+            width: 42px;
+            height: 42px;
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -285,31 +319,38 @@ if (!isset($_SESSION['user_id'])) {
         }
 
         .dept-title {
-            font-size: 18px;
+            font-size: 16px;
             font-weight: bold;
             color: var(--dark-blue);
-            margin: 0 0 4px 0;
+            margin: 0 0 2px 0;
         }
 
         .dept-desc {
-            font-size: 13px;
+            font-size: 12px;
             color: #7f8c8d;
             margin: 0;
-            line-height: 1.4;
+            line-height: 1.3;
         }
     </style>
 </head>
 <body>
 
-    <!-- Top Navigation Header -->
+    <!-- Top Navigation Header matching inventory theme -->
     <div class="top-navbar">
-        <div class="brand">
-            <img src="images/logo.png" alt="Logo">
-            <h1>GOLDRICH CONSTRUCTION AND TRADING</h1>
+        <div class="brand-container">
+            <button class="menu-toggle-btn">☰ Menu</button>
+            <div class="brand" style="display: flex; align-items: center; gap: 10px;">
+                <img src="images/logo.png" alt="Logo">
+                <div class="brand-text">
+                    <h1>GOLDRICH CONSTRUCTION AND TRADING</h1>
+                    <p>HOMONHON NICKEL PROJECT • LOGISTICS & WAREHOUSE</p>
+                </div>
+            </div>
         </div>
+        <div class="system-title">WAREHOUSE INVENTORY SYSTEM</div>
         <div class="user-panel">
-            <span>Hello, <strong><?php echo htmlspecialchars($_SESSION['username'] ?? 'User'); ?></strong></span>
-            <a href="logout.php" class="logout-btn" onclick="return confirm('Confirm Logout?')">Logout</a>
+            <span>USER: <strong><?php echo htmlspecialchars(strtoupper($_SESSION['username'] ?? 'USER')); ?></strong></span>
+            <a href="logout.php" class="logout-btn" onclick="return confirm('Confirm Logout?')">LOGOUT ACCOUNT</a>
         </div>
     </div>
 
