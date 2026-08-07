@@ -114,7 +114,7 @@ if (!isset($_SESSION['user_id'])) {
             overflow: hidden;
         }
 
-        /* Left Sidebar Styling matching the inventory screenshots */
+        /* Left Sidebar Styling */
         .sidebar {
             width: 260px;
             background-color: var(--sidebar-bg);
@@ -189,7 +189,7 @@ if (!isset($_SESSION['user_id'])) {
             color: #ffffff;
         }
 
-        .sidebar-item svg, .sidebar-item span.icon {
+        .sidebar-item span.icon {
             font-size: 16px;
             width: 20px;
             text-align: center;
@@ -357,7 +357,6 @@ if (!isset($_SESSION['user_id'])) {
                     <span>Department Costing</span>
                 </a>
 
-                <?php if ($role === 'admin'): ?>
                 <div class="sidebar-section-title">Main Actions</div>
                 <a href="Add_item.php" class="sidebar-item">
                     <span class="icon">➕</span>
@@ -373,6 +372,7 @@ if (!isset($_SESSION['user_id'])) {
                     <span class="icon">👤</span>
                     <span>Create Account</span>
                 </a>
+                <?php if ($role === 'admin'): ?>
                 <a href="manage_users.php" class="sidebar-item">
                     <span class="icon">⚙️</span>
                     <span>Manage Users</span>
