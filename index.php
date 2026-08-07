@@ -50,7 +50,7 @@ if (!isset($_SESSION['user_id'])) {
             background-color: #f4f7f6;
         }
 
-        /* Top Navigation Bar styled like the inventory view */
+        /* Top Navigation Bar */
         .top-navbar {
             background-color: #ffffff;
             color: #112941;
@@ -148,7 +148,7 @@ if (!isset($_SESSION['user_id'])) {
             overflow: hidden;
         }
 
-        /* Left Sidebar Styling - Fixed compact layout matching reference style */
+        /* Left Sidebar Styling - Fixed width and static layout so content never slips underneath */
         .sidebar {
             width: 250px;
             background-color: var(--sidebar-bg);
@@ -230,7 +230,7 @@ if (!isset($_SESSION['user_id'])) {
             flex-shrink: 0;
         }
 
-        /* Main Dashboard Container - Fixed Layout with Scrollable Grid Area */
+        /* Main Dashboard Container - Flexes cleanly beside the sidebar with proper spacing */
         .dashboard-container {
             flex: 1;
             height: 100%;
