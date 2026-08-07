@@ -403,7 +403,7 @@ if (!isset($_SESSION['user_id'])) {
             
             <a href="Admin.php" class="dept-card">
                 <div class="dept-card-header">
-                    <div class="dept-icon">⚙️</div>
+                    <div class="dept-icon">💼</div>
                     <div>
                         <h3 class="dept-title">Admin</h3>
                         <p class="dept-desc">Administrative controls, policies, and personnel operations.</p>
