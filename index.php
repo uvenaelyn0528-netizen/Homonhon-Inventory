@@ -114,7 +114,7 @@ if (!isset($_SESSION['user_id'])) {
             overflow: hidden;
         }
 
-        /* Left Sidebar Styling */
+        /* Left Sidebar Styling - Compacted paddings and fonts to maximize vertical visibility */
         .sidebar {
             width: 260px;
             background-color: var(--sidebar-bg);
@@ -128,59 +128,59 @@ if (!isset($_SESSION['user_id'])) {
         }
 
         .sidebar-profile {
-            padding: 20px;
+            padding: 10px 15px;
             background: rgba(0,0,0,0.2);
             border-bottom: 1px solid rgba(255,255,255,0.05);
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
         }
 
         .sidebar-profile img {
-            width: 36px;
-            height: 36px;
+            width: 30px;
+            height: 30px;
         }
 
         .sidebar-profile-info .user-name {
             color: #ffffff;
             font-weight: bold;
-            font-size: 13px;
+            font-size: 12px;
             text-transform: uppercase;
-            margin: 0 0 2px 0;
+            margin: 0 0 1px 0;
             letter-spacing: 0.5px;
         }
 
         .sidebar-profile-info .user-role {
             color: #3498db;
-            font-size: 11px;
+            font-size: 10px;
             font-weight: bold;
             margin: 0;
             letter-spacing: 0.5px;
         }
 
         .sidebar-menu {
-            padding: 15px 0;
+            padding: 8px 0;
             display: flex;
             flex-direction: column;
         }
 
         .sidebar-section-title {
-            font-size: 10px;
+            font-size: 9px;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 0.8px;
             color: #7f8c8d;
-            padding: 10px 20px 5px 20px;
+            padding: 6px 15px 2px 15px;
             font-weight: bold;
         }
 
         .sidebar-item {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 10px 20px;
+            gap: 10px;
+            padding: 6px 15px;
             color: #ecf0f1;
             text-decoration: none;
-            font-size: 13px;
+            font-size: 12px;
             transition: background 0.2s, color 0.2s;
         }
 
@@ -190,8 +190,8 @@ if (!isset($_SESSION['user_id'])) {
         }
 
         .sidebar-item span.icon {
-            font-size: 16px;
-            width: 20px;
+            font-size: 14px;
+            width: 18px;
             text-align: center;
             flex-shrink: 0;
         }
