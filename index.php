@@ -232,16 +232,6 @@ if (!isset($_SESSION['user_id'])) {
         <div class="grid-scroll-area">
             <div class="cards-grid">
                 
-                <a href="Warehouse.php" class="dept-card">
-                    <div class="dept-card-header">
-                        <div class="dept-icon">📦</div>
-                        <div>
-                            <h3 class="dept-title">Warehouse</h3>
-                            <p class="dept-desc">General storage, stocks, items, and inventory processing.</p>
-                        </div>
-                    </div>
-                </a>
-
                 <a href="Admin.php" class="dept-card">
                     <div class="dept-card-header">
                         <div class="dept-icon">⚙️</div>
@@ -252,12 +242,82 @@ if (!isset($_SESSION['user_id'])) {
                     </div>
                 </a>
 
+                <a href="Assay.php" class="dept-card">
+                    <div class="dept-card-header">
+                        <div class="dept-icon">🧪</div>
+                        <div>
+                            <h3 class="dept-title">Assay</h3>
+                            <p class="dept-desc">Laboratory testing, mineral sample logs, and chemical supplies.</p>
+                        </div>
+                    </div>
+                </a>
+
+                <a href="Comrel.php" class="dept-card">
+                    <div class="dept-card-header">
+                        <div class="dept-icon">🤝</div>
+                        <div>
+                            <h3 class="dept-title">Comrel</h3>
+                            <p class="dept-desc">Community relations, local engagement, and outreach projects.</p>
+                        </div>
+                    </div>
+                </a>
+
+                <a href="Engineering.php" class="dept-card">
+                    <div class="dept-card-header">
+                        <div class="dept-icon">📐</div>
+                        <div>
+                            <h3 class="dept-title">Engineering</h3>
+                            <p class="dept-desc">Infrastructure blueprints, civil works, and technical plans.</p>
+                        </div>
+                    </div>
+                </a>
+
+                <a href="Envi.php" class="dept-card">
+                    <div class="dept-card-header">
+                        <div class="dept-icon">🌱</div>
+                        <div>
+                            <h3 class="dept-title">Envi (Environment)</h3>
+                            <p class="dept-desc">Environmental monitoring, compliance, and rehabilitation.</p>
+                        </div>
+                    </div>
+                </a>
+
                 <a href="mechanical.php" class="dept-card">
                     <div class="dept-card-header">
                         <div class="dept-icon">🔧</div>
                         <div>
                             <h3 class="dept-title">Mechanical</h3>
                             <p class="dept-desc">Equipment maintenance, heavy machinery parts, and servicing.</p>
+                        </div>
+                    </div>
+                </a>
+
+                <a href="Mine_operation.php" class="dept-card">
+                    <div class="dept-card-header">
+                        <div class="dept-icon">⛏️</div>
+                        <div>
+                            <h3 class="dept-title">Mine Operation</h3>
+                            <p class="dept-desc">Extraction tracking, pit equipment, and mining logs.</p>
+                        </div>
+                    </div>
+                </a>
+
+                <a href="Nursery.php" class="dept-card">
+                    <div class="dept-card-header">
+                        <div class="dept-icon">🌳</div>
+                        <div>
+                            <h3 class="dept-title">Nursery</h3>
+                            <p class="dept-desc">Tree planting, reforestation initiatives, and seedling tracking.</p>
+                        </div>
+                    </div>
+                </a>
+
+                <a href="Port_Operation.php" class="dept-card">
+                    <div class="dept-card-header">
+                        <div class="dept-icon">⚓</div>
+                        <div>
+                            <h3 class="dept-title">Port Operation</h3>
+                            <p class="dept-desc">Shipping docks, cargo handling, and logistics tracking.</p>
                         </div>
                     </div>
                 </a>
@@ -282,72 +342,12 @@ if (!isset($_SESSION['user_id'])) {
                     </div>
                 </a>
 
-                <a href="Assay.php" class="dept-card">
+                <a href="Warehouse.php" class="dept-card">
                     <div class="dept-card-header">
-                        <div class="dept-icon">🧪</div>
+                        <div class="dept-icon">📦</div>
                         <div>
-                            <h3 class="dept-title">Assay</h3>
-                            <p class="dept-desc">Laboratory testing, mineral sample logs, and chemical supplies.</p>
-                        </div>
-                    </div>
-                </a>
-
-                <a href="Mine_operation.php" class="dept-card">
-                    <div class="dept-card-header">
-                        <div class="dept-icon">⛏️</div>
-                        <div>
-                            <h3 class="dept-title">Mine Operation</h3>
-                            <p class="dept-desc">Extraction tracking, pit equipment, and mining logs.</p>
-                        </div>
-                    </div>
-                </a>
-
-                <a href="Port_Operation.php" class="dept-card">
-                    <div class="dept-card-header">
-                        <div class="dept-icon">⚓</div>
-                        <div>
-                            <h3 class="dept-title">Port Operation</h3>
-                            <p class="dept-desc">Shipping docks, cargo handling, and logistics tracking.</p>
-                        </div>
-                    </div>
-                </a>
-
-                <a href="Comrel.php" class="dept-card">
-                    <div class="dept-card-header">
-                        <div class="dept-icon">🤝</div>
-                        <div>
-                            <h3 class="dept-title">Comrel</h3>
-                            <p class="dept-desc">Community relations, local engagement, and outreach projects.</p>
-                        </div>
-                    </div>
-                </a>
-
-                <a href="Envi.php" class="dept-card">
-                    <div class="dept-card-header">
-                        <div class="dept-icon">🌱</div>
-                        <div>
-                            <h3 class="dept-title">Envi (Environment)</h3>
-                            <p class="dept-desc">Environmental monitoring, compliance, and rehabilitation.</p>
-                        </div>
-                    </div>
-                </a>
-
-                <a href="Nursery.php" class="dept-card">
-                    <div class="dept-card-header">
-                        <div class="dept-icon">🌳</div>
-                        <div>
-                            <h3 class="dept-title">Nursery</h3>
-                            <p class="dept-desc">Tree planting, reforestation initiatives, and seedling tracking.</p>
-                        </div>
-                    </div>
-                </a>
-
-                <a href="Engineering.php" class="dept-card">
-                    <div class="dept-card-header">
-                        <div class="dept-icon">⚓</div>
-                        <div>
-                            <h3 class="dept-title">Engineering</h3>
-                            <p class="dept-desc">Infrastructure blueprints, civil works, and technical plans.</p>
+                            <h3 class="dept-title">Warehouse</h3>
+                            <p class="dept-desc">General storage, stocks, items, and inventory processing.</p>
                         </div>
                     </div>
                 </a>
