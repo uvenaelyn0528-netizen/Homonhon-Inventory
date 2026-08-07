@@ -124,8 +124,8 @@ if (!isset($_SESSION['user_id'])) {
             padding: 8px 15px;
             color: #ecf0f1;
             text-decoration: none;
-            font-size: 12px; /* Increased slightly */
-            font-weight: 600; /* Made font bolder */
+            font-size: 12px;
+            font-weight: 600;
             letter-spacing: 0.3px;
             transition: background 0.2s, color 0.2s;
         }
@@ -146,8 +146,8 @@ if (!isset($_SESSION['user_id'])) {
         .top-navbar {
             position: fixed;
             top: 0;
-            left: var(--sidebar-width); /* Starts exactly where sidebar ends */
-            width: calc(100% - var(--sidebar-width)); /* Takes remaining width */
+            left: var(--sidebar-width);
+            width: calc(100% - var(--sidebar-width));
             height: var(--navbar-height);
             background-color: #ffffff;
             color: #112941;
@@ -189,7 +189,7 @@ if (!isset($_SESSION['user_id'])) {
             color: var(--dark-blue);
             letter-spacing: 1px;
             text-align: center;
-            flex: 1; /* Pushes system title to center */
+            flex: 1;
         }
 
         .user-panel {
@@ -215,13 +215,13 @@ if (!isset($_SESSION['user_id'])) {
 
         /* --- MAIN DASHBOARD AREA --- */
         .dashboard-container {
-            margin-left: var(--sidebar-width); /* Pushes content strictly past sidebar */
-            margin-top: var(--navbar-height); /* Pushes content strictly below navbar */
+            margin-left: var(--sidebar-width);
+            margin-top: var(--navbar-height);
             width: calc(100% - var(--sidebar-width));
             height: calc(100vh - var(--navbar-height));
             padding: 25px;
             box-sizing: border-box;
-            overflow-y: auto; /* Scrollable area */
+            overflow-y: auto;
             background-color: #f4f7f6;
         }
 
@@ -328,19 +328,19 @@ if (!isset($_SESSION['user_id'])) {
             </a>
 
             <div class="sidebar-section-title">Records & History</div>
-            <a href="Request_history.php" class="sidebar-item">
+            <a href="view_requests.php" class="sidebar-item">
                 <span class="icon">📄</span>
                 <span>Request History</span>
             </a>
-            <a href="Received_history.php" class="sidebar-item">
+            <a href="received_summary.php" class="sidebar-item">
                 <span class="icon">📥</span>
                 <span>Received History</span>
             </a>
-            <a href="Withdrawal_history.php" class="sidebar-item">
+            <a href="issuance.php" class="sidebar-item">
                 <span class="icon">📤</span>
                 <span>Withdrawal History</span>
             </a>
-            <a href="Inventory_trash.php" class="sidebar-item" style="color: #e74c3c;">
+            <a href="trash_bin.php" class="sidebar-item" style="color: #e74c3c;">
                 <span class="icon">🗑️</span>
                 <span>Inventory Trash Bin</span>
             </a>
