@@ -40,8 +40,11 @@ if (!isset($_SESSION['user_id'])) {
             --dark-blue: #112941;
         }
 
-        body {
+        html, body {
+            height: 100%;
             margin: 0;
+            padding: 0;
+            overflow: hidden; /* Freezes the main window scroll */
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #f4f7f6;
         }
@@ -55,6 +58,12 @@ if (!isset($_SESSION['user_id'])) {
             justify-content: space-between;
             align-items: center;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            box-sizing: border-box;
+            z-index: 1000;
         }
 
         .top-navbar .brand {
@@ -95,32 +104,45 @@ if (!isset($_SESSION['user_id'])) {
             background-color: #c0392b;
         }
 
-        /* Main Dashboard Container */
+        /* Main Dashboard Container - Fixed Layout with Scrollable Grid Area */
         .dashboard-container {
             max-width: 1200px;
-            margin: 30px auto;
-            padding: 0 20px;
+            height: calc(100vh - 80px); /* Subtract top nav height */
+            margin: 80px auto 0 auto; /* Push down below fixed navbar */
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
         }
 
         .dashboard-header {
             background: white;
-            padding: 25px 30px;
+            padding: 20px 30px;
             border-radius: 12px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.02);
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             border-left: 5px solid #3498db;
+            flex-shrink: 0;
         }
 
         .dashboard-header h2 {
             margin: 0 0 5px 0;
             color: var(--dark-blue);
-            font-size: 24px;
+            font-size: 22px;
         }
 
         .dashboard-header p {
             margin: 0;
             color: #7f8c8d;
             font-size: 14px;
+        }
+
+        /* Scrollable Grid Container */
+        .grid-scroll-area {
+            flex: 1;
+            overflow-y: auto;
+            padding-bottom: 20px;
+            box-sizing: border-box;
         }
 
         /* Grid Layout matching reference image */
@@ -133,7 +155,7 @@ if (!isset($_SESSION['user_id'])) {
         .dept-card {
             background: white;
             border-radius: 12px;
-            padding: 25px;
+            padding: 20px;
             text-decoration: none;
             color: inherit;
             box-shadow: 0 4px 6px rgba(0,0,0,0.02);
@@ -155,7 +177,6 @@ if (!isset($_SESSION['user_id'])) {
             display: flex;
             align-items: center;
             gap: 15px;
-            margin-bottom: 12px;
         }
 
         .dept-icon {
@@ -167,13 +188,14 @@ if (!isset($_SESSION['user_id'])) {
             display: flex;
             align-items: center;
             justify-content: center;
+            flex-shrink: 0;
         }
 
         .dept-title {
             font-size: 18px;
             font-weight: bold;
             color: var(--dark-blue);
-            margin: 0;
+            margin: 0 0 4px 0;
         }
 
         .dept-desc {
@@ -206,130 +228,133 @@ if (!isset($_SESSION['user_id'])) {
             <p>Welcome, <?php echo htmlspecialchars($_SESSION['username'] ?? 'User'); ?>! (Role: <strong><?php echo htmlspecialchars($role); ?></strong>) - Select a department below to view records and inventory workflows.</p>
         </div>
 
-        <!-- Cards Grid for Departments & Divisions -->
-        <div class="cards-grid">
-            
-            <a href="Warehouse.php" class="dept-card">
-                <div class="dept-card-header">
-                    <div class="dept-icon">📦</div>
-                    <div>
-                        <h3 class="dept-title">Warehouse</h3>
-                        <p class="dept-desc">General storage, stocks, items, and inventory processing.</p>
+        <!-- Scrollable Cards Grid Area -->
+        <div class="grid-scroll-area">
+            <div class="cards-grid">
+                
+                <a href="Warehouse.php" class="dept-card">
+                    <div class="dept-card-header">
+                        <div class="dept-icon">📦</div>
+                        <div>
+                            <h3 class="dept-title">Warehouse</h3>
+                            <p class="dept-desc">General storage, stocks, items, and inventory processing.</p>
+                        </div>
                     </div>
-                </div>
-            </a>
+                </a>
 
-            <a href="Admin.php" class="dept-card">
-                <div class="dept-card-header">
-                    <div class="dept-icon">⚙️</div>
-                    <div>
-                        <h3 class="dept-title">Admin</h3>
-                        <p class="dept-desc">Administrative controls, policies, and personnel operations.</p>
+                <a href="Admin.php" class="dept-card">
+                    <div class="dept-card-header">
+                        <div class="dept-icon">⚙️</div>
+                        <div>
+                            <h3 class="dept-title">Admin</h3>
+                            <p class="dept-desc">Administrative controls, policies, and personnel operations.</p>
+                        </div>
                     </div>
-                </div>
-            </a>
+                </a>
 
-            <a href="mechanical.php" class="dept-card">
-                <div class="dept-card-header">
-                    <div class="dept-icon">🔧</div>
-                    <div>
-                        <h3 class="dept-title">Mechanical</h3>
-                        <p class="dept-desc">Equipment maintenance, heavy machinery parts, and servicing.</p>
+                <a href="mechanical.php" class="dept-card">
+                    <div class="dept-card-header">
+                        <div class="dept-icon">🔧</div>
+                        <div>
+                            <h3 class="dept-title">Mechanical</h3>
+                            <p class="dept-desc">Equipment maintenance, heavy machinery parts, and servicing.</p>
+                        </div>
                     </div>
-                </div>
-            </a>
+                </a>
 
-            <a href="Safety.php" class="dept-card">
-                <div class="dept-card-header">
-                    <div class="dept-icon">🦺</div>
-                    <div>
-                        <h3 class="dept-title">Safety</h3>
-                        <p class="dept-desc">COSH/BOSH compliance, PPE, and site safety logs.</p>
+                <a href="Safety.php" class="dept-card">
+                    <div class="dept-card-header">
+                        <div class="dept-icon">🦺</div>
+                        <div>
+                            <h3 class="dept-title">Safety</h3>
+                            <p class="dept-desc">COSH/BOSH compliance, PPE, and site safety logs.</p>
+                        </div>
                     </div>
-                </div>
-            </a>
+                </a>
 
-            <a href="TSG.php" class="dept-card">
-                <div class="dept-card-header">
-                    <div class="dept-icon">🛠️</div>
-                    <div>
-                        <h3 class="dept-title">TSG</h3>
-                        <p class="dept-desc">Technical Services Group operations and project support.</p>
+                <a href="TSG.php" class="dept-card">
+                    <div class="dept-card-header">
+                        <div class="dept-icon">🛠️</div>
+                        <div>
+                            <h3 class="dept-title">TSG</h3>
+                            <p class="dept-desc">Technical Services Group operations and project support.</p>
+                        </div>
                     </div>
-                </div>
-            </a>
+                </a>
 
-            <a href="Assay.php" class="dept-card">
-                <div class="dept-card-header">
-                    <div class="dept-icon">🧪</div>
-                    <div>
-                        <h3 class="dept-title">Assay</h3>
-                        <p class="dept-desc">Laboratory testing, mineral sample logs, and chemical supplies.</p>
+                <a href="Assay.php" class="dept-card">
+                    <div class="dept-card-header">
+                        <div class="dept-icon">🧪</div>
+                        <div>
+                            <h3 class="dept-title">Assay</h3>
+                            <p class="dept-desc">Laboratory testing, mineral sample logs, and chemical supplies.</p>
+                        </div>
                     </div>
-                </div>
-            </a>
+                </a>
 
-            <a href="Mine_operation.php" class="dept-card">
-                <div class="dept-card-header">
-                    <div class="dept-icon">⛏️</div>
-                    <div>
-                        <h3 class="dept-title">Mine Operation</h3>
-                        <p class="dept-desc">Extraction tracking, pit equipment, and mining logs.</p>
+                <a href="Mine_operation.php" class="dept-card">
+                    <div class="dept-card-header">
+                        <div class="dept-icon">⛏️</div>
+                        <div>
+                            <h3 class="dept-title">Mine Operation</h3>
+                            <p class="dept-desc">Extraction tracking, pit equipment, and mining logs.</p>
+                        </div>
                     </div>
-                </div>
-            </a>
+                </a>
 
-            <a href="Port_Operation.php" class="dept-card">
-                <div class="dept-card-header">
-                    <div class="dept-icon">⚓</div>
-                    <div>
-                        <h3 class="dept-title">Port Operation</h3>
-                        <p class="dept-desc">Shipping docks, cargo handling, and logistics tracking.</p>
+                <a href="Port_Operation.php" class="dept-card">
+                    <div class="dept-card-header">
+                        <div class="dept-icon">⚓</div>
+                        <div>
+                            <h3 class="dept-title">Port Operation</h3>
+                            <p class="dept-desc">Shipping docks, cargo handling, and logistics tracking.</p>
+                        </div>
                     </div>
-                </div>
-            </a>
+                </a>
 
-            <a href="Comrel.php" class="dept-card">
-                <div class="dept-card-header">
-                    <div class="dept-icon">🤝</div>
-                    <div>
-                        <h3 class="dept-title">Comrel</h3>
-                        <p class="dept-desc">Community relations, local engagement, and outreach projects.</p>
+                <a href="Comrel.php" class="dept-card">
+                    <div class="dept-card-header">
+                        <div class="dept-icon">🤝</div>
+                        <div>
+                            <h3 class="dept-title">Comrel</h3>
+                            <p class="dept-desc">Community relations, local engagement, and outreach projects.</p>
+                        </div>
                     </div>
-                </div>
-            </a>
+                </a>
 
-            <a href="Envi.php" class="dept-card">
-                <div class="dept-card-header">
-                    <div class="dept-icon">🌱</div>
-                    <div>
-                        <h3 class="dept-title">Envi (Environment)</h3>
-                        <p class="dept-desc">Environmental monitoring, compliance, and rehabilitation.</p>
+                <a href="Envi.php" class="dept-card">
+                    <div class="dept-card-header">
+                        <div class="dept-icon">🌱</div>
+                        <div>
+                            <h3 class="dept-title">Envi (Environment)</h3>
+                            <p class="dept-desc">Environmental monitoring, compliance, and rehabilitation.</p>
+                        </div>
                     </div>
-                </div>
-            </a>
+                </a>
 
-            <a href="Nursery.php" class="dept-card">
-                <div class="dept-card-header">
-                    <div class="dept-icon">🌳</div>
-                    <div>
-                        <h3 class="dept-title">Nursery</h3>
-                        <p class="dept-desc">Tree planting, reforestation initiatives, and seedling tracking.</p>
+                <a href="Nursery.php" class="dept-card">
+                    <div class="dept-card-header">
+                        <div class="dept-icon">🌳</div>
+                        <div>
+                            <h3 class="dept-title">Nursery</h3>
+                            <p class="dept-desc">Tree planting, reforestation initiatives, and seedling tracking.</p>
+                        </div>
                     </div>
-                </div>
-            </a>
+                </a>
 
-            <a href="Engineering.php" class="dept-card">
-                <div class="dept-card-header">
-                    <div class="dept-icon">📐</div>
-                    <div>
-                        <h3 class="dept-title">Engineering</h3>
-                        <p class="dept-desc">Infrastructure blueprints, civil works, and technical plans.</p>
+                <a href="Engineering.php" class="dept-card">
+                    <div class="dept-card-header">
+                        <div class="dept-icon">⚓</div>
+                        <div>
+                            <h3 class="dept-title">Engineering</h3>
+                            <p class="dept-desc">Infrastructure blueprints, civil works, and technical plans.</p>
+                        </div>
                     </div>
-                </div>
-            </a>
+                </a>
 
+            </div>
         </div>
+
     </div>
 
 </body>
