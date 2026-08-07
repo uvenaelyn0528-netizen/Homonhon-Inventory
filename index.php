@@ -113,7 +113,7 @@ if (!isset($_SESSION['user_id'])) {
             text-transform: uppercase;
             letter-spacing: 0.8px;
             color: #7f8c8d;
-            padding: 8px 15px 4px 15px;
+            padding: 12px 15px 6px 15px;
             font-weight: bold;
         }
 
@@ -121,10 +121,12 @@ if (!isset($_SESSION['user_id'])) {
             display: flex;
             align-items: center;
             gap: 12px;
-            padding: 7px 15px;
+            padding: 8px 15px;
             color: #ecf0f1;
             text-decoration: none;
-            font-size: 11px;
+            font-size: 12px; /* Increased slightly */
+            font-weight: 600; /* Made font bolder */
+            letter-spacing: 0.3px;
             transition: background 0.2s, color 0.2s;
         }
 
@@ -162,21 +164,6 @@ if (!isset($_SESSION['user_id'])) {
         .top-navbar .brand-container {
             display: flex;
             align-items: center;
-            gap: 15px;
-        }
-
-        .menu-toggle-btn {
-            background-color: var(--dark-blue);
-            color: white;
-            border: none;
-            padding: 8px 14px;
-            border-radius: 6px;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            cursor: pointer;
-            font-size: 13px;
         }
 
         .top-navbar .brand-text h1 {
@@ -208,8 +195,6 @@ if (!isset($_SESSION['user_id'])) {
         .user-panel {
             display: flex;
             align-items: center;
-            gap: 15px;
-            font-size: 12px;
         }
 
         .logout-btn {
@@ -393,7 +378,6 @@ if (!isset($_SESSION['user_id'])) {
     <!-- TOP NAVBAR -->
     <div class="top-navbar">
         <div class="brand-container">
-            <button class="menu-toggle-btn">☰ Menu</button>
             <div class="brand-text">
                 <h1>GOLDRICH CONSTRUCTION AND TRADING</h1>
                 <p>HOMONHON NICKEL PROJECT • LOGISTICS & WAREHOUSE</p>
@@ -403,7 +387,6 @@ if (!isset($_SESSION['user_id'])) {
         <div class="system-title">WAREHOUSE INVENTORY SYSTEM</div>
         
         <div class="user-panel">
-            <span>USER: <strong><?php echo htmlspecialchars(strtoupper($_SESSION['username'] ?? 'USER')); ?></strong></span>
             <a href="logout.php" class="logout-btn" onclick="return confirm('Confirm Logout?')">LOGOUT ACCOUNT</a>
         </div>
     </div>
