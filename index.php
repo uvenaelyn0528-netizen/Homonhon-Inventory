@@ -384,7 +384,7 @@ if (!isset($_SESSION['user_id'])) {
             </div>
         </div>
         
-        <div class="system-title">GRCT HOMONHON DATA SYSTEM</div>
+        <div class="system-title">GRCT HOMONHON DATA MANAGEMENT SYSTEM</div>
         
         <div class="user-panel">
             <a href="logout.php" class="logout-btn" onclick="return confirm('Confirm Logout?')">LOGOUT ACCOUNT</a>
