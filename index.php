@@ -380,11 +380,11 @@ if (!isset($_SESSION['user_id'])) {
         <div class="brand-container">
             <div class="brand-text">
                 <h1>GOLDRICH CONSTRUCTION AND TRADING</h1>
-                <p>HOMONHON NICKEL PROJECT • LOGISTICS & WAREHOUSE</p>
+                <p>HOMONHON NICKEL PROJECT</p>
             </div>
         </div>
         
-        <div class="system-title">WAREHOUSE INVENTORY SYSTEM</div>
+        <div class="system-title">GRCT HOMONHON DATA SYSTEM</div>
         
         <div class="user-panel">
             <a href="logout.php" class="logout-btn" onclick="return confirm('Confirm Logout?')">LOGOUT ACCOUNT</a>
