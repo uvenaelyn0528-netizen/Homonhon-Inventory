@@ -122,9 +122,9 @@
         <a href="materials_supplies.php" class="btn btn-materials">Materials and Supplies</a>
     </div>
 
-    <!-- Mining Engineering Feature Banner -->
+    <!-- Local Engineering Mining Banner -->
     <div class="banner-container">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/Bingham_Canyon_Mine_2005.jpg/1200px-Bingham_Canyon_Mine_2005.jpg" alt="Mining Equipment and Operations" class="banner-img">
+        <img src="Engineering.jpeg" alt="Mining Equipment and Operations" class="banner-img">
     </div>
 </div>
 
