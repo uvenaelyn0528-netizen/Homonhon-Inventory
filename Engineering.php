@@ -7,7 +7,7 @@
 // Set these values or pass them via environment variables in Render
 $host     = getenv('DB_HOST')     ?: 'aws-1-ap-northeast-1.pooler.supabase.com';
 $port     = getenv('DB_PORT')     ?: '6543'; // Transaction pooler port
-$dbname   = getenv('DB_NAME')     ?: 'postgres.otrkginfndevnotgkajc';
+$dbname   = getenv('DB_NAME')     ?: 'postgres';
 $user     = getenv('DB_USER')     ?: 'postgres.otrkginfndevnotgkajc';
 $password = getenv('DB_PASSWORD') ?: 'Wh01302016!2025';
 
