@@ -124,7 +124,7 @@
 
     <!-- Mining Engineering Feature Banner -->
     <div class="banner-container">
-        <img src="https://images.unsplash.com/photo-1578328819058-b69f3a3b0f6b?auto=format&fit=crop&w=1200&q=80" alt="Mining Equipment and Operations" class="banner-img">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/Bingham_Canyon_Mine_2005.jpg/1200px-Bingham_Canyon_Mine_2005.jpg" alt="Mining Equipment and Operations" class="banner-img">
     </div>
 </div>
 
