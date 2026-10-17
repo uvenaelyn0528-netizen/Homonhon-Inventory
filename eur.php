@@ -3,13 +3,15 @@
  * Equipment Utilization Report (EUR) Management
  */
 session_start();
-$username =$_SESSION['username'] ?? 'User';
-$role     =$_SESSION['role'] ?? 'Staff';
+$username = $_SESSION['username'] ?? 'User';
+$role     = $_SESSION['role'] ?? 'Staff';
 
 // 1. Supabase Database Configuration
 $host     = getenv('DB_HOST')     ?: 'aws-1-ap-northeast-1.pooler.supabase.com';
-$port     = getenv('DB_PORT')     ?: '6543';$dbname   = getenv('DB_NAME')     ?: 'postgres';
-$user     = getenv('DB_USER')     ?: 'postgres.otrkginfndevnotgkajc';$password = getenv('DB_PASSWORD') ?: 'Wh01302016!2025';
+$port     = getenv('DB_PORT')     ?: '6543'; 
+$dbname   = getenv('DB_NAME')     ?: 'postgres';
+$user     = getenv('DB_USER')     ?: 'postgres.otrkginfndevnotgkajc';
+$password = getenv('DB_PASSWORD') ?: 'Wh01302016!2025';
 
 // 2. Establish Database Connection
 $pdo = null;
@@ -17,77 +19,128 @@ $errorMessage = null;
 
 try {
     $dsn = "pgsql:host={$host};port={$port};dbname={$dbname};sslmode=require";
-    $pdo = new PDO($dsn, $user,$password, [
+    $pdo = new PDO($dsn, $user, $password, [
         PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     ]);
-} catch (PDOException $e) {$errorMessage = "Database Connection Error: " . $e->getMessage();
+} catch (PDOException $e) {
+    $errorMessage = "Database Connection Error: " . $e->getMessage();
 }
 
 // Determine current user role from session
-$userRole =$_SESSION['role'] ?? '';
+$userRole = $_SESSION['role'] ?? '';
 $isViewer = (strcasecmp($userRole, 'Viewer') === 0);
 
-// 3. Handle Form Submission (Add New EUR Record - Restricted for Viewers)
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add_eur' &&$pdo) {
-    if ($isViewer) {$errorMessage = "Access Denied: Viewer accounts do not have permission to add or edit entries.";
+// 3. Handle Form Submissions (Add, Edit, Delete EUR Records)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $pdo) {
+    if ($isViewer) {
+        $errorMessage = "Access Denied: Viewer accounts do not have permission to add, edit, or delete entries.";
     } else {
-        try {
-            $stmt =$pdo->prepare("
-                INSERT INTO eur_records (date, eur_no, name, equip_type, equip_id, shift, time_start, time_end, no_of_hrs, monitoring_name)
-                VALUES (:date, :eur_no, :name, :equip_type, :equip_id, :shift, :time_start, :time_end, :no_of_hrs, :monitoring_name)
-            ");
-            
-            $stmt->execute([
-                ':date'            => $_POST['date'],
-                ':eur_no'          => $_POST['eur_no'],
-                ':name'            => $_POST['name'],
-                ':equip_type'      => $_POST['equip_type'],
-                ':equip_id'        => $_POST['equip_id'],
-                ':shift'           => $_POST['shift'],
-                ':time_start'      => $_POST['time_start'],
-                ':time_end'        => $_POST['time_end'],
-                ':no_of_hrs'       => $_POST['no_of_hrs'],
-                ':monitoring_name' => $_POST['monitoring_name'],
-            ]);
+        // --- ADD ENTRY ---
+        if ($_POST['action'] === 'add_eur') {
+            try {
+                $stmt = $pdo->prepare("
+                    INSERT INTO eur_records (date, eur_no, name, equip_type, equip_id, shift, time_start, time_end, no_of_hrs, monitoring_name)
+                    VALUES (:date, :eur_no, :name, :equip_type, :equip_id, :shift, :time_start, :time_end, :no_of_hrs, :monitoring_name)
+                ");
+                
+                $stmt->execute([
+                    ':date'            => $_POST['date'],
+                    ':eur_no'          => $_POST['eur_no'],
+                    ':name'            => $_POST['name'],
+                    ':equip_type'      => $_POST['equip_type'],
+                    ':equip_id'        => $_POST['equip_id'],
+                    ':shift'           => $_POST['shift'],
+                    ':time_start'      => $_POST['time_start'],
+                    ':time_end'        => $_POST['time_end'],
+                    ':no_of_hrs'       => $_POST['no_of_hrs'],
+                    ':monitoring_name' => $_POST['monitoring_name'],
+                ]);
 
-            header("Location: eur.php?success=1");
-            exit;
-        } catch (PDOException $e) {$errorMessage = "Failed to save EUR entry: " . $e->getMessage();
+                header("Location: eur.php?success=1");
+                exit;
+            } catch (PDOException $e) {
+                $errorMessage = "Failed to save EUR entry: " . $e->getMessage();
+            }
+        }
+
+        // --- EDIT ENTRY ---
+        if ($_POST['action'] === 'edit_eur' && !empty($_POST['id'])) {
+            try {
+                $stmt = $pdo->prepare("
+                    UPDATE eur_records 
+                    SET date = :date, eur_no = :eur_no, name = :name, equip_type = :equip_type, 
+                        equip_id = :equip_id, shift = :shift, time_start = :time_start, 
+                        time_end = :time_end, no_of_hrs = :no_of_hrs, monitoring_name = :monitoring_name
+                    WHERE id = :id
+                ");
+                
+                $stmt->execute([
+                    ':id'              => $_POST['id'],
+                    ':date'            => $_POST['date'],
+                    ':eur_no'          => $_POST['eur_no'],
+                    ':name'            => $_POST['name'],
+                    ':equip_type'      => $_POST['equip_type'],
+                    ':equip_id'        => $_POST['equip_id'],
+                    ':shift'           => $_POST['shift'],
+                    ':time_start'      => $_POST['time_start'],
+                    ':time_end'        => $_POST['time_end'],
+                    ':no_of_hrs'       => $_POST['no_of_hrs'],
+                    ':monitoring_name' => $_POST['monitoring_name'],
+                ]);
+
+                header("Location: eur.php?updated=1");
+                exit;
+            } catch (PDOException $e) {
+                $errorMessage = "Failed to update EUR entry: " . $e->getMessage();
+            }
+        }
+
+        // --- DELETE ENTRY ---
+        if ($_POST['action'] === 'delete_eur' && !empty($_POST['id'])) {
+            try {
+                $stmt = $pdo->prepare("DELETE FROM eur_records WHERE id = :id");
+                $stmt->execute([':id' => $_POST['id']]);
+
+                header("Location: eur.php?deleted=1");
+                exit;
+            } catch (PDOException $e) {
+                $errorMessage = "Failed to delete EUR entry: " . $e->getMessage();
+            }
         }
     }
 }
 
 // 4. Summary Filter Parameters
-$sumGroup    =$_GET['sum_group']    ?? 'equipment'; // 'equipment' or 'operator'
-$periodType  =$_GET['period_type']  ?? '1st_15th';   // '1st_15th', '16th_end', 'full_month', 'custom'
-$selectedMth =$_GET['selected_mth'] ?? date('Y-m');
-$startDate   =$_GET['start_date']   ?? date('Y-m-01');
-$endDate     =$_GET['end_date']     ?? date('Y-m-t');
-$openModal   = isset($_GET['show_summary']) &&$_GET['show_summary'] === '1';
+$sumGroup    = $_GET['sum_group']    ?? 'equipment'; 
+$periodType  = $_GET['period_type']  ?? '1st_15th';   
+$selectedMth = $_GET['selected_mth'] ?? date('Y-m');
+$startDate   = $_GET['start_date']   ?? date('Y-m-01');
+$endDate     = $_GET['end_date']     ?? date('Y-m-t');
+$openModal   = isset($_GET['show_summary']) && $_GET['show_summary'] === '1';
 
-// Calculate Date Range based on Period Selection
 if ($periodType === '1st_15th') {
-    $filterStart =$selectedMth . '-01';
-    $filterEnd   =$selectedMth . '-15';
-} elseif ($periodType === '16th_end') {$filterStart = $selectedMth . '-16';$filterEnd   = date('Y-m-t', strtotime($selectedMth . '-01')); } elseif ($periodType === 'full_month') {
-    $filterStart =$selectedMth . '-01';
+    $filterStart = $selectedMth . '-01';
+    $filterEnd   = $selectedMth . '-15';
+} elseif ($periodType === '16th_end') {
+    $filterStart = $selectedMth . '-16';
+    $filterEnd   = date('Y-m-t', strtotime($selectedMth . '-01'));
+} elseif ($periodType === 'full_month') {
+    $filterStart = $selectedMth . '-01';
     $filterEnd   = date('Y-m-t', strtotime($selectedMth . '-01'));
 } else {
     $filterStart =$startDate;
     $filterEnd   =$endDate;
 }
 
-// 5. Fetch Table Data & Summary Query
+// 5. Fetch EUR Records & Summary
 $eurRecords  = [];$summaryData = [];
 
 if ($pdo) {
     try {
-        // Fetch Main EUR Table
         $stmt =$pdo->query("SELECT * FROM eur_records ORDER BY date DESC, id DESC");
         $eurRecords =$stmt->fetchAll();
 
-        // Dynamic Summary Query
         if ($sumGroup === 'operator') {$sumSql = "
                 SELECT 
                     name as label_title,
@@ -119,7 +172,7 @@ if ($pdo) {
         ]);
         $summaryData =$sumStmt->fetchAll();
 
-    } catch (PDOException $e) {$errorMessage = "Notice: Database query failed. " . $e->getMessage();
+    } catch (PDOException $e) {$errorMessage = "Notice: Query failed. " . $e->getMessage();
     }
 }
 ?>
@@ -132,9 +185,8 @@ if ($pdo) {
     <style>
         * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: #f4f6f9; margin: 0; padding: 25px; color: #333; }
-        .container { max-width: 1200px; margin: 0 auto; background: #ffffff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .container { max-width: 1250px; margin: 0 auto; background: #ffffff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
         
-        /* Header Banner Design */
         .header-banner {
             background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
             color: #ffffff;
@@ -173,18 +225,22 @@ if ($pdo) {
         .btn-summary { background-color: #0d9488; color: #fff; }
         .btn-summary:hover { background-color: #0f766e; }
 
+        /* Action Buttons for Table */
+        .btn-edit { background-color: #f59e0b; color: #fff; padding: 5px 10px; font-size: 12px; border-radius: 4px; margin-right: 4px; }
+        .btn-edit:hover { background-color: #d97706; }
+        .btn-delete { background-color: #ef4444; color: #fff; padding: 5px 10px; font-size: 12px; border-radius: 4px; }
+        .btn-delete:hover { background-color: #dc2626; }
+
         .alert { padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-size: 14px; }
         .alert-danger { background-color: #fee2e2; color: #991b1b; border: 1px solid #f87171; }
         .alert-success { background-color: #dcfce7; color: #166534; border: 1px solid #86efac; }
 
-        /* Table Styling */
         .table-responsive { overflow-x: auto; margin-top: 10px; }
         table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
         th, td { padding: 12px 10px; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }
         th { background-color: #f8fafc; color: #475569; font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; }
         tr:hover { background-color: #f1f5f9; }
 
-        /* Modal Form & Summary Styling */
         .modal { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center; pointer-events: none; }
         .modal.active { display: flex; pointer-events: auto; }
         .modal-content { background: #fff; padding: 25px; border-radius: 10px; width: 100%; max-width: 750px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto; }
@@ -193,7 +249,6 @@ if ($pdo) {
         .close-btn { font-size: 22px; cursor: pointer; color: #94a3b8; }
         .close-btn:hover { color: #000; }
 
-        /* Filter Box Inside Summary */
         .summary-filters { background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
         .filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
         
@@ -208,7 +263,6 @@ if ($pdo) {
 <body>
 
 <div class="container">
-    <!-- Header Banner Design -->
     <div class="header-banner">
         <div class="header-title-area">
             <h1>Equipment Utilization Report (EUR)</h1>
@@ -226,13 +280,19 @@ if ($pdo) {
         </div>
         <div class="nav-actions">
             <?php if (!$isViewer): ?>
-                <button type="button" class="btn btn-add" onclick="openModal()">+ Add New Entry</button>
+                <button type="button" class="btn btn-add" onclick="openAddModal()">+ Add New Entry</button>
             <?php endif; ?>
         </div>
     </div>
 
     <?php if (isset($_GET['success'])): ?>
         <div class="alert alert-success">EUR Record successfully saved!</div>
+    <?php endif; ?>
+    <?php if (isset($_GET['updated'])): ?>
+        <div class="alert alert-success">EUR Record updated successfully!</div>
+    <?php endif; ?>
+    <?php if (isset($_GET['deleted'])): ?>
+        <div class="alert alert-success">EUR Record deleted successfully!</div>
     <?php endif; ?>
 
     <?php if ($errorMessage): ?>
@@ -253,6 +313,9 @@ if ($pdo) {
                     <th>Time End</th>
                     <th>No. Of Hrs</th>
                     <th>Monitoring Name</th>
+                    <?php if (!$isViewer): ?>
+                        <th style="text-align: center;">Actions</th>
+                    <?php endif; ?>
                 </tr>
             </thead>
             <tbody>
@@ -269,17 +332,22 @@ if ($pdo) {
                             <td><?= htmlspecialchars($row['time_end'] ?? ''); ?></td>
                             <td><strong><?= htmlspecialchars($row['no_of_hrs'] ?? '0'); ?></strong></td>
                             <td><?= htmlspecialchars($row['monitoring_name'] ?? ''); ?></td>
+                            <?php if (!$isViewer): ?>
+                                <td style="text-align: center;">
+                                    <button type="button" class="btn btn-edit" onclick='openEditModal(<?= json_encode($row); ?>)'>Edit</button>
+                                    <form method="POST" action="eur.php" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete EUR record <?= htmlspecialchars($row['eur_no']); ?>?');">
+                                        <input type="hidden" name="action" value="delete_eur">
+                                        <input type="hidden" name="id" value="<?= $row['id']; ?>">
+                                        <button type="submit" class="btn btn-delete">Delete</button>
+                                    </form>
+                                </td>
+                            <?php endif; ?>
                         </tr>
                     <?php endforeach; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="10" style="text-align: center; color: #64748b; padding: 25px;">
-                            No EUR entries found. 
-                            <?php if (!$isViewer): ?>
-                                Click <strong>"+ Add New Entry"</strong> to record an equipment report.
-                            <?php else: ?>
-                                (Viewer Mode: Read-only access)
-                            <?php endif; ?>
+                        <td colspan="<?= $isViewer ? 10 : 11; ?>" style="text-align: center; color: #64748b; padding: 25px;">
+                            No EUR entries found.
                         </td>
                     </tr>
                 <?php endif; ?>
@@ -296,7 +364,6 @@ if ($pdo) {
             <span class="close-btn" onclick="closeSummaryModal()">&times;</span>
         </div>
 
-        <!-- Filter Controls Form -->
         <form method="GET" action="eur.php" class="summary-filters">
             <input type="hidden" name="show_summary" value="1">
             <div class="filter-grid">
@@ -342,7 +409,6 @@ if ($pdo) {
             Showing results for period: <strong><?= date('M d, Y', strtotime($filterStart)); ?></strong> to <strong><?= date('M d, Y', strtotime($filterEnd)); ?></strong>
         </p>
 
-        <!-- Summary Data Table -->
         <div class="table-responsive">
             <table>
                 <thead>
@@ -385,15 +451,17 @@ if ($pdo) {
 </div>
 
 <?php if (!$isViewer): ?>
-<!-- Modal Form for Adding EUR (Hidden for Viewers) -->
+<!-- Add/Edit EUR Modal -->
 <div id="eurModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h2>Add EUR Record</h2>
+            <h2 id="modalTitle">Add EUR Record</h2>
             <span class="close-btn" onclick="closeModal()">&times;</span>
         </div>
-        <form method="POST" action="eur.php">
-            <input type="hidden" name="action" value="add_eur">
+        <form method="POST" action="eur.php" id="eurForm">
+            <input type="hidden" name="action" id="formAction" value="add_eur">
+            <input type="hidden" name="id" id="recordId" value="">
+            
             <div class="form-grid">
                 <div class="form-group">
                     <label for="date">Date</label>
@@ -417,7 +485,7 @@ if ($pdo) {
 
                 <div class="form-group">
                     <label for="equip_type">Equip. Type</label>
-                    <select id="equip_type" name="equip_type" required>
+                    <select id="equip_type" name="equip_type" onchange="updateEquipIDs()" required>
                         <option value="">Select Equipment Type</option>
                         <option value="Backhoe">Backhoe</option>
                         <option value="Wheel Loader">Wheel Loader</option>
@@ -433,49 +501,7 @@ if ($pdo) {
                 <div class="form-group">
                     <label for="equip_id">Equip. ID</label>
                     <select id="equip_id" name="equip_id" required>
-                        <option value="">Select Equipment ID</option>
-                        <option value="TX-01">TX-01</option>
-                        <option value="TX-02">TX-02</option>
-                        <option value="TX-03">TX-03</option>
-                        <option value="TX-04">TX-04</option>
-                        <option value="TX-05">TX-05</option>
-                        <option value="TX-06">TX-06</option>
-                        <option value="TX-07">TX-07</option>
-                        <option value="TX-08">TX-08</option>
-                        <option value="TX-09">TX-09</option>
-                        <option value="TX-10">TX-10</option>
-                        <option value="DT-01">DT-01</option>
-                        <option value="DT-02">DT-02</option>
-                        <option value="DT-03">DT-03</option>
-                        <option value="DT-04">DT-04</option>
-                        <option value="DT-05">DT-05</option>
-                        <option value="DT-06">DT-06</option>
-                        <option value="DT-07">DT-07</option>
-                        <option value="DT-08">DT-08</option>
-                        <option value="DT-09">DT-09</option>
-                        <option value="DT-10">DT-10</option>
-                        <option value="RR-01">RR-01</option>
-                        <option value="RR-02">RR-02</option>
-                        <option value="RR-03">RR-03</option>
-                        <option value="RR-04">RR-04</option>
-                        <option value="RR-05">RR-05</option>
-                        <option value="RR-06">RR-06</option>
-                        <option value="RR-07">RR-07</option>
-                        <option value="RR-08">RR-08</option>
-                        <option value="RR-09">RR-09</option>
-                        <option value="RR-10">RR-10</option>
-                        <option value="WL-01">WL-01</option>
-                        <option value="WL-02">WL-02</option>
-                        <option value="WL-03">WL-03</option>
-                        <option value="WL-04">WL-04</option>
-                        <option value="RG-01">RG-01</option>
-                        <option value="RG-02">RG-02</option>
-                        <option value="RG-03">RG-03</option>
-                        <option value="RG-04">RG-04</option>
-                        <option value="WT-01">WT-01</option>
-                        <option value="WT-02">WT-02</option>
-                        <option value="WT-03">WT-03</option>
-                        <option value="WT-04">WT-04</option>
+                        <option value="">Select Equip. Type First</option>
                     </select>
                 </div>
 
@@ -505,7 +531,7 @@ if ($pdo) {
             </div>
             <div class="form-actions">
                 <button type="button" class="btn btn-back" onclick="closeModal()">Cancel</button>
-                <button type="submit" class="btn btn-add">Save Entry</button>
+                <button type="submit" class="btn btn-add" id="submitBtn">Save Entry</button>
             </div>
         </form>
     </div>
@@ -513,10 +539,64 @@ if ($pdo) {
 <?php endif; ?>
 
 <script>
-    function openModal() {
-        const modal = document.getElementById('eurModal');
-        if (modal) modal.classList.add('active');
+    // Equipment ID mapping by Equipment Type
+    const equipIDMap = {
+        'Backhoe': ['TX-01','TX-02','TX-03','TX-04','TX-05','TX-06','TX-07','TX-08','TX-09','TX-10'],
+        'Wheel Loader': ['WL-01','WL-02','WL-03','WL-04'],
+        'Bulldozer': ['BD-01','BD-02','BD-03','BD-04'],
+        'Road Grader': ['RG-01','RG-02','RG-03','RG-04'],
+        'Road Roller': ['RR-01','RR-02','RR-03','RR-04','RR-05','RR-06','RR-07','RR-08','RR-09','RR-10'],
+        'Dumptruck': ['DT-01','DT-02','DT-03','DT-04','DT-05','DT-06','DT-07','DT-08','DT-09','DT-10'],
+        'Service Vehicle': ['SV-01','SV-02','SV-03','SV-04'],
+        'Water Truck': ['WT-01','WT-02','WT-03','WT-04']
+    };
+
+    function updateEquipIDs(selectedID = '') {
+        const typeSelect = document.getElementById('equip_type').value;
+        const idSelect = document.getElementById('equip_id');
+        idSelect.innerHTML = '<option value="">Select Equipment ID</option>';
+
+        if (typeSelect && equipIDMap[typeSelect]) {
+            equipIDMap[typeSelect].forEach(id => {
+                const opt = document.createElement('option');
+                opt.value = id;
+                opt.textContent = id;
+                if (id === selectedID) opt.selected = true;
+                idSelect.appendChild(opt);
+            });
+        }
     }
+
+    function openAddModal() {
+        document.getElementById('modalTitle').textContent = 'Add EUR Record';
+        document.getElementById('formAction').value = 'add_eur';
+        document.getElementById('recordId').value = '';
+        document.getElementById('eurForm').reset();
+        updateEquipIDs();
+        document.getElementById('eurModal').classList.add('active');
+    }
+
+    function openEditModal(record) {
+        document.getElementById('modalTitle').textContent = 'Edit EUR Record';
+        document.getElementById('formAction').value = 'edit_eur';
+        document.getElementById('recordId').value = record.id;
+
+        document.getElementById('date').value = record.date;
+        document.getElementById('eur_no').value = record.eur_no;
+        document.getElementById('name').value = record.name;
+        document.getElementById('equip_type').value = record.equip_type;
+        
+        updateEquipIDs(record.equip_id);
+
+        document.getElementById('shift').value = record.shift;
+        document.getElementById('time_start').value = record.time_start;
+        document.getElementById('time_end').value = record.time_end;
+        document.getElementById('no_of_hrs').value = record.no_of_hrs;
+        document.getElementById('monitoring_name').value = record.monitoring_name;
+
+        document.getElementById('eurModal').classList.add('active');
+    }
+
     function closeModal() {
         const modal = document.getElementById('eurModal');
         if (modal) modal.classList.remove('active');
@@ -545,7 +625,6 @@ if ($pdo) {
         }
     }
     
-    // Auto-calculate hours between time_start and time_end
     function calculateHours() {
         const start = document.getElementById('time_start').value;
         const end = document.getElementById('time_end').value;
