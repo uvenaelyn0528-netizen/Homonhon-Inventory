@@ -103,6 +103,7 @@ $role = $_SESSION['role'] ?? 'Staff';
             transform: scale(0.98); 
         }
         
+        .btn-home { background-color: #475569; color: #ffffff; }
         .btn-eur { background-color: #3b82f6; color: #ffffff; }
         .btn-ticket { background-color: #10b981; color: #ffffff; }
         .btn-report { background-color: #f97316; color: #ffffff; }
@@ -143,6 +144,7 @@ $role = $_SESSION['role'] ?? 'Staff';
 
     <!-- Navigation Buttons -->
     <div class="btn-grid">
+        <a href="index.php" class="btn btn-home">🏠 Home</a>
         <a href="eur.php" class="btn btn-eur">EUR</a>
         <a href="trip_ticket.php" class="btn btn-ticket">Trip Ticket</a>
         <a href="reportorial.php" class="btn btn-report">Reportorial</a>
