@@ -40,8 +40,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $pdo) {
         if ($_POST['action'] === 'add_eur') {
             try {
                 $stmt = $pdo->prepare("
-                    INSERT INTO eur_records (date, eur_no, name, equip_type, equip_id, shift, time_start, time_end, no_of_hrs, monitoring_name)
-                    VALUES (:date, :eur_no, :name, :equip_type, :equip_id, :shift, :time_start, :time_end, :no_of_hrs, :monitoring_name)
+                    INSERT INTO eur_records (date, eur_no, name, equip_type, equip_id, shift, time_start, time_end, no_of_hrs, monitoring_name, activities, area)
+                    VALUES (:date, :eur_no, :name, :equip_type, :equip_id, :shift, :time_start, :time_end, :no_of_hrs, :monitoring_name, :activities, :area)
                 ");
                 
                 $stmt->execute([
@@ -55,6 +55,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $pdo) {
                     ':time_end'        => $_POST['time_end'],
                     ':no_of_hrs'       => $_POST['no_of_hrs'],
                     ':monitoring_name' => $_POST['monitoring_name'],
+                    ':activities'      => $_POST['activities'],
+                    ':area'            => $_POST['area'],
                 ]);
 
                 header("Location: eur.php?success=1");
@@ -71,7 +73,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $pdo) {
                     UPDATE eur_records 
                     SET date = :date, eur_no = :eur_no, name = :name, equip_type = :equip_type, 
                         equip_id = :equip_id, shift = :shift, time_start = :time_start, 
-                        time_end = :time_end, no_of_hrs = :no_of_hrs, monitoring_name = :monitoring_name
+                        time_end = :time_end, no_of_hrs = :no_of_hrs, monitoring_name = :monitoring_name,
+                        activities = :activities, area = :area
                     WHERE id = :id
                 ");
                 
@@ -87,6 +90,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $pdo) {
                     ':time_end'        => $_POST['time_end'],
                     ':no_of_hrs'       => $_POST['no_of_hrs'],
                     ':monitoring_name' => $_POST['monitoring_name'],
+                    ':activities'      => $_POST['activities'],
+                    ':area'            => $_POST['area'],
                 ]);
 
                 header("Location: eur.php?updated=1");
@@ -129,19 +134,21 @@ if ($periodType === '1st_15th') {
     $filterStart = $selectedMth . '-01';
     $filterEnd   = date('Y-m-t', strtotime($selectedMth . '-01'));
 } else {
-    $filterStart =$startDate;
-    $filterEnd   =$endDate;
+    $filterStart = $startDate;
+    $filterEnd   = $endDate;
 }
 
 // 5. Fetch EUR Records & Summary
-$eurRecords  = [];$summaryData = [];
+$eurRecords  = [];
+$summaryData = [];
 
 if ($pdo) {
     try {
-        $stmt =$pdo->query("SELECT * FROM eur_records ORDER BY date DESC, id DESC");
-        $eurRecords =$stmt->fetchAll();
+        $stmt = $pdo->query("SELECT * FROM eur_records ORDER BY date DESC, id DESC");
+        $eurRecords = $stmt->fetchAll();
 
-        if ($sumGroup === 'operator') {$sumSql = "
+        if ($sumGroup === 'operator') {
+            $sumSql = "
                 SELECT 
                     name as label_title,
                     'Operator' as group_type,
@@ -166,13 +173,15 @@ if ($pdo) {
             ";
         }
 
-        $sumStmt =$pdo->prepare($sumSql);$sumStmt->execute([
+        $sumStmt = $pdo->prepare($sumSql);
+        $sumStmt->execute([
             ':start_date' => $filterStart,
             ':end_date'   => $filterEnd
         ]);
-        $summaryData =$sumStmt->fetchAll();
+        $summaryData = $sumStmt->fetchAll();
 
-    } catch (PDOException $e) {$errorMessage = "Notice: Query failed. " . $e->getMessage();
+    } catch (PDOException $e) {
+        $errorMessage = "Notice: Query failed. " . $e->getMessage();
     }
 }
 ?>
@@ -185,7 +194,7 @@ if ($pdo) {
     <style>
         * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: #f4f6f9; margin: 0; padding: 25px; color: #333; }
-        .container { max-width: 1250px; margin: 0 auto; background: #ffffff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .container { max-width: 1350px; margin: 0 auto; background: #ffffff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
         
         .header-banner {
             background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
@@ -225,7 +234,6 @@ if ($pdo) {
         .btn-summary { background-color: #0d9488; color: #fff; }
         .btn-summary:hover { background-color: #0f766e; }
 
-        /* Action Buttons for Table */
         .btn-edit { background-color: #f59e0b; color: #fff; padding: 5px 10px; font-size: 12px; border-radius: 4px; margin-right: 4px; }
         .btn-edit:hover { background-color: #d97706; }
         .btn-delete { background-color: #ef4444; color: #fff; padding: 5px 10px; font-size: 12px; border-radius: 4px; }
@@ -254,9 +262,10 @@ if ($pdo) {
         
         .form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
         .form-group { display: flex; flex-direction: column; gap: 5px; }
+        .form-group.full-width { grid-column: span 2; }
         label { font-size: 12px; font-weight: 600; color: #475569; }
-        input, select { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; outline: none; background-color: #fff; }
-        input:focus, select:focus { border-color: #2563eb; }
+        input, select, textarea { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; outline: none; background-color: #fff; }
+        input:focus, select:focus, textarea:focus { border-color: #2563eb; }
         .form-actions { margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px; }
     </style>
 </head>
@@ -308,6 +317,8 @@ if ($pdo) {
                     <th>Name</th>
                     <th>Equip. Type</th>
                     <th>Equip. ID</th>
+                    <th>Activities</th>
+                    <th>Area</th>
                     <th>Shift</th>
                     <th>Time Start</th>
                     <th>Time End</th>
@@ -327,6 +338,8 @@ if ($pdo) {
                             <td><?= htmlspecialchars($row['name'] ?? ''); ?></td>
                             <td><?= htmlspecialchars($row['equip_type'] ?? ''); ?></td>
                             <td><?= htmlspecialchars($row['equip_id'] ?? ''); ?></td>
+                            <td><?= htmlspecialchars($row['activities'] ?? ''); ?></td>
+                            <td><?= htmlspecialchars($row['area'] ?? ''); ?></td>
                             <td><?= htmlspecialchars($row['shift'] ?? ''); ?></td>
                             <td><?= htmlspecialchars($row['time_start'] ?? ''); ?></td>
                             <td><?= htmlspecialchars($row['time_end'] ?? ''); ?></td>
@@ -346,7 +359,7 @@ if ($pdo) {
                     <?php endforeach; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="<?= $isViewer ? 10 : 11; ?>" style="text-align: center; color: #64748b; padding: 25px;">
+                        <td colspan="<?= $isViewer ? 12 : 13; ?>" style="text-align: center; color: #64748b; padding: 25px;">
                             No EUR entries found.
                         </td>
                     </tr>
@@ -512,6 +525,17 @@ if ($pdo) {
                         <option value="Night">Night Shift</option>
                     </select>
                 </div>
+
+                <div class="form-group full-width">
+                    <label for="activities">Activities</label>
+                    <input type="text" id="activities" name="activities" placeholder="e.g. Excavation, Hauling, Grading" required>
+                </div>
+
+                <div class="form-group full-width">
+                    <label for="area">Area</label>
+                    <input type="text" id="area" name="area" placeholder="e.g. Pit A, Haul Road, Stockpile" required>
+                </div>
+
                 <div class="form-group">
                     <label for="time_start">Time Start</label>
                     <input type="time" id="time_start" name="time_start" onchange="calculateHours()" required>
@@ -589,6 +613,8 @@ if ($pdo) {
         updateEquipIDs(record.equip_id);
 
         document.getElementById('shift').value = record.shift;
+        document.getElementById('activities').value = record.activities || '';
+        document.getElementById('area').value = record.area || '';
         document.getElementById('time_start').value = record.time_start;
         document.getElementById('time_end').value = record.time_end;
         document.getElementById('no_of_hrs').value = record.no_of_hrs;
