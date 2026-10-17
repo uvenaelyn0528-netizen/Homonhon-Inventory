@@ -3,12 +3,13 @@
  * Equipment Utilization Report (EUR) Management
  */
 session_start();
+$username =$_SESSION['username'] ?? 'User';
+$role     =$_SESSION['role'] ?? 'Staff';
 
 // 1. Supabase Database Configuration
 $host     = getenv('DB_HOST')     ?: 'aws-1-ap-northeast-1.pooler.supabase.com';
 $port     = getenv('DB_PORT')     ?: '6543';$dbname   = getenv('DB_NAME')     ?: 'postgres';
-$user     = getenv('DB_USER')     ?: 'postgres.otrkginfndevnotgkajc';
-$password = getenv('DB_PASSWORD') ?: 'Wh01302016!2025';
+$user     = getenv('DB_USER')     ?: 'postgres.otrkginfndevnotgkajc';$password = getenv('DB_PASSWORD') ?: 'Wh01302016!2025';
 
 // 2. Establish Database Connection
 $pdo = null;
@@ -23,9 +24,8 @@ try {
 } catch (PDOException $e) {$errorMessage = "Database Connection Error: " . $e->getMessage();
 }
 
-// Determine current user role from session (default to empty if not set)
+// Determine current user role from session
 $userRole =$_SESSION['role'] ?? '';
-// Viewers cannot add or modify entries
 $isViewer = (strcasecmp($userRole, 'Viewer') === 0);
 
 // 3. Handle Form Submission (Add New EUR Record - Restricted for Viewers)
@@ -59,11 +59,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 }
 
 // 4. Fetch EUR Records
-$eurRecords = [];
+$eurRecords = [];$summaryData = [];
 if ($pdo) {
     try {
         $stmt =$pdo->query("SELECT * FROM eur_records ORDER BY date DESC, id DESC");
         $eurRecords =$stmt->fetchAll();
+
+        // Fetch Summary of Total Accumulated Hours grouped by Equipment ID and Cut-off Period
+        // Cut-off 1: 1st to 15th | Cut-off 2: 16th to End of Month
+        $summaryStmt =$pdo->query("
+            SELECT 
+                equip_id,
+                equip_type,
+                DATE_TRUNC('month', date)::date as month_start,
+                CASE 
+                    WHEN EXTRACT(DAY FROM date) <= 15 THEN '1st - 15th Cut-off'
+                    ELSE '16th - End Cut-off'
+                END as cutoff_period,
+                SUM(no_of_hrs) as total_hrs
+            FROM eur_records
+            GROUP BY equip_id, equip_type, month_start, cutoff_period
+            ORDER BY month_start DESC, equip_id ASC
+        ");
+        $summaryData =$summaryStmt->fetchAll();
+
     } catch (PDOException $e) {$errorMessage = "Notice: 'eur_records' table missing or query failed. " . $e->getMessage();
     }
 }
@@ -79,15 +98,56 @@ if ($pdo) {
         body { background-color: #f4f6f9; margin: 0; padding: 25px; color: #333; }
         .container { max-width: 1200px; margin: 0 auto; background: #ffffff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
         
-        .header-section { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 20px; flex-wrap: wrap; gap: 15px; }
-        h1 { margin: 0; color: #1e293b; font-size: 24px; font-weight: 700; }
+        /* Enhanced Header Design */
+        .header-banner {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: #ffffff;
+            padding: 22px 25px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            box-shadow: inset 0 2px 4px rgba(255,255,255,0.1);
+        }
+        .header-title-area h1 {
+            margin: 0 0 5px 0;
+            font-size: 26px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+        .header-title-area p {
+            margin: 0;
+            color: #94a3b8;
+            font-size: 13px;
+        }
+        .user-badge {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .user-badge span {
+            color: #38bdf8;
+            font-weight: 600;
+        }
+
+        .action-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px; }
+        .nav-actions { display: flex; gap: 10px; position: relative; z-index: 10; flex-wrap: wrap; }
         
-        .nav-actions { display: flex; gap: 10px; position: relative; z-index: 10; }
         .btn { display: inline-flex; align-items: center; justify-content: center; padding: 10px 18px; font-size: 14px; font-weight: 600; text-decoration: none; border-radius: 6px; border: none; cursor: pointer; transition: all 0.2s ease; }
         .btn-back { background-color: #64748b; color: #fff; }
         .btn-back:hover { background-color: #475569; }
         .btn-add { background-color: #2563eb; color: #fff; position: relative; z-index: 11; }
         .btn-add:hover { background-color: #1d4ed8; }
+        .btn-summary { background-color: #0d9488; color: #fff; }
+        .btn-summary:hover { background-color: #0f766e; }
 
         .alert { padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-size: 14px; }
         .alert-danger { background-color: #fee2e2; color: #991b1b; border: 1px solid #f87171; }
@@ -100,10 +160,10 @@ if ($pdo) {
         th { background-color: #f8fafc; color: #475569; font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; }
         tr:hover { background-color: #f1f5f9; }
 
-        /* Modal Form Styling */
+        /* Modal Form & Summary Styling */
         .modal { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center; pointer-events: none; }
         .modal.active { display: flex; pointer-events: auto; }
-        .modal-content { background: #fff; padding: 25px; border-radius: 10px; width: 100%; max-width: 600px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        .modal-content { background: #fff; padding: 25px; border-radius: 10px; width: 100%; max-width: 650px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto; }
         .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 20px; }
         .modal-header h2 { margin: 0; font-size: 20px; color: #1e293b; }
         .close-btn { font-size: 22px; cursor: pointer; color: #94a3b8; }
@@ -121,10 +181,23 @@ if ($pdo) {
 <body>
 
 <div class="container">
-    <div class="header-section">
-        <h1>Equipment Utilization Report (EUR)</h1>
+    <!-- Header Banner Design -->
+    <div class="header-banner">
+        <div class="header-title-area">
+            <h1>Equipment Utilization Report (EUR)</h1>
+            <p>Engineering Department &bull; Operational Tracking</p>
+        </div>
+        <div class="user-badge">
+            👤 <?= htmlspecialchars($username); ?> &bull; <span><?= htmlspecialchars($role); ?></span>
+        </div>
+    </div>
+
+    <div class="action-bar">
         <div class="nav-actions">
             <a href="Engineering.php" class="btn btn-back">← Back to Engineering</a>
+            <button type="button" class="btn btn-summary" onclick="openSummaryModal()">📊 Summary of Total Hours (15th & End)</button>
+        </div>
+        <div class="nav-actions">
             <?php if (!$isViewer): ?>
                 <button type="button" class="btn btn-add" onclick="openModal()">+ Add New Entry</button>
             <?php endif; ?>
@@ -185,6 +258,50 @@ if ($pdo) {
                 <?php endif; ?>
             </tbody>
         </table>
+    </div>
+</div>
+
+<!-- Summary Modal (Accumulated Hours per Cut-off) -->
+<div id="summaryModal" class="modal">
+    <div class="modal-content" style="max-width: 800px;">
+        <div class="modal-header">
+            <h2>Accumulated Hours Summary (15th & Month-End)</h2>
+            <span class="close-btn" onclick="closeSummaryModal()">&times;</span>
+        </div>
+        <p style="font-size: 13px; color: #64748b; margin-top: 0;">Total operating hours accumulated per equipment for each cut-off period (1st–15th and 16th–End of Month).</p>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Month</th>
+                        <th>Equip. ID</th>
+                        <th>Equip. Type</th>
+                        <th>Cut-off Period</th>
+                        <th>Total Accumulated Hours</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (!empty($summaryData)): ?>
+                        <?php foreach ($summaryData as$sum): ?>
+                            <tr>
+                                <td><?= date('F Y', strtotime($sum['month_start'])); ?></td>
+                                <td><strong><?= htmlspecialchars($sum['equip_id']); ?></strong></td>
+                                <td><?= htmlspecialchars($sum['equip_type']); ?></td>
+                                <td><span style="background: #e2e8f0; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 600;"><?= htmlspecialchars($sum['cutoff_period']); ?></span></td>
+                                <td><strong style="color: #2563eb;"><?= number_format($sum['total_hrs'], 1); ?> hrs</strong></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <tr>
+                            <td colspan="5" style="text-align: center; color: #64748b; padding: 20px;">No records available for accumulation summary.</td>
+                        </tr>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+        <div class="form-actions" style="margin-top: 20px;">
+            <button type="button" class="btn btn-back" onclick="closeSummaryModal()">Close</button>
+        </div>
     </div>
 </div>
 
@@ -323,13 +440,25 @@ if ($pdo) {
         </form>
     </div>
 </div>
+<?php endif; ?>
 
 <script>
     function openModal() {
-        document.getElementById('eurModal').classList.add('active');
+        const modal = document.getElementById('eurModal');
+        if (modal) modal.classList.add('active');
     }
     function closeModal() {
-        document.getElementById('eurModal').classList.remove('active');
+        const modal = document.getElementById('eurModal');
+        if (modal) modal.classList.remove('active');
+    }
+
+    function openSummaryModal() {
+        const modal = document.getElementById('summaryModal');
+        if (modal) modal.classList.add('active');
+    }
+    function closeSummaryModal() {
+        const modal = document.getElementById('summaryModal');
+        if (modal) modal.classList.remove('active');
     }
     
     // Auto-calculate hours between time_start and time_end
@@ -347,15 +476,18 @@ if ($pdo) {
         }
     }
 
-    // Close modal on outside click
+    // Close modals on outside click
     window.onclick = function(event) {
-        const modal = document.getElementById('eurModal');
-        if (modal && event.target == modal) {
+        const modalAdd = document.getElementById('eurModal');
+        const modalSum = document.getElementById('summaryModal');
+        if (modalAdd && event.target == modalAdd) {
             closeModal();
+        }
+        if (modalSum && event.target == modalSum) {
+            closeSummaryModal();
         }
     }
 </script>
-<?php endif; ?>
 
 </body>
 </html>
