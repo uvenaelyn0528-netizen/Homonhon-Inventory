@@ -6,8 +6,7 @@
 // 1. Supabase Database Configuration
 $host     = getenv('DB_HOST')     ?: 'aws-1-ap-northeast-1.pooler.supabase.com';
 $port     = getenv('DB_PORT')     ?: '6543';$dbname   = getenv('DB_NAME')     ?: 'postgres';
-$user     = getenv('DB_USER')     ?: 'postgres.otrkginfndevnotgkajc';
-$password = getenv('DB_PASSWORD') ?: 'Wh01302016!2025';
+$user     = getenv('DB_USER')     ?: 'postgres.otrkginfndevnotgkajc';$password = getenv('DB_PASSWORD') ?: 'YOUR_SUPABASE_PASSWORD_HERE'; // Ensure your password is set here or in Render environment variables
 
 // 2. Establish Database Connection
 $pdo = null;
@@ -55,9 +54,7 @@ if ($pdo) {
     try {
         $stmt =$pdo->query("SELECT * FROM eur_records ORDER BY date DESC, id DESC");
         $eurRecords =$stmt->fetchAll();
-    } catch (PDOException $e) {
-        // Table might not exist yet; gracefully fallback
-        $errorMessage = "Notice: 'eur_records' table missing or query failed. " . $e->getMessage();
+    } catch (PDOException $e) {$errorMessage = "Notice: 'eur_records' table missing or query failed. " . $e->getMessage();
     }
 }
 ?>
@@ -105,7 +102,7 @@ if ($pdo) {
         .form-group { display: flex; flex-direction: column; gap: 5px; }
         .form-group.full-width { grid-column: span 2; }
         label { font-size: 13px; font-weight: 600; color: #475569; }
-        input, select { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; outline: none; }
+        input, select { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; outline: none; background-color: #fff; }
         input:focus, select:focus { border-color: #2563eb; }
         .form-actions { margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px; }
     </style>
@@ -191,81 +188,85 @@ if ($pdo) {
                     <label for="eur_no">EUR No.</label>
                     <input type="text" id="eur_no" name="eur_no" placeholder="EUR-0001" required>
                 </div>
+                
+                <!-- Operator Name Dropdown -->
                 <div class="form-group">
                     <label for="name">Operator Name</label>
-                    <input type="text" id="name" name="name" placeholder="Full Name" required>
-                </div>
-                <div class="form-group">
-                    <label for="equip_type">Equip. Type</label>
-                    <input type="text" id="equip_type" name="equip_type" placeholder="e.g. Dump Truck, Excavator" required>
-                </div>
-                <div class="form-group">
-                    <label for="equip_id">Equip. ID</label>
-                    <input type="text" id="equip_id" name="equip_id" placeholder="e.g. DT-01" required>
-                </div>
-                <div class="form-group">
-                    <label for="shift">Shift</label>
-                    <select id="shift" name="shift" required>
-                        <option value="Day">Day Shift</option>
-                        <option value="Night">Night Shift</option>
+                    <select id="name" name="name" required>
+                        <option value="">Select Operator</option>
+                        <option value="Laconsay, Kevin">Laconsay, Kevin</option>
+                        <option value="Uvena, Mario">Uvena, Mario</option>
+                        <option value="Benitez, Kyle">Benitez, Kyle</option>
+                        <option value="Salve, Levi">Salve, Levi</option>
                     </select>
                 </div>
-                <div class="form-group">
-                    <label for="time_start">Time Start</label>
-                    <input type="time" id="time_start" name="time_start" onchange="calculateHours()" required>
-                </div>
-                <div class="form-group">
-                    <label for="time_end">Time End</label>
-                    <input type="time" id="time_end" name="time_end" onchange="calculateHours()" required>
-                </div>
-                <div class="form-group">
-                    <label for="no_of_hrs">No. Of Hrs</label>
-                    <input type="number" step="0.1" id="no_of_hrs" name="no_of_hrs" placeholder="0.0" required>
-                </div>
-                <div class="form-group">
-                    <label for="monitoring_name">Monitoring Name</label>
-                    <input type="text" id="monitoring_name" name="monitoring_name" placeholder="Supervisor/Inspector" required>
-                </div>
-            </div>
-            <div class="form-actions">
-                <button type="button" class="btn btn-back" onclick="closeModal()">Cancel</button>
-                <button type="submit" class="btn btn-add">Save Entry</button>
-            </div>
-        </form>
-    </div>
-</div>
 
-<script>
-    function openModal() {
-        document.getElementById('eurModal').style.display = 'flex';
-    }
-    function closeModal() {
-        document.getElementById('eurModal').style.display = 'none';
-    }
-    
-    // Auto-calculate hours between time_start and time_end
-    function calculateHours() {
-        const start = document.getElementById('time_start').value;
-        const end = document.getElementById('time_end').value;
-        if (start && end) {
-            const startDate = new Date(`1970-01-01T${start}:00`);
-            let endDate = new Date(`1970-01-01T${end}:00`);
-            if (endDate < startDate) {
-                endDate.setDate(endDate.getDate() + 1); // Overnight shift
-            }
-            const diffHours = (endDate - startDate) / (1000 * 60 * 60);
-            document.getElementById('no_of_hrs').value = diffHours.toFixed(1);
-        }
-    }
+                <!-- Equipment Type Dropdown -->
+                <div class="form-group">
+                    <label for="equip_type">Equip. Type</label>
+                    <select id="equip_type" name="equip_type" required>
+                        <option value="">Select Equipment Type</option>
+                        <option value="Backhoe">Backhoe</option>
+                        <option value="Wheel Loader">Wheel Loader</option>
+                        <option value="Bulldozer">Bulldozer</option>
+                        <option value="Road Grader">Road Grader</option>
+                        <option value="Road Roller">Road Roller</option>
+                        <option value="Dumptruck">Dumptruck</option>
+                        <option value="Service Vehicle">Service Vehicle</option>
+                        <option value="Water Truck">Water Truck</option>
+                    </select>
+                </div>
 
-    // Close modal on outside click
-    window.onclick = function(event) {
-        const modal = document.getElementById('eurModal');
-        if (event.target == modal) {
-            closeModal();
-        }
-    }
-</script>
-
-</body>
-</html>
+                <!-- Equipment ID Dropdown -->
+                <div class="form-group">
+                    <label for="equip_id">Equip. ID</label>
+                    <select id="equip_id" name="equip_id" required>
+                        <option value="">Select Equipment ID</option>
+                        <!-- TX-01 to 10 -->
+                        <option value="TX-01">TX-01</option>
+                        <option value="TX-02">TX-02</option>
+                        <option value="TX-03">TX-03</option>
+                        <option value="TX-04">TX-04</option>
+                        <option value="TX-05">TX-05</option>
+                        <option value="TX-06">TX-06</option>
+                        <option value="TX-07">TX-07</option>
+                        <option value="TX-08">TX-08</option>
+                        <option value="TX-09">TX-09</option>
+                        <option value="TX-10">TX-10</option>
+                        <!-- DT-01 to 10 -->
+                        <option value="DT-01">DT-01</option>
+                        <option value="DT-02">DT-02</option>
+                        <option value="DT-03">DT-03</option>
+                        <option value="DT-04">DT-04</option>
+                        <option value="DT-05">DT-05</option>
+                        <option value="DT-06">DT-06</option>
+                        <option value="DT-07">DT-07</option>
+                        <option value="DT-08">DT-08</option>
+                        <option value="DT-09">DT-09</option>
+                        <option value="DT-10">DT-10</option>
+                        <!-- RR-01 to 10 -->
+                        <option value="RR-01">RR-01</option>
+                        <option value="RR-02">RR-02</option>
+                        <option value="RR-03">RR-03</option>
+                        <option value="RR-04">RR-04</option>
+                        <option value="RR-05">RR-05</option>
+                        <option value="RR-06">RR-06</option>
+                        <option value="RR-07">RR-07</option>
+                        <option value="RR-08">RR-08</option>
+                        <option value="RR-09">RR-09</option>
+                        <option value="RR-10">RR-10</option>
+                        <!-- WL-01 to 04 -->
+                        <option value="WL-01">WL-01</option>
+                        <option value="WL-02">WL-02</option>
+                        <option value="WL-03">WL-03</option>
+                        <option value="WL-04">WL-04</option>
+                        <!-- RG-01 to 04 -->
+                        <option value="RG-01">RG-01</option>
+                        <option value="RG-02">RG-02</option>
+                        <option value="RG-03">RG-03</option>
+                        <option value="RG-04">RG-04</option>
+                        <!-- WT-01 to 04 -->
+                        <option value="WT-01">WT-01</option>
+                        <option value="WT-02">WT-02</option>
+                        <option value="WT-03">WT-03</option>
+                        <option value="WT-04">WT-04</option>
