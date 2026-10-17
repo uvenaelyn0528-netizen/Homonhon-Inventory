@@ -25,16 +25,16 @@
             margin: 0 auto; 
             background: #ffffff; 
             padding: 30px; 
-            border-radius: 10px; 
+            border-radius: 12px; 
             box-shadow: 0 4px 12px rgba(0,0,0,0.08); 
+            overflow: hidden; /* Round corners for inner content */
         }
         .header-section { 
             display: flex; 
             justify-content: space-between; 
             align-items: center; 
-            border-bottom: 2px solid #e2e8f0; 
             padding-bottom: 20px; 
-            margin-bottom: 30px; 
+            margin-bottom: 20px; 
             flex-wrap: wrap; 
             gap: 15px; 
         }
@@ -42,68 +42,67 @@
             margin: 0; 
             color: #1e293b; 
             font-size: 26px; 
+            font-weight: 700;
         }
         
-        /* Action Buttons Grid */
+        /* Navigation Buttons (Exact colors from image) */
         .btn-grid { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); 
-            gap: 15px; 
-            margin-top: 10px; 
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px; 
         }
         .btn { 
-            display: inline-flex; 
+            display: flex; 
             align-items: center; 
             justify-content: center; 
-            padding: 14px 20px; 
+            padding: 12px 24px; 
             font-size: 15px; 
             font-weight: 600; 
             text-decoration: none; 
             border-radius: 8px; 
             border: none; 
             cursor: pointer; 
-            transition: all 0.2s ease-in-out; 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05); 
+            transition: transform 0.1s ease; 
             text-align: center; 
         }
-        .btn:hover { 
-            transform: translateY(-2px); 
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1); 
-        }
         .btn:active { 
-            transform: translateY(0); 
+            transform: scale(0.98); 
         }
         
         .btn-eur { 
-            background-color: #2563eb; 
+            background-color: #3b82f6; /* Image blue */
             color: #ffffff; 
-        }
-        .btn-eur:hover { 
-            background-color: #1d4ed8; 
         }
         
         .btn-ticket { 
-            background-color: #059669; 
+            background-color: #10b981; /* Image teal/green */
             color: #ffffff; 
-        }
-        .btn-ticket:hover { 
-            background-color: #047857; 
         }
         
         .btn-report { 
-            background-color: #d97706; 
+            background-color: #f97316; /* Image orange */
             color: #ffffff; 
-        }
-        .btn-report:hover { 
-            background-color: #b45309; 
         }
 
         .btn-materials { 
-            background-color: #4f46e5; 
+            background-color: #8b5cf6; /* Image purple */
             color: #ffffff; 
         }
-        .btn-materials:hover { 
-            background-color: #4338ca; 
+
+        /* Mining Image Feature Banner (Image 10.png) */
+        .banner-container {
+            width: calc(100% + 60px); /* Fill the white card padding */
+            margin-left: -30px; /* Offset the container padding */
+            margin-bottom: -30px; /* Offset the container padding */
+            position: relative;
+        }
+        .banner-img {
+            width: 100%;
+            height: auto;
+            display: block;
+            object-fit: cover;
+            border-bottom-left-radius: 12px;
+            border-bottom-right-radius: 12px;
         }
     </style>
 </head>
@@ -114,12 +113,17 @@
         <h1>Engineering Department</h1>
     </div>
 
-    <!-- Action Buttons -->
+    <!-- Navigation Buttons (Matches Image Layout) -->
     <div class="btn-grid">
         <a href="eur.php" class="btn btn-eur">EUR</a>
         <a href="trip_ticket.php" class="btn btn-ticket">Trip Ticket</a>
         <a href="reportorial.php" class="btn btn-report">Reportorial</a>
         <a href="materials_supplies.php" class="btn btn-materials">Materials and Supplies</a>
+    </div>
+
+    <!-- Featured Mining Image Banner (Exact image from above) -->
+    <div class="banner-container">
+        <img src="https://i.imgur.com/vH3jH2A.png" alt="Mining Equipment, Mapping, and Inventory Control" class="banner-img">
     </div>
 </div>
 
