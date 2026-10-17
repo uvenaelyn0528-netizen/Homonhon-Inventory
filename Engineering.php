@@ -27,7 +27,7 @@
             padding: 30px; 
             border-radius: 12px; 
             box-shadow: 0 4px 12px rgba(0,0,0,0.08); 
-            overflow: hidden; /* Round corners for inner content */
+            overflow: hidden; 
         }
         .header-section { 
             display: flex; 
@@ -45,11 +45,12 @@
             font-weight: 700;
         }
         
-        /* Navigation Buttons (Exact colors from image) */
+        /* Navigation Buttons */
         .btn-grid { 
             display: flex;
             gap: 15px;
             margin-bottom: 30px; 
+            flex-wrap: wrap;
         }
         .btn { 
             display: flex; 
@@ -70,30 +71,30 @@
         }
         
         .btn-eur { 
-            background-color: #3b82f6; /* Image blue */
+            background-color: #3b82f6; 
             color: #ffffff; 
         }
         
         .btn-ticket { 
-            background-color: #10b981; /* Image teal/green */
+            background-color: #10b981; 
             color: #ffffff; 
         }
         
         .btn-report { 
-            background-color: #f97316; /* Image orange */
+            background-color: #f97316; 
             color: #ffffff; 
         }
 
         .btn-materials { 
-            background-color: #8b5cf6; /* Image purple */
+            background-color: #8b5cf6; 
             color: #ffffff; 
         }
 
-        /* Mining Image Feature Banner (Image 10.png) */
+        /* Banner Container */
         .banner-container {
-            width: calc(100% + 60px); /* Fill the white card padding */
-            margin-left: -30px; /* Offset the container padding */
-            margin-bottom: -30px; /* Offset the container padding */
+            width: calc(100% + 60px); 
+            margin-left: -30px; 
+            margin-bottom: -30px; 
             position: relative;
         }
         .banner-img {
@@ -113,7 +114,7 @@
         <h1>Engineering Department</h1>
     </div>
 
-    <!-- Navigation Buttons (Matches Image Layout) -->
+    <!-- Navigation Buttons -->
     <div class="btn-grid">
         <a href="eur.php" class="btn btn-eur">EUR</a>
         <a href="trip_ticket.php" class="btn btn-ticket">Trip Ticket</a>
@@ -121,9 +122,9 @@
         <a href="materials_supplies.php" class="btn btn-materials">Materials and Supplies</a>
     </div>
 
-    <!-- Featured Mining Image Banner (Exact image from above) -->
+    <!-- Mining Engineering Feature Banner -->
     <div class="banner-container">
-        <img src="https://i.imgur.com/vH3jH2A.png" alt="Mining Equipment, Mapping, and Inventory Control" class="banner-img">
+        <img src="https://images.unsplash.com/photo-1578328819058-b69f3a3b0f6b?auto=format&fit=crop&w=1200&q=80" alt="Mining Equipment and Operations" class="banner-img">
     </div>
 </div>
 
