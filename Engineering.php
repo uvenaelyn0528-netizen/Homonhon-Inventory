@@ -124,7 +124,7 @@
 
     <!-- Local Engineering Mining Banner -->
     <div class="banner-container">
-        <img src="Engineering.jpeg" alt="Mining Equipment and Operations" class="banner-img">
+        <img src="images/Engineering.jpg" alt="Mining Equipment and Operations" class="banner-img">
     </div>
 </div>
 
