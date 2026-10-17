@@ -6,7 +6,8 @@
 // 1. Supabase Database Configuration
 $host     = getenv('DB_HOST')     ?: 'aws-1-ap-northeast-1.pooler.supabase.com';
 $port     = getenv('DB_PORT')     ?: '6543';$dbname   = getenv('DB_NAME')     ?: 'postgres';
-$user     = getenv('DB_USER')     ?: 'postgres.otrkginfndevnotgkajc';$password = getenv('DB_PASSWORD') ?: 'YOUR_SUPABASE_PASSWORD_HERE';
+$user     = getenv('DB_USER')     ?: 'postgres.otrkginfndevnotgkajc';
+$password = getenv('DB_PASSWORD') ?: 'Wh01302016!2025';
 
 // 2. Establish Database Connection
 $pdo = null;
