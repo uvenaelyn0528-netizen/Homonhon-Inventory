@@ -498,7 +498,7 @@ if ($pdo) {
 
                 <div class="form-group">
                     <label for="equip_type">Equip. Type</label>
-                    <select id="equip_type" name="equip_type" onchange="updateEquipIDs()" required>
+                    <select id="equip_type" name="equip_type" onchange="updateDynamicDropdowns()" required>
                         <option value="">Select Equipment Type</option>
                         <option value="Backhoe">Backhoe</option>
                         <option value="Wheel Loader">Wheel Loader</option>
@@ -528,12 +528,28 @@ if ($pdo) {
 
                 <div class="form-group full-width">
                     <label for="activities">Activities</label>
-                    <input type="text" id="activities" name="activities" placeholder="e.g. Excavation, Hauling, Grading" required>
+                    <select id="activities" name="activities" required>
+                        <option value="">Select Equip. Type First</option>
+                    </select>
                 </div>
 
                 <div class="form-group full-width">
                     <label for="area">Area</label>
-                    <input type="text" id="area" name="area" placeholder="e.g. Pit A, Haul Road, Stockpile" required>
+                    <select id="area" name="area" required>
+                        <option value="">Select Area</option>
+                        <option value="MA1">MA1</option>
+                        <option value="MA2">MA2</option>
+                        <option value="MA3">MA3</option>
+                        <option value="MA4">MA4</option>
+                        <option value="MA5">MA5</option>
+                        <option value="MA6">MA6</option>
+                        <option value="MA8">MA8</option>
+                        <option value="MA9">MA9</option>
+                        <option value="MA10">MA10</option>
+                        <option value="MA11">MA11</option>
+                        <option value="MA12">MA12</option>
+                        <option value="MA14">MA14</option>
+                    </select>
                 </div>
 
                 <div class="form-group">
@@ -575,11 +591,24 @@ if ($pdo) {
         'Water Truck': ['WT-01','WT-02','WT-03','WT-04']
     };
 
-    function updateEquipIDs(selectedID = '') {
+    // Activities mapping by Equipment Type
+    const activitiesMap = {
+        'Dumptruck': ['DT', 'Hauling of Ore', 'Hauling of Waste', 'Hauling of Boulders', 'Hauling of Item 200'],
+        'Backhoe': ['Loading of Ore', 'Loading of Waste', 'Loading of Boulders', 'Loading of Item 200', 'Receiving of Ore', 'Receiving of Waste', 'Receiving of Boulders', 'Receiving of Item 200'],
+        'Road Grader': ['Road Maintenance', 'Road Piloting'],
+        'Road Roller': ['Road Maintenance', 'Road Piloting'],
+        'Bulldozer': ['Road Maintenance', 'Road Piloting'],
+        'Wheel Loader': ['Road Maintenance', 'Road Piloting'],
+        'Water Truck': ['Watering'],
+        'Service Vehicle': ['Road Maintenance', 'Road Piloting']
+    };
+
+    function updateDynamicDropdowns(selectedID = '', selectedActivity = '') {
         const typeSelect = document.getElementById('equip_type').value;
+        
+        // Update Equip IDs
         const idSelect = document.getElementById('equip_id');
         idSelect.innerHTML = '<option value="">Select Equipment ID</option>';
-
         if (typeSelect && equipIDMap[typeSelect]) {
             equipIDMap[typeSelect].forEach(id => {
                 const opt = document.createElement('option');
@@ -589,6 +618,19 @@ if ($pdo) {
                 idSelect.appendChild(opt);
             });
         }
+
+        // Update Activities
+        const actSelect = document.getElementById('activities');
+        actSelect.innerHTML = '<option value="">Select Activity</option>';
+        if (typeSelect && activitiesMap[typeSelect]) {
+            activitiesMap[typeSelect].forEach(act => {
+                const opt = document.createElement('option');
+                opt.value = act;
+                opt.textContent = act;
+                if (act === selectedActivity) opt.selected = true;
+                actSelect.appendChild(opt);
+            });
+        }
     }
 
     function openAddModal() {
@@ -596,7 +638,7 @@ if ($pdo) {
         document.getElementById('formAction').value = 'add_eur';
         document.getElementById('recordId').value = '';
         document.getElementById('eurForm').reset();
-        updateEquipIDs();
+        updateDynamicDropdowns();
         document.getElementById('eurModal').classList.add('active');
     }
 
@@ -610,11 +652,10 @@ if ($pdo) {
         document.getElementById('name').value = record.name;
         document.getElementById('equip_type').value = record.equip_type;
         
-        updateEquipIDs(record.equip_id);
+        updateDynamicDropdowns(record.equip_id, record.activities);
 
-        document.getElementById('shift').value = record.shift;
-        document.getElementById('activities').value = record.activities || '';
         document.getElementById('area').value = record.area || '';
+        document.getElementById('shift').value = record.shift;
         document.getElementById('time_start').value = record.time_start;
         document.getElementById('time_end').value = record.time_end;
         document.getElementById('no_of_hrs').value = record.no_of_hrs;
