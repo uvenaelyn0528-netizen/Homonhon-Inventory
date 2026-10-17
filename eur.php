@@ -22,30 +22,38 @@ try {
 } catch (PDOException $e) {$errorMessage = "Database Connection Error: " . $e->getMessage();
 }
 
-// 3. Handle Form Submission (Add New EUR Record)
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add_eur' &&$pdo) {
-    try {
-        $stmt =$pdo->prepare("
-            INSERT INTO eur_records (date, eur_no, name, equip_type, equip_id, shift, time_start, time_end, no_of_hrs, monitoring_name)
-            VALUES (:date, :eur_no, :name, :equip_type, :equip_id, :shift, :time_start, :time_end, :no_of_hrs, :monitoring_name)
-        ");
-        
-        $stmt->execute([
-            ':date'            => $_POST['date'],
-            ':eur_no'          => $_POST['eur_no'],
-            ':name'            => $_POST['name'],
-            ':equip_type'      => $_POST['equip_type'],
-            ':equip_id'        => $_POST['equip_id'],
-            ':shift'           => $_POST['shift'],
-            ':time_start'      => $_POST['time_start'],
-            ':time_end'        => $_POST['time_end'],
-            ':no_of_hrs'       => $_POST['no_of_hrs'],
-            ':monitoring_name' => $_POST['monitoring_name'],
-        ]);
+// Determine current user role from session (default to empty if not set)
+$userRole =$_SESSION['role'] ?? '';
+// Viewers cannot add or modify entries
+$isViewer = (strcasecmp($userRole, 'Viewer') === 0);
 
-        header("Location: eur.php?success=1");
-        exit;
-    } catch (PDOException $e) {$errorMessage = "Failed to save EUR entry: " . $e->getMessage();
+// 3. Handle Form Submission (Add New EUR Record - Restricted for Viewers)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add_eur' &&$pdo) {
+    if ($isViewer) {$errorMessage = "Access Denied: Viewer accounts do not have permission to add or edit entries.";
+    } else {
+        try {
+            $stmt =$pdo->prepare("
+                INSERT INTO eur_records (date, eur_no, name, equip_type, equip_id, shift, time_start, time_end, no_of_hrs, monitoring_name)
+                VALUES (:date, :eur_no, :name, :equip_type, :equip_id, :shift, :time_start, :time_end, :no_of_hrs, :monitoring_name)
+            ");
+            
+            $stmt->execute([
+                ':date'            => $_POST['date'],
+                ':eur_no'          => $_POST['eur_no'],
+                ':name'            => $_POST['name'],
+                ':equip_type'      => $_POST['equip_type'],
+                ':equip_id'        => $_POST['equip_id'],
+                ':shift'           => $_POST['shift'],
+                ':time_start'      => $_POST['time_start'],
+                ':time_end'        => $_POST['time_end'],
+                ':no_of_hrs'       => $_POST['no_of_hrs'],
+                ':monitoring_name' => $_POST['monitoring_name'],
+            ]);
+
+            header("Location: eur.php?success=1");
+            exit;
+        } catch (PDOException $e) {$errorMessage = "Failed to save EUR entry: " . $e->getMessage();
+        }
     }
 }
 
@@ -91,7 +99,7 @@ if ($pdo) {
         th { background-color: #f8fafc; color: #475569; font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; }
         tr:hover { background-color: #f1f5f9; }
 
-        /* Modal Form Styling - Fixed pointer-events */
+        /* Modal Form Styling */
         .modal { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center; pointer-events: none; }
         .modal.active { display: flex; pointer-events: auto; }
         .modal-content { background: #fff; padding: 25px; border-radius: 10px; width: 100%; max-width: 600px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
@@ -116,7 +124,9 @@ if ($pdo) {
         <h1>Equipment Utilization Report (EUR)</h1>
         <div class="nav-actions">
             <a href="Engineering.php" class="btn btn-back">← Back to Engineering</a>
-            <button type="button" class="btn btn-add" onclick="openModal()">+ Add New Entry</button>
+            <?php if (!$isViewer): ?>
+                <button type="button" class="btn btn-add" onclick="openModal()">+ Add New Entry</button>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -163,7 +173,12 @@ if ($pdo) {
                 <?php else: ?>
                     <tr>
                         <td colspan="10" style="text-align: center; color: #64748b; padding: 25px;">
-                            No EUR entries found. Click <strong>"+ Add New Entry"</strong> to record an equipment report.
+                            No EUR entries found. 
+                            <?php if (!$isViewer): ?>
+                                Click <strong>"+ Add New Entry"</strong> to record an equipment report.
+                            <?php else: ?>
+                                (Viewer Mode: Read-only access)
+                            <?php endif; ?>
                         </td>
                     </tr>
                 <?php endif; ?>
@@ -172,7 +187,8 @@ if ($pdo) {
     </div>
 </div>
 
-<!-- Modal Form for Adding EUR -->
+<?php if (!$isViewer): ?>
+<!-- Modal Form for Adding EUR (Hidden for Viewers) -->
 <div id="eurModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
@@ -333,11 +349,12 @@ if ($pdo) {
     // Close modal on outside click
     window.onclick = function(event) {
         const modal = document.getElementById('eurModal');
-        if (event.target == modal) {
+        if (modal && event.target == modal) {
             closeModal();
         }
     }
 </script>
+<?php endif; ?>
 
 </body>
 </html>
