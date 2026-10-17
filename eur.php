@@ -2,6 +2,7 @@
 /**
  * Equipment Utilization Report (EUR) Management
  */
+session_start();
 
 // 1. Supabase Database Configuration
 $host     = getenv('DB_HOST')     ?: 'aws-1-ap-northeast-1.pooler.supabase.com';
