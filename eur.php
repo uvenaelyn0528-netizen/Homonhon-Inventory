@@ -6,8 +6,7 @@
 // 1. Supabase Database Configuration
 $host     = getenv('DB_HOST')     ?: 'aws-1-ap-northeast-1.pooler.supabase.com';
 $port     = getenv('DB_PORT')     ?: '6543';$dbname   = getenv('DB_NAME')     ?: 'postgres';
-$user     = getenv('DB_USER')     ?: 'postgres.otrkginfndevnotgkajc';
-$password = getenv('DB_PASSWORD') ?: 'Wh01302016!2025'; // Ensure your password is set here or in Render environment variables
+$user     = getenv('DB_USER')     ?: 'postgres.otrkginfndevnotgkajc';$password = getenv('DB_PASSWORD') ?: 'YOUR_SUPABASE_PASSWORD_HERE';
 
 // 2. Establish Database Connection
 $pdo = null;
@@ -73,11 +72,11 @@ if ($pdo) {
         .header-section { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 20px; flex-wrap: wrap; gap: 15px; }
         h1 { margin: 0; color: #1e293b; font-size: 24px; font-weight: 700; }
         
-        .nav-actions { display: flex; gap: 10px; }
+        .nav-actions { display: flex; gap: 10px; position: relative; z-index: 10; }
         .btn { display: inline-flex; align-items: center; justify-content: center; padding: 10px 18px; font-size: 14px; font-weight: 600; text-decoration: none; border-radius: 6px; border: none; cursor: pointer; transition: all 0.2s ease; }
         .btn-back { background-color: #64748b; color: #fff; }
         .btn-back:hover { background-color: #475569; }
-        .btn-add { background-color: #2563eb; color: #fff; }
+        .btn-add { background-color: #2563eb; color: #fff; position: relative; z-index: 11; }
         .btn-add:hover { background-color: #1d4ed8; }
 
         .alert { padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-size: 14px; }
@@ -91,8 +90,9 @@ if ($pdo) {
         th { background-color: #f8fafc; color: #475569; font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; }
         tr:hover { background-color: #f1f5f9; }
 
-        /* Modal Form Styling */
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
+        /* Modal Form Styling - Fixed pointer-events */
+        .modal { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center; pointer-events: none; }
+        .modal.active { display: flex; pointer-events: auto; }
         .modal-content { background: #fff; padding: 25px; border-radius: 10px; width: 100%; max-width: 600px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
         .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 20px; }
         .modal-header h2 { margin: 0; font-size: 20px; color: #1e293b; }
@@ -115,7 +115,7 @@ if ($pdo) {
         <h1>Equipment Utilization Report (EUR)</h1>
         <div class="nav-actions">
             <a href="Engineering.php" class="btn btn-back">← Back to Engineering</a>
-            <button class="btn btn-add" onclick="openModal()">+ Add New Entry</button>
+            <button type="button" class="btn btn-add" onclick="openModal()">+ Add New Entry</button>
         </div>
     </div>
 
@@ -271,3 +271,72 @@ if ($pdo) {
                         <option value="WT-02">WT-02</option>
                         <option value="WT-03">WT-03</option>
                         <option value="WT-04">WT-04</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="shift">Shift</label>
+                    <select id="shift" name="shift" required>
+                        <option value="Day">Day Shift</option>
+                        <option value="Night">Night Shift</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="time_start">Time Start</label>
+                    <input type="time" id="time_start" name="time_start" onchange="calculateHours()" required>
+                </div>
+                <div class="form-group">
+                    <label for="time_end">Time End</label>
+                    <input type="time" id="time_end" name="time_end" onchange="calculateHours()" required>
+                </div>
+                <div class="form-group">
+                    <label for="no_of_hrs">No. Of Hrs</label>
+                    <input type="number" step="0.1" id="no_of_hrs" name="no_of_hrs" placeholder="0.0" required>
+                </div>
+                <div class="form-group">
+                    <label for="monitoring_name">Monitoring Name</label>
+                    <input type="text" id="monitoring_name" name="monitoring_name" placeholder="Supervisor/Inspector" required>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn btn-back" onclick="closeModal()">Cancel</button>
+                <button type="submit" class="btn btn-add">Save Entry</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openModal() {
+        document.getElementById('eurModal').classList.add('active');
+    }
+    function closeModal() {
+        document.getElementById('eurModal').classList.remove('active');
+    }
+    
+    // Auto-calculate hours between time_start and time_end
+    function calculateHours() {
+        const start = document.getElementById('time_start').value;
+        const end = document.getElementById('time_end').value;
+        if (start && end) {
+            const startDate = new Date(`1970-01-01T${start}:00`);
+            let endDate = new Date(`1970-01-01T${end}:00`);
+            if (endDate < startDate) {
+                endDate.setDate(endDate.getDate() + 1); // Overnight shift
+            }
+            const diffHours = (endDate - startDate) / (1000 * 60 * 60);
+            document.getElementById('no_of_hrs').value = diffHours.toFixed(1);
+        }
+    }
+
+    // Close modal on outside click
+    window.onclick = function(event) {
+        const modal = document.getElementById('eurModal');
+        if (event.target == modal) {
+            closeModal();
+        }
+    }
+</script>
+
+</body>
+</html>
