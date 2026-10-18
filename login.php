@@ -229,12 +229,12 @@ if (isset($_POST['login'])) {
             <img src="images/logo.png" class="logo-small" alt="Logo">
             <div class="header-text-group">
                 <h1>Goldrich Construction <br> and Trading</h1>
-                <p>Homonhon Nickel Project <br> Logistics & Warehouse</p>
+                <p>Homonhon Nickel Project <br> </p>
             </div>
         </div>
 
         <div class="system-title-container">
-            <h2>Warehouse <br> Inventory System</h2>
+            <h2>GRCT HOMONHON <br> Data Management System</h2>
         </div>
         
         <?php if (isset($error)) echo "<div class='error'>$error</div>"; ?>
@@ -247,7 +247,7 @@ if (isset($_POST['login'])) {
 
         <div class="footer-support">
             <p><span>🔑</span> Access Issue? Contact Admin</p>
-            <a href="mailto:support.warehouse@goldrich.com">
+            <a href="mailto:support.homonhon@goldrich.com">
                 support.warehouse@goldrich.com
             </a>
         </div>
