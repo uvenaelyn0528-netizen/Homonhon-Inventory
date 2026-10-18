@@ -45,9 +45,12 @@ if (isset($_POST['login'])) {
     <title>Login - Warehouse Inventory</title>
     <style>
     :root {
-        --navy: #112941;
-        --goldrich-red: #8b0000;
+        --navy-dark: #0f172a;
+        --navy-primary: #1e293b;
+        --goldrich-red: #991b1b;
+        --accent-gold: #d97706;
         --text-gray: #64748b;
+        --light-bg: #f8fafc;
         --light-border: #e2e8f0;
     }
 
@@ -59,8 +62,8 @@ if (isset($_POST['login'])) {
         margin: 0;
         padding: 0;
         height: 100vh;
-        font-family: 'Segoe UI', sans-serif;
-        background-color: var(--navy);
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: var(--navy-dark);
         overflow: hidden;
     }
 
@@ -78,24 +81,40 @@ if (isset($_POST['login'])) {
         background-size: cover;
         background-position: center;
         background-repeat: no-repeat;
+        position: relative;
+    }
+    
+    /* Overlay gradient over background image for subtle warmth */
+    .left-image-section::after {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: linear-gradient(135deg, rgba(15, 23, 42, 0.2) 0%, rgba(153, 27, 27, 0.25) 100%);
     }
 
     /* Right Side - Login Section */
     .right-login-section {
         flex: 0.8;
-        background: #ffffff;
+        background: var(--light-bg);
         display: flex;
         align-items: center;
         justify-content: center;
         padding: 40px;
-        box-shadow: -10px 0 25px rgba(0, 0, 0, 0.15);
+        box-shadow: -12px 0 35px rgba(0, 0, 0, 0.25);
         z-index: 2;
     }
 
+    /* Styled Login Card Modal */
     .login-card { 
         width: 100%;
-        max-width: 380px; 
-        text-align: center; 
+        max-width: 400px; 
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 35px 30px;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.1);
+        border: 1px solid var(--light-border);
+        border-top: 5px solid var(--goldrich-red);
+        position: relative;
     }
 
     .brand-header {
@@ -103,106 +122,135 @@ if (isset($_POST['login'])) {
         align-items: center;
         justify-content: center;
         gap: 15px;
-        margin-bottom: 25px;
+        margin-bottom: 20px;
         text-align: left;
     }
 
     .logo-small { 
-        width: 60px; 
+        width: 55px; 
         height: auto; 
-        filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.2));
+        filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15));
     }
 
     .header-text-group h1 { 
         color: var(--goldrich-red); 
         margin: 0; 
-        font-size: 16px; 
+        font-size: 15px; 
         font-family: Broadway, 'Arial Black', sans-serif;
         line-height: 1.2;
         text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
 
     .header-text-group p {
         color: var(--text-gray);
-        font-size: 9px;
+        font-size: 10px;
         text-transform: uppercase;
-        letter-spacing: 0.8px;
+        letter-spacing: 1px;
         margin: 4px 0 0 0;
-        line-height: 1.3;
-        font-weight: 600;
+        font-weight: 700;
     }
 
     .system-title-container {
-        border-top: 1px solid #f1f5f9;
-        margin-top: 15px;
-        padding-top: 20px;
-        margin-bottom: 30px;
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 25px;
+        text-align: center;
+        color: #ffffff;
+        box-shadow: inset 0 1px 2px rgba(255,255,255,0.1);
     }
 
     .system-title-container h2 {
-        color: var(--navy);
-        font-size: 20px;
+        color: #f8fafc;
+        font-size: 15px;
         margin: 0;
         text-transform: uppercase;
-        letter-spacing: 1.5px;
-        font-weight: 800;
+        letter-spacing: 1.2px;
+        font-weight: 700;
+    }
+    .system-title-container p {
+        margin: 3px 0 0 0;
+        color: #38bdf8;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    /* Input Field Container with Icons */
+    .input-group {
+        position: relative;
+        margin-bottom: 18px;
+    }
+
+    .input-icon {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 15px;
+        color: #94a3b8;
     }
 
     input { 
         width: 100%; 
-        padding: 12px 15px; 
-        margin-bottom: 18px; 
+        padding: 12px 15px 12px 42px; 
         border: 1.5px solid #cbd5e1; 
         border-radius: 10px; 
         outline: none; 
         transition: all 0.3s ease; 
         font-size: 14px;
         color: #1e293b;
+        background-color: #f8fafc;
     }
 
     input:focus { 
-        border-color: var(--navy); 
-        box-shadow: 0 0 0 4px rgba(17, 41, 65, 0.08);
-        background-color: #fff;
+        border-color: #2563eb; 
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+        background-color: #ffffff;
     }
 
     button { 
         width: 100%; 
-        padding: 14px; 
-        background: var(--navy); 
+        padding: 13px; 
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); 
         color: white; 
         border: none; 
         border-radius: 10px; 
         cursor: pointer; 
         font-weight: 700; 
-        font-size: 15px; 
+        font-size: 14px; 
         text-transform: uppercase;
         letter-spacing: 1px;
         transition: all 0.3s ease; 
-        margin-top: 10px;
+        margin-top: 5px;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);
     }
 
     button:hover { 
-        background: #1a3a5a; 
+        background: linear-gradient(135deg, #8b0000 0%, #991b1b 100%); 
         transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(17, 41, 65, 0.2);
+        box-shadow: 0 6px 18px rgba(153, 27, 27, 0.3);
     }
 
     .error { 
-        color: #b91c1c; 
-        background: #fef2f2; 
-        padding: 12px; 
+        color: #991b1b; 
+        background: #fee2e2; 
+        padding: 10px 14px; 
         border-radius: 8px; 
         margin-bottom: 20px; 
         font-size: 13px; 
-        border: 1px solid #fee2e2;
-        font-weight: 500;
+        border: 1px solid #f87171;
+        font-weight: 600;
+        text-align: center;
     }
 
     .footer-support {
-        margin-top: 30px; 
-        padding-top: 20px; 
+        margin-top: 25px; 
+        padding-top: 18px; 
         border-top: 1px solid #f1f5f9;
+        text-align: center;
     }
 
     .footer-support p {
@@ -215,12 +263,13 @@ if (isset($_POST['login'])) {
         align-items: center;
         justify-content: center;
         gap: 6px;
+        font-weight: 600;
     }
 
     .footer-support a {
         display: block; 
-        margin-top: 8px; 
-        font-size: 13px; 
+        margin-top: 6px; 
+        font-size: 12px; 
         color: var(--goldrich-red); 
         text-decoration: none; 
         font-weight: 700;
@@ -232,17 +281,18 @@ if (isset($_POST['login'])) {
         text-decoration: underline;
     }
 
-    /* Responsive Design for Mobile Screens */
+    /* Responsive Design for Mobile Devices */
     @media (max-width: 768px) {
         .login-wrapper {
             flex-direction: column;
         }
         .left-image-section {
-            display: none; /* Hides image section on small mobile devices */
+            display: none;
         }
         .right-login-section {
             flex: 1;
             width: 100%;
+            padding: 20px;
         }
     }
 </style>
@@ -259,19 +309,28 @@ if (isset($_POST['login'])) {
                     <img src="images/logo.png" class="logo-small" alt="Logo">
                     <div class="header-text-group">
                         <h1>Goldrich Construction <br> and Trading</h1>
-                        <p>Homonhon Nickel Project <br> </p>
+                        <p>Homonhon Nickel Project</p>
                     </div>
                 </div>
 
                 <div class="system-title-container">
-                    <h2>GRCT HOMONHON <br> Data Management System</h2>
+                    <h2>GRCT HOMONHON</h2>
+                    <p>Data Management System</p>
                 </div>
                 
                 <?php if (isset($error)) echo "<div class='error'>$error</div>"; ?>
                 
                 <form method="POST">
-                    <input type="text" name="username" placeholder="Username" required autofocus>
-                    <input type="password" name="password" placeholder="Password" required>
+                    <div class="input-group">
+                        <span class="input-icon">👤</span>
+                        <input type="text" name="username" placeholder="Username" required autofocus>
+                    </div>
+
+                    <div class="input-group">
+                        <span class="input-icon">🔒</span>
+                        <input type="password" name="password" placeholder="Password" required>
+                    </div>
+
                     <button type="submit" name="login">Sign In</button>
                 </form>
 
