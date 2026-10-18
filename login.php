@@ -53,7 +53,7 @@ if (isset($_POST['login'])) {
 
     body {
         /* 1. Project Background Image */
-        background-image: url('images/background.jpg'); 
+        background-image: url('images/BG.jpeg'); 
         
         /* 2. Fill the screen without zooming or tiling */
         background-size: 100% 100%;     
