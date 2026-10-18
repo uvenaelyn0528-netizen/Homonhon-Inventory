@@ -48,7 +48,6 @@ if (isset($_POST['login'])) {
         --navy-dark: #0f172a;
         --navy-primary: #1e293b;
         --goldrich-red: #991b1b;
-        --accent-gold: #d97706;
         --text-gray: #64748b;
         --light-bg: #f8fafc;
         --light-border: #e2e8f0;
@@ -74,60 +73,52 @@ if (isset($_POST['login'])) {
         height: 100vh;
     }
 
-    /* Left Side - Image Container */
+    /* Left Side - Image Container (Ginawang mas malaki ang sakop para buo makita ang BG) */
     .left-image-section {
-        flex: 1.2;
+        flex: 1.6; 
         background-image: url('images/BG.jpeg');
-        background-size: cover;
+        background-size: contain; /* Pinalitan mula cover patungong contain para hindi ma-crop ang buong litrato */
         background-position: center;
         background-repeat: no-repeat;
+        background-color: #0b1320; /* Solid fallback color para sa gilid ng image */
         position: relative;
     }
-    
-    /* Overlay gradient over background image for subtle warmth */
-    .left-image-section::after {
-        content: '';
-        position: absolute;
-        top: 0; left: 0; right: 0; bottom: 0;
-        background: linear-gradient(135deg, rgba(15, 23, 42, 0.2) 0%, rgba(153, 27, 27, 0.25) 100%);
-    }
 
-    /* Right Side - Login Section */
+    /* Right Side - Login Section (Binawasan ang espasyo/width para hindi sakupin ang litrato) */
     .right-login-section {
-        flex: 0.8;
-        background: var(--light-bg);
+        flex: 0.9;
+        background: #ffffff;
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 40px;
-        box-shadow: -12px 0 35px rgba(0, 0, 0, 0.25);
+        padding: 25px;
+        box-shadow: -15px 0 35px rgba(0, 0, 0, 0.3);
         z-index: 2;
     }
 
-    /* Styled Login Card Modal */
+    /* Styled Login Card Modal (Mas kompakt/compact ang laki) */
     .login-card { 
         width: 100%;
-        max-width: 400px; 
+        max-width: 360px; 
         background: #ffffff;
-        border-radius: 16px;
-        padding: 35px 30px;
-        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.1);
+        border-radius: 14px;
+        padding: 28px 22px;
+        box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
         border: 1px solid var(--light-border);
         border-top: 5px solid var(--goldrich-red);
-        position: relative;
     }
 
     .brand-header {
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 15px;
-        margin-bottom: 20px;
+        gap: 12px;
+        margin-bottom: 15px;
         text-align: left;
     }
 
     .logo-small { 
-        width: 55px; 
+        width: 48px; 
         height: auto; 
         filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15));
     }
@@ -135,27 +126,26 @@ if (isset($_POST['login'])) {
     .header-text-group h1 { 
         color: var(--goldrich-red); 
         margin: 0; 
-        font-size: 15px; 
+        font-size: 14px; 
         font-family: Broadway, 'Arial Black', sans-serif;
         line-height: 1.2;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
     }
 
     .header-text-group p {
         color: var(--text-gray);
-        font-size: 10px;
+        font-size: 9px;
         text-transform: uppercase;
-        letter-spacing: 1px;
-        margin: 4px 0 0 0;
+        letter-spacing: 0.8px;
+        margin: 3px 0 0 0;
         font-weight: 700;
     }
 
     .system-title-container {
         background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-        border-radius: 10px;
-        padding: 15px;
-        margin-bottom: 25px;
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 20px;
         text-align: center;
         color: #ffffff;
         box-shadow: inset 0 1px 2px rgba(255,255,255,0.1);
@@ -163,98 +153,97 @@ if (isset($_POST['login'])) {
 
     .system-title-container h2 {
         color: #f8fafc;
-        font-size: 15px;
+        font-size: 13px;
         margin: 0;
         text-transform: uppercase;
-        letter-spacing: 1.2px;
+        letter-spacing: 1px;
         font-weight: 700;
     }
     .system-title-container p {
-        margin: 3px 0 0 0;
+        margin: 2px 0 0 0;
         color: #38bdf8;
-        font-size: 11px;
+        font-size: 10px;
         font-weight: 600;
         text-transform: uppercase;
-        letter-spacing: 1px;
+        letter-spacing: 0.8px;
     }
 
-    /* Input Field Container with Icons */
     .input-group {
         position: relative;
-        margin-bottom: 18px;
+        margin-bottom: 14px;
     }
 
     .input-icon {
         position: absolute;
-        left: 14px;
+        left: 12px;
         top: 50%;
         transform: translateY(-50%);
-        font-size: 15px;
+        font-size: 14px;
         color: #94a3b8;
     }
 
     input { 
         width: 100%; 
-        padding: 12px 15px 12px 42px; 
+        padding: 10px 14px 10px 38px; 
         border: 1.5px solid #cbd5e1; 
-        border-radius: 10px; 
+        border-radius: 8px; 
         outline: none; 
         transition: all 0.3s ease; 
-        font-size: 14px;
+        font-size: 13px;
         color: #1e293b;
         background-color: #f8fafc;
     }
 
     input:focus { 
         border-color: #2563eb; 
-        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
         background-color: #ffffff;
     }
 
     button { 
         width: 100%; 
-        padding: 13px; 
+        padding: 11px; 
         background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); 
         color: white; 
         border: none; 
-        border-radius: 10px; 
+        border-radius: 8px; 
         cursor: pointer; 
         font-weight: 700; 
-        font-size: 14px; 
+        font-size: 13px; 
         text-transform: uppercase;
         letter-spacing: 1px;
         transition: all 0.3s ease; 
-        margin-top: 5px;
-        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);
+        margin-top: 4px;
+        box-shadow: 0 4px 10px rgba(15, 23, 42, 0.2);
     }
 
     button:hover { 
         background: linear-gradient(135deg, #8b0000 0%, #991b1b 100%); 
         transform: translateY(-2px);
-        box-shadow: 0 6px 18px rgba(153, 27, 27, 0.3);
+        box-shadow: 0 5px 15px rgba(153, 27, 27, 0.3);
     }
 
     .error { 
         color: #991b1b; 
         background: #fee2e2; 
-        padding: 10px 14px; 
-        border-radius: 8px; 
-        margin-bottom: 20px; 
-        font-size: 13px; 
+        padding: 9px 12px; 
+        border-radius: 6px; 
+        margin-bottom: 15px; 
+        font-size: 12px; 
         border: 1px solid #f87171;
         font-weight: 600;
         text-align: center;
     }
 
     .footer-support {
-        margin-top: 25px; 
-        padding-top: 18px; 
+        margin-top: 20px; 
+        padding-top: 15px; 
         border-top: 1px solid #f1f5f9;
         text-align: center;
     }
 
     .footer-support p {
-        font-size: 11px;
+        font-size: 10px;
         color: var(--text-gray);
         text-transform: uppercase;
         letter-spacing: 0.5px;
@@ -262,14 +251,14 @@ if (isset($_POST['login'])) {
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 6px;
+        gap: 5px;
         font-weight: 600;
     }
 
     .footer-support a {
         display: block; 
-        margin-top: 6px; 
-        font-size: 12px; 
+        margin-top: 5px; 
+        font-size: 11px; 
         color: var(--goldrich-red); 
         text-decoration: none; 
         font-weight: 700;
@@ -299,10 +288,10 @@ if (isset($_POST['login'])) {
 </head>
 <body>
     <div class="login-wrapper">
-        <!-- Left Side: Full Screen Background Image -->
+        <!-- Left Side: Background Image (Buo nang makikita gamit ang background-size: contain) -->
         <div class="left-image-section"></div>
 
-        <!-- Right Side: Clean Login Form Modal -->
+        <!-- Right Side: Compact Login Form Modal -->
         <div class="right-login-section">
             <div class="login-card">
                 <div class="brand-header">
