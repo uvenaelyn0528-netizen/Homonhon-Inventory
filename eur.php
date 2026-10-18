@@ -31,10 +31,27 @@ try {
 $userRole = $_SESSION['role'] ?? '';
 $isViewer = (strcasecmp($userRole, 'Viewer') === 0);
 
-// 3. Handle Form Submissions (Add, Edit, Delete EUR Records)
+// --- HANDLE CSV EXPORT ---
+if (isset($_GET['action']) && $_GET['action'] === 'export_csv' && $pdo) {
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename=eur_records_export_' . date('Y-m-d') . '.csv');
+    
+    $output = fopen('php://output', 'w');
+    // Header Row
+    fputcsv($output, ['Date', 'EUR No.', 'Name', 'Equip. Type', 'Equip. ID', 'Activities', 'Area', 'Shift', 'Time Start', 'Time End', 'No. Of Hrs', 'Monitoring Name']);
+    
+    $stmt = $pdo->query("SELECT date, eur_no, name, equip_type, equip_id, activities, area, shift, time_start, time_end, no_of_hrs, monitoring_name FROM eur_records ORDER BY date DESC, id DESC");
+    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        fputcsv($output, $row);
+    }
+    fclose($output);
+    exit;
+}
+
+// 3. Handle Form Submissions (Add, Edit, Delete, Import EUR Records)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $pdo) {
     if ($isViewer) {
-        $errorMessage = "Access Denied: Viewer accounts do not have permission to add, edit, or delete entries.";
+        $errorMessage = "Access Denied: Viewer accounts do not have permission to add, edit, delete, or import entries.";
     } else {
         // --- ADD ENTRY ---
         if ($_POST['action'] === 'add_eur') {
@@ -111,6 +128,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $pdo) {
                 exit;
             } catch (PDOException $e) {
                 $errorMessage = "Failed to delete EUR entry: " . $e->getMessage();
+            }
+        }
+
+        // --- IMPORT CSV ---
+        if ($_POST['action'] === 'import_csv' && isset($_FILES['csv_file'])) {
+            $file = $_FILES['csv_file']['tmp_name'];
+            if (!empty($file) && is_uploaded_file($file)) {
+                $handle = fopen($file, 'r');
+                $header = fgetcsv($handle); // Read header
+                
+                $importedCount = 0;
+                $stmt = $pdo->prepare("
+                    INSERT INTO eur_records (date, eur_no, name, equip_type, equip_id, activities, area, shift, time_start, time_end, no_of_hrs, monitoring_name)
+                    VALUES (:date, :eur_no, :name, :equip_type, :equip_id, :activities, :area, :shift, :time_start, :time_end, :no_of_hrs, :monitoring_name)
+                ");
+
+                while (($data = fgetcsv($handle, 1000, ",")) !== FALSE) {
+                    if (count($data) >= 12) {
+                        $stmt->execute([
+                            ':date'            => $data[0],
+                            ':eur_no'          => $data[1],
+                            ':name'            => $data[2],
+                            ':equip_type'      => $data[3],
+                            ':equip_id'        => $data[4],
+                            ':activities'      => $data[5],
+                            ':area'            => $data[6],
+                            ':shift'           => $data[7],
+                            ':time_start'      => $data[8],
+                            ':time_end'        => $data[9],
+                            ':no_of_hrs'       => $data[10],
+                            ':monitoring_name' => $data[11],
+                        ]);
+                        $importedCount++;
+                    }
+                }
+                fclose($handle);
+                header("Location: eur.php?imported=" . $importedCount);
+                exit;
+            } else {
+                $errorMessage = "Invalid file uploaded. Please select a valid CSV file.";
             }
         }
     }
@@ -233,6 +290,10 @@ if ($pdo) {
         .btn-add:hover { background-color: #1d4ed8; }
         .btn-summary { background-color: #0d9488; color: #fff; }
         .btn-summary:hover { background-color: #0f766e; }
+        .btn-export { background-color: #16a34a; color: #fff; }
+        .btn-export:hover { background-color: #15803d; }
+        .btn-import { background-color: #9333ea; color: #fff; }
+        .btn-import:hover { background-color: #7e22ce; }
 
         .btn-edit { background-color: #f59e0b; color: #fff; padding: 5px 10px; font-size: 12px; border-radius: 4px; margin-right: 4px; }
         .btn-edit:hover { background-color: #d97706; }
@@ -285,7 +346,11 @@ if ($pdo) {
     <div class="action-bar">
         <div class="nav-actions">
             <a href="Engineering.php" class="btn btn-back">← Back to Engineering</a>
-            <button type="button" class="btn btn-summary" onclick="openSummaryModal()">📊 Summary of Accumulated Hours</button>
+            <button type="button" class="btn btn-summary" onclick="openSummaryModal()">📊 Summary of Hours</button>
+            <a href="eur.php?action=export_csv" class="btn btn-export">📥 Export CSV</a>
+            <?php if (!$isViewer): ?>
+                <button type="button" class="btn btn-import" onclick="openImportModal()">📤 Import CSV</button>
+            <?php endif; ?>
         </div>
         <div class="nav-actions">
             <?php if (!$isViewer): ?>
@@ -302,6 +367,9 @@ if ($pdo) {
     <?php endif; ?>
     <?php if (isset($_GET['deleted'])): ?>
         <div class="alert alert-success">EUR Record deleted successfully!</div>
+    <?php endif; ?>
+    <?php if (isset($_GET['imported'])): ?>
+        <div class="alert alert-success">Successfully imported <?= intval($_GET['imported']); ?> EUR records!</div>
     <?php endif; ?>
 
     <?php if ($errorMessage): ?>
@@ -366,6 +434,30 @@ if ($pdo) {
                 <?php endif; ?>
             </tbody>
         </table>
+    </div>
+</div>
+
+<!-- Import CSV Modal -->
+<div id="importModal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h2>Import EUR Records (CSV)</h2>
+            <span class="close-btn" onclick="closeImportModal()">&times;</span>
+        </div>
+        <form method="POST" action="eur.php" enctype="multipart/form-data">
+            <input type="hidden" name="action" value="import_csv">
+            <div class="form-group">
+                <label for="csv_file">Select CSV File</label>
+                <input type="file" id="csv_file" name="csv_file" accept=".csv" required>
+            </div>
+            <p style="font-size: 12px; color: #64748b; margin-top: 10px;">
+                Expected CSV Columns: <code>Date, EUR No., Name, Equip. Type, Equip. ID, Activities, Area, Shift, Time Start, Time End, No. Of Hrs, Monitoring Name</code>
+            </p>
+            <div class="form-actions">
+                <button type="button" class="btn btn-back" onclick="closeImportModal()">Cancel</button>
+                <button type="submit" class="btn btn-import">Upload & Import</button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -579,7 +671,6 @@ if ($pdo) {
 <?php endif; ?>
 
 <script>
-    // Equipment ID mapping by Equipment Type
     const equipIDMap = {
         'Backhoe': ['TX-01','TX-02','TX-03','TX-04','TX-05','TX-06','TX-07','TX-08','TX-09','TX-10'],
         'Wheel Loader': ['WL-01','WL-02','WL-03','WL-04'],
@@ -591,7 +682,6 @@ if ($pdo) {
         'Water Truck': ['WT-01','WT-02','WT-03','WT-04']
     };
 
-    // Activities mapping by Equipment Type
     const activitiesMap = {
         'Dumptruck': ['DT', 'Hauling of Ore', 'Hauling of Waste', 'Hauling of Boulders', 'Hauling of Item 200'],
         'Backhoe': ['Loading of Ore', 'Loading of Waste', 'Loading of Boulders', 'Loading of Item 200', 'Receiving of Ore', 'Receiving of Waste', 'Receiving of Boulders', 'Receiving of Item 200'],
@@ -606,7 +696,6 @@ if ($pdo) {
     function updateDynamicDropdowns(selectedID = '', selectedActivity = '') {
         const typeSelect = document.getElementById('equip_type').value;
         
-        // Update Equip IDs
         const idSelect = document.getElementById('equip_id');
         idSelect.innerHTML = '<option value="">Select Equipment ID</option>';
         if (typeSelect && equipIDMap[typeSelect]) {
@@ -619,7 +708,6 @@ if ($pdo) {
             });
         }
 
-        // Update Activities
         const actSelect = document.getElementById('activities');
         actSelect.innerHTML = '<option value="">Select Activity</option>';
         if (typeSelect && activitiesMap[typeSelect]) {
@@ -678,6 +766,15 @@ if ($pdo) {
         if (modal) modal.classList.remove('active');
     }
 
+    function openImportModal() {
+        const modal = document.getElementById('importModal');
+        if (modal) modal.classList.add('active');
+    }
+    function closeImportModal() {
+        const modal = document.getElementById('importModal');
+        if (modal) modal.classList.remove('active');
+    }
+
     function toggleDateInputs() {
         const type = document.getElementById('period_type').value;
         const mthGroup = document.getElementById('month_input_group');
@@ -709,8 +806,10 @@ if ($pdo) {
     window.onclick = function(event) {
         const modalAdd = document.getElementById('eurModal');
         const modalSum = document.getElementById('summaryModal');
+        const modalImp = document.getElementById('importModal');
         if (modalAdd && event.target == modalAdd) closeModal();
         if (modalSum && event.target == modalSum) closeSummaryModal();
+        if (modalImp && event.target == modalImp) closeImportModal();
     }
 </script>
 
