@@ -51,40 +51,51 @@ if (isset($_POST['login'])) {
         --light-border: #e2e8f0;
     }
 
+    * {
+        box-sizing: border-box;
+    }
+
     body {
-        /* 1. Project Background Image */
-        background-image: url('images/BG.jpeg'); 
-        
-        /* 2. Fill the screen without zooming or tiling */
-        background-size: 100% 100%;     
-        background-position: center;    
-        background-repeat: no-repeat;   
-        background-attachment: fixed;  /* Keeps image stationary */
-        
-        /* 3. Fallback and alignment */
-        background-color: var(--navy);  
+        margin: 0;
+        padding: 0;
+        height: 100vh;
+        font-family: 'Segoe UI', sans-serif;
+        background-color: var(--navy);
+        overflow: hidden;
+    }
+
+    /* Split Screen Layout Container */
+    .login-wrapper {
+        display: flex;
+        width: 100vw;
+        height: 100vh;
+    }
+
+    /* Left Side - Image Container */
+    .left-image-section {
+        flex: 1.2;
+        background-image: url('images/BG.jpeg');
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+    }
+
+    /* Right Side - Login Section */
+    .right-login-section {
+        flex: 0.8;
+        background: #ffffff;
         display: flex;
         align-items: center;
         justify-content: center;
-        height: 100vh;
-        margin: 0;
-        font-family: 'Segoe UI', sans-serif;
-        
-        /* 4. BLUR REMOVED for a clear, sharp background */
-        backdrop-filter: none;
-        -webkit-backdrop-filter: none;
+        padding: 40px;
+        box-shadow: -10px 0 25px rgba(0, 0, 0, 0.15);
+        z-index: 2;
     }
 
     .login-card { 
-        background: rgba(255, 255, 255, 0.98); /* Slight transparency to feel integrated */
-        padding: 40px; 
-        border-radius: 16px; 
-        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3); 
         width: 100%;
-        max-width: 400px; 
+        max-width: 380px; 
         text-align: center; 
-        border: 1px solid var(--light-border);
-        z-index: 10;
     }
 
     .brand-header {
@@ -143,7 +154,6 @@ if (isset($_POST['login'])) {
         margin-bottom: 18px; 
         border: 1.5px solid #cbd5e1; 
         border-radius: 10px; 
-        box-sizing: border-box; 
         outline: none; 
         transition: all 0.3s ease; 
         font-size: 14px;
@@ -221,35 +231,57 @@ if (isset($_POST['login'])) {
         opacity: 0.8;
         text-decoration: underline;
     }
+
+    /* Responsive Design for Mobile Screens */
+    @media (max-width: 768px) {
+        .login-wrapper {
+            flex-direction: column;
+        }
+        .left-image-section {
+            display: none; /* Hides image section on small mobile devices */
+        }
+        .right-login-section {
+            flex: 1;
+            width: 100%;
+        }
+    }
 </style>
 </head>
 <body>
-    <div class="login-card">
-        <div class="brand-header">
-            <img src="images/logo.png" class="logo-small" alt="Logo">
-            <div class="header-text-group">
-                <h1>Goldrich Construction <br> and Trading</h1>
-                <p>Homonhon Nickel Project <br> </p>
+    <div class="login-wrapper">
+        <!-- Left Side: Full Screen Background Image -->
+        <div class="left-image-section"></div>
+
+        <!-- Right Side: Clean Login Form Modal -->
+        <div class="right-login-section">
+            <div class="login-card">
+                <div class="brand-header">
+                    <img src="images/logo.png" class="logo-small" alt="Logo">
+                    <div class="header-text-group">
+                        <h1>Goldrich Construction <br> and Trading</h1>
+                        <p>Homonhon Nickel Project <br> </p>
+                    </div>
+                </div>
+
+                <div class="system-title-container">
+                    <h2>GRCT HOMONHON <br> Data Management System</h2>
+                </div>
+                
+                <?php if (isset($error)) echo "<div class='error'>$error</div>"; ?>
+                
+                <form method="POST">
+                    <input type="text" name="username" placeholder="Username" required autofocus>
+                    <input type="password" name="password" placeholder="Password" required>
+                    <button type="submit" name="login">Sign In</button>
+                </form>
+
+                <div class="footer-support">
+                    <p><span>🔑</span> Access Issue? Contact Admin</p>
+                    <a href="mailto:support.warehouse@goldrich.com">
+                        support.warehouse@goldrich.com
+                    </a>
+                </div>
             </div>
-        </div>
-
-        <div class="system-title-container">
-            <h2>GRCT HOMONHON <br> Data Management System</h2>
-        </div>
-        
-        <?php if (isset($error)) echo "<div class='error'>$error</div>"; ?>
-        
-        <form method="POST">
-            <input type="text" name="username" placeholder="Username" required autofocus>
-            <input type="password" name="password" placeholder="Password" required>
-            <button type="submit" name="login">Sign In</button>
-        </form>
-
-        <div class="footer-support">
-            <p><span>🔑</span> Access Issue? Contact Admin</p>
-            <a href="mailto:support.homonhon@goldrich.com">
-                support.warehouse@goldrich.com
-            </a>
         </div>
     </div>
 </body>
