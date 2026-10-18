@@ -346,7 +346,7 @@ if (!isset($_SESSION['user_id'])) {
             </a>
 
             <div class="sidebar-section-title">Financials and Analytics</div>
-            <a href="Department_costing.php" class="sidebar-item">
+            <a href="costing.php" class="sidebar-item">
                 <span class="icon">📊</span>
                 <span>Department Costing</span>
             </a>
